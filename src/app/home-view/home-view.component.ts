@@ -1,5 +1,5 @@
 /**
- * Startsidan: en vecka, en ingång, och sätt igång.
+ * Startsidan: en vecka och en ingång — och ingången är starten.
  *
  * Två val finns här, och båda är sådana som *den som övar vet bättre än appen*.
  * Vilken lista veckans glosor står i vet ett barn eller en förälder. Och var
@@ -20,7 +20,7 @@ import {
   inject,
 } from '@angular/core';
 import { EntryChoice, EntryPickerComponent } from '../entry-picker/entry-picker.component';
-import { DEFAULT_ENTRY, ENTRY_OPTIONS } from '../training/entry';
+import { ENTRY_OPTIONS } from '../training/entry';
 import { TrainingEngine } from '../training/training-engine';
 import { Step } from '../training/word-state';
 import { WORD_BLOCKS, WordBlock, blockById } from '../words/word-catalog';
@@ -32,7 +32,7 @@ interface BlockCard {
   started: boolean;
 }
 
-/** Vad ett tryck på «Kör igång» bär med sig. */
+/** Vad ett tryck på en ingång bär med sig. */
 export interface Start {
   block: WordBlock;
   entry: Step;
@@ -55,7 +55,6 @@ export class HomeViewComponent {
   askingReset = false;
   /** Om veckoutfällningen är öppen. */
   switching = false;
-  entry: Step = DEFAULT_ENTRY;
 
   /** Veckan användaren bläddrat fram till, om någon. */
   private pickedId: string | null = null;
@@ -119,32 +118,30 @@ export class HomeViewComponent {
   pick(block: WordBlock): void {
     this.pickedId = block.id;
     this.switching = false;
-    // Den nya veckan kan ha Skriva låst medan den förra hade det upplåst. Att
-    // låta ett låst steg ligga kvar valt vore att kunna starta i det.
-    if (this.entries.some((option) => option.step === this.entry && option.locked)) {
-      this.entry = DEFAULT_ENTRY;
-    }
   }
 
-  choose(entry: Step): void {
-    this.entry = entry;
-  }
-
-  start(): void {
+  /**
+   * Ingången är också startknappen: ett tryck på «Svep» startar veckan i svepet.
+   *
+   * Det fanns ett «Kör igång» under listan förut, alltså ett val följt av en
+   * bekräftelse. Bekräftelsen bar ingenting — ingången är inget man råkar välja
+   * fel och inget man ändrar utan att se det, och ett pass går att lämna. Ett
+   * tryck räcker.
+   */
+  start(entry: Step): void {
     const week = this.week;
     if (week !== null) {
-      this.chosen.emit({ block: week, entry: this.entry });
+      this.chosen.emit({ block: week, entry });
     }
   }
 
   async reset(): Promise<void> {
     await this.engine.reset();
     this.askingReset = false;
-    this.entry = DEFAULT_ENTRY;
     // Det enda stället som behöver `markForCheck`: ett `await` ligger emellan,
     // så Angular har redan kört sin kontroll när svaret kommer. Utfällningen
-    // och ingångsvalet klarar sig utan, eftersom de ändras från ett (click) i
-    // den här komponentens egen mall.
+    // klarar sig utan, eftersom den ändras från ett (click) i den här
+    // komponentens egen mall.
     this.changes.markForCheck();
   }
 }

@@ -4,10 +4,8 @@
         <button
             type="button"
             class="ui-toggle entry"
-            [class.is-active]="option.step === selected && !option.locked"
             [class.is-locked]="option.locked"
             [disabled]="option.locked"
-            [attr.aria-pressed]="option.step === selected && !option.locked"
             (click)="picked.emit(option.step)">
             <span class="entry-name">{{option.name}}</span>
             <span class="entry-blurb">

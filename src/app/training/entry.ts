@@ -32,18 +32,24 @@ export interface EntryOption {
 }
 
 /**
- * Ingångarna som de visas.
+ * Ingångarna som de visas: i stigande svårighet, alltså samma ordning som
+ * `STEPS`.
  *
- * Ordningen här är *presentationens* och inte stegens: svepet först för att det
- * är default. `STEPS` är fortsatt den enda sanningen om svårighetsordningen.
+ * Listan läses uppifrån och ned, och då ska den lättaste vägen in stå först.
+ * Att i stället låta default stå överst vore att blanda två saker — vilken
+ * ingång appen gissar på är `DEFAULT_ENTRY`:s sak, inte radordningens.
+ *
+ * Att ordningen sammanfaller med `STEPS` gör den inte härledd ur den. `STEPS`
+ * är motorns sanning om svårighet; den här listan är en presentation som råkar
+ * hålla med, och de får glida isär utan att något går sönder.
  *
  * Skriva är den enda som förtjänas. De tre andra går att ta sig igenom med ett
  * ord man aldrig sett, och ett fel där kostar ingenting — medan ett skrivfält
  * utan förkunskap bara kan svara «fel».
  */
 export const ENTRY_OPTIONS: readonly EntryOption[] = [
-  { step: 'recall', name: 'Svep', blurb: 'Kom ihåg själv', requires: null },
-  { step: 'trueFalse', name: 'Sant/falskt', blurb: 'Stämmer det?', requires: null },
   { step: 'match', name: 'Match', blurb: 'Para ihop — lite lättare', requires: null },
+  { step: 'trueFalse', name: 'Sant/falskt', blurb: 'Stämmer det?', requires: null },
+  { step: 'recall', name: 'Svep', blurb: 'Kom ihåg själv', requires: null },
   { step: 'written', name: 'Skriva', blurb: 'Stava ordet', requires: 'written' },
 ];

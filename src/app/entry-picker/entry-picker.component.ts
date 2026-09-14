@@ -5,8 +5,10 @@
  * alternativ färdigräknade och skickar tillbaka det som trycktes på. Om det
  * här var upplåst eller inte är en mätning, och mätningar hör hemma i motorn.
  *
- * Knappen är `.ui-toggle`, samma som `ganger`:s nivåval. Formen är densamma och
- * betydelsen inte: där ställs en svårighetsgrad in, här öppnas en dörr.
+ * Ett tryck *startar* veckan; det finns inget valt läge att visa och därför
+ * heller inget `selected`. Knappen är `.ui-toggle` för formens skull, men bär
+ * varken `is-active` eller `aria-pressed`: den ställer inte in något, den
+ * öppnar en dörr.
  */
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { EntryOption } from '../training/entry';
@@ -25,7 +27,6 @@ export interface EntryChoice extends EntryOption {
 })
 export class EntryPickerComponent {
   @Input({ required: true }) options!: readonly EntryChoice[];
-  @Input({ required: true }) selected!: Step;
 
   @Output() readonly picked = new EventEmitter<Step>();
 }

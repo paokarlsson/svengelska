@@ -92,3 +92,36 @@
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
+
+/* Övningen på en handhållen skärm: rutnätet tar tillbaka skalets sidopadding,
+   och cellerna blir stora nog att träffas med tummen utan att siktas på.
+
+   Ligger sist i filen med flit. Reglerna nedan har samma specificitet som
+   `.cell` ovan, så en media query placerad tidigare hade förlorat mot den —
+   ett mediavillkor väger ingenting i kaskaden, bara ordningen räknas.
+
+   620px och inte 420px: brytpunkten ska fånga hela handhållna spannet. Vanliga
+   telefoner ligger på 390–430px CSS-bredd, alltså precis över den gräns
+   `.ui-heat-cell` använder, och den gränsen är satt för en tabell med fasta
+   celler — inte för den här ytan.
+
+   Bredden tas med negativ marginal i stället för en ändring i `.shell`:
+   paddingen är rätt för text och kort, det är just träffytan som vill ut i
+   kanten. Taket på 26rem binder ändå aldrig så här långt ned. */
+@media (max-width: 620px) {
+    .columns {
+        width: calc(100% + var(--space-3) * 2);
+        margin-inline: calc(var(--space-3) * -1);
+        gap: var(--space-2);
+    }
+
+    .column {
+        gap: var(--space-2);
+    }
+
+    .cell {
+        min-height: 5rem;
+        padding: 0.7em 0.5em;
+        font-size: clamp(1rem, 4.5vw, 1.25rem);
+    }
+}

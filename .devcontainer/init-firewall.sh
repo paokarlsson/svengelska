@@ -50,6 +50,7 @@ for domain in \
     "claude.ai" \
     "claude.com" \
     "platform.claude.com" \
+    "paokarlsson.github.io" \
     "downloads.claude.ai" \
     "code.claude.com" \
     "marketplace.visualstudio.com" \
