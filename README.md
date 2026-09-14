@@ -131,3 +131,12 @@ exponerar den på [http://localhost:4200](http://localhost:4200).
 `--base-href /svengelska/` och publicerar `dist/browser` till GitHub Pages.
 Inget committas till repot; Pages-källan måste vara satt till *GitHub Actions*
 under Settings → Pages.
+
+Står källan fel faller `deploy` med `HttpError: Not Found` och
+`Failed to create deployment (status: 404)` — bygget är då grönt och bara
+publiceringen fallerar. Rätta inställningen och kör om körningen; det röda
+jobbet från det första försöket ligger kvar i Actions-vyn även efteråt.
+
+En pull request kör bara `build` (tester och bygge). Artefakten laddas upp och
+`deploy` körs enbart från `main`, så en PR kan aldrig ta plats i Pages
+deploy-kö.

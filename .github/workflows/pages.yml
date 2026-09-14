@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+# Pages tar emot en deploy i taget, så körningar mot main delar en kö och får
+# aldrig avbrytas mitt i en publicering. En pull request bygger bara för att
+# validera; den ska ha sin egen grupp, annars ställer den sig i deploy-kön och
+# håller upp en riktig publicering. Där är det tvärtom önskvärt att en ny push
+# avbryter det föregående bygget.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.ref == 'refs/heads/main' && 'pages' || format('pages-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
@@ -27,7 +32,8 @@ jobs:
       # angular.json keeps baseHref "/" so ng serve (including via Docker)
       # serves from the root; GitHub Pages hosts the app under /svengelska/ instead.
       - run: npm run build -- --base-href /svengelska/
-      - uses: actions/upload-pages-artifact@v3
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist/browser
 
@@ -35,7 +41,11 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    # Jobbets permissions ersätter blocket högst upp i filen i sin helhet, så
+    # contents: read måste upprepas här — deploy-pages läser artefaktens
+    # metadata från körningen.
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
