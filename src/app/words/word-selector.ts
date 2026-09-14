@@ -16,7 +16,7 @@
  * andra ord, inte omedelbart. Att svara på samma glosa två gånger i rad mäter
  * korttidsminnet och inte glosan, och `ganger` lärde sig det som `RECENT_MEMORY`.
  */
-import { Step, WordRecord, currentStep, masteryIn, needFor, trainingStep } from '../training/word-state';
+import { STEPS, Step, WordRecord, currentStep, masteryIn, needFor, trainingStep } from '../training/word-state';
 import { Random, weightedPick } from './shuffle';
 import { WordPair, wordKey } from './word-catalog';
 
@@ -72,8 +72,9 @@ export function selectNext(
   recordOf: (pair: WordPair) => WordRecord,
   recent: readonly string[] = [],
   random: Random = Math.random,
+  floor: Step = STEPS[0],
 ): Exposure | null {
-  const candidates = exposures(words, recordOf);
+  const candidates = exposures(words, recordOf, floor);
   if (candidates.length === 0) {
     return null;
   }
@@ -93,12 +94,16 @@ export function selectNext(
  * Ett ord som klarat alla fyra steg har inget nästa steg, och underhålls då i
  * det sista: skrivsteget är det enda som mäter fri produktion, och därmed det
  * enda som kan upptäcka att ett färdigt ord glidit.
+ *
+ * `floor` är passets ingång och skickas bara vidare — vad ett golv betyder
+ * avgörs i `trainingStep()`, inte här.
  */
 export function exposures(
   words: readonly WordPair[],
   recordOf: (pair: WordPair) => WordRecord,
+  floor: Step = STEPS[0],
 ): Exposure[] {
-  return words.map((pair) => ({ pair, step: trainingStep(recordOf(pair)) ?? 'written' }));
+  return words.map((pair) => ({ pair, step: trainingStep(recordOf(pair), floor) ?? 'written' }));
 }
 
 /**

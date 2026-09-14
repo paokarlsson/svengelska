@@ -30,6 +30,16 @@ Blocket är stabilt genom hela passet. Samma ord följer med genom alla fyra
 stegen, **men varje ord rör sig i sin egen takt** — sju ord kan ha lämnat Match
 medan tre är kvar, och för den som övar är det fortfarande ett block.
 
+**Stegen är en stege, inte en kö.** Ordningen säger vad som är svårare, inte var
+alla måste börja. Den som redan gått igenom veckans lista i skolan ska kunna
+kliva rakt in i svepet, och ska inte behöva para ihop tio ord hen känner igen
+för att få göra det. Därför väljs *ingången* på startsidan — var passet kliver
+in — medan stegen därefter är motorns.
+
+Ingången är ett golv och inte ett läge. Ett ord som sitter puttas vidare uppåt
+av sin egen mätning mitt i passet, och ett ord som kämpar får stöd från steget
+under — också när det steget ligger under golvet.
+
 Principen under allt: **komplexitet under ytan, enkelhet på ytan.** Ingen
 nivåväljare, ingen träningsplan, ingen statistik att tolka. Den centrala loopen
 är `gör något → få omedelbar återkoppling → systemet uppdaterar sin bild →
@@ -71,6 +81,40 @@ plocka fram. `AUTOMATIC` kräver att `written` sitter, och regeln ligger i
 grön karta utan att kunna producera ett enda ord.
 
 Låst med ett test.
+
+### Ett överhoppat steg räknas som klart när ett svårare sitter
+
+Spegelbilden av regeln ovan, och nödvändig i samma stund ingången går att välja.
+Kliver passet in i Återkalla mäts match aldrig, och `currentStep()` — «första
+steget som inte sitter» — skulle då peka på match för alltid. Följden vore att
+inget ord i veckan någonsin blev automatiserat, att kartans första kolumn stod
+grå hur mycket som än övades, och att blocket aldrig kunde bli klart. Ett val på
+startsidan hade tyst gjort framstegen omöjliga.
+
+Regeln är därför att ett steg är avklarat när det självt sitter **eller** när
+något svårare sitter (`settled()`). Fri produktion bevisar igenkänning;
+igenkänning bevisar aldrig produktion. Den ena riktningen är gratis och den andra
+utesluten, och det är samma asymmetri som `stateFor()` redan vilar på — bara läst
+åt andra hållet.
+
+För ett ord som gått stegen i ordning ändrar regeln ingenting: har det nått
+Skriva sitter allt under ändå. Den nya grenen kan bara falla ut för ett ord som
+hoppat över något, vilket är precis vad den finns för. Kartan säger «räcker» och
+inte «sitter» om ett sådant fält, eftersom skillnaden mellan *mätt* och *täckt*
+är värd ett ord.
+
+### Skriva förtjänas, de tre andra är öppna
+
+Match, sant/falskt och återkalla går att välja för en vecka som aldrig rörts:
+alla tre går att ta sig igenom med ett ord man aldrig sett, och ett fel där
+kostar ingenting. Att skriva ett ord man aldrig sett är ingen övning utan en
+gissning på en tom rad, och den enda återkoppling den kan ge är «fel».
+
+Därför visas Skriva från början men går inte att välja förrän minst ett ord i
+veckan tagit sig fram till steget av egen kraft. Låst och synlig, inte gömd — det
+som ska komma ska synas, annars ser stegen ut att vara tre. Villkoret är
+avsiktligt *ett* ord och inte alla: ingången är ett golv, och ett golv som kräver
+att alla redan står på det är inget golv.
 
 ### Farten lagras som kvot mot stegets egen baslinje, aldrig som sekunder
 
@@ -130,12 +174,27 @@ Konsekvensen är att hela nivåapparaten utgår — `focusRank`, `windowWeight`,
 nivåknappar, svårighetsgrupper. Blocket *är* urvalsrymden, och steget per ord
 ersätter nivån. Det är en förenkling, inte en förlust.
 
-### Läget är motorns beslut, inte användarens
+### Ingången är användarens, stegen är motorns
 
-Det finns ingen meny som väljer övning. Konceptets produktprincip är att
-användaren inte ska behöva välja nivå eller planera sin träning, och en
-lägesmeny hade varit första steget bort från den. `ganger`:s egen plan går åt
-samma håll (dess steg 6, «ta bort nivåknapparna»).
+Startsidan har fyra ingångar och ingen av dem är ett läge. Skillnaden är hela
+beslutet och lätt att tappa: ett läge gäller passet ut och gör den som övar till
+sin egen planerare, medan en ingång gäller det *första* kortet och lämnar resten
+till mätningen. Väljs Återkalla dyker sant/falskt upp ändå för det ord som inte
+når fram, och det ord som sitter går vidare till Skriva utan att någon bett om
+det.
+
+Skälet att lämna ingången till användaren är att den inte är en mätning. Vilket
+steg ett *enskilt ord* ska övas i vet bara systemet, och det ska ingen människa
+behöva räkna ut. Men var *veckan* börjar vet den som övar bättre än appen: att
+listan redan gåtts igenom på måndagen står inte i framstegsdokumentet. Att tvinga
+den som känner igen orden genom en match-runda för att få svepa är att låta en
+tom mätning bestämma över ett känt faktum.
+
+Svepet är default, och det är inget hopp: det är appens centrum, och en app ska
+öppna i det den är. Match står kvar som den enklare vägen in, inte som början.
+`ganger`:s steg 6 — «ta bort nivåknapparna» — pekar fortfarande åt samma håll,
+och det är därför det här *inte* är en nivåväljare: det finns ingen
+svårighetsgrad att ställa in, bara en dörr att gå in genom.
 
 ### Riktningen är en: engelska frågar, svenskan svarar
 
@@ -247,6 +306,12 @@ oberoende, och ett ord som fastnar fastnar i sin vecka. Att låta det följa med
 samma framsteg — men det kräver ett svar på vad «nästa block» är när listorna är
 veckor och veckan efter har sina egna tio ord.
 
+Frågan har sedan ingången blev valbar också en andra dimension: ett block som
+körts från svep-ingången blir klart på färre mätningar än ett som gått hela
+stegen, eftersom ett överhoppat steg räknas som täckt. Om det är rätt — om
+«klart» ska betyda samma sak oavsett var veckan började — avgörs av samma sak
+som resten av frågan.
+
 Avgörs av: att se ett barn använda appen i några veckor. Inte av resonemang.
 
 ### 2. Ska Match vara diagnostisk här?
@@ -336,6 +401,7 @@ Satta på känsla, inte ur mätdata. Markerade `ANTAGANDE:` i koden.
 | `FALLBACK_MISSES` | `training/word-state.ts` | När ett ord får stöd av steget under |
 | `NEED_FLOOR` / `NEED_CEILING` | `training/word-state.ts` | Hur sällan ett behärskat ord ändå kommer |
 | `NEAR_DISTANCE`, `MIN_NEAR_LENGTH` | `training/spelling.ts` | Var gränsen går mellan «nästan» och «ett annat ord» |
+| `DEFAULT_ENTRY` | `training/entry.ts` | Vilken ingång startsidan öppnar i |
 | `SESSION_LENGTH` | `training/session.ts` | Hur långt ett pass är |
 | `MATCH_ROUND` | `training/session.ts` | Hur många par en match-runda visar |
 | `RECENT_MEMORY` | `words/word-selector.ts` | Hur länge ett nyss övat ord är spärrat |
@@ -394,6 +460,12 @@ Vad som därutöver bars över oförändrat är `src/styles/`, och det syns: var
 `ui-`-klass i mallarna kommer därifrån. Sedan svepet flyttade hem bor även
 `--card-size` där, eftersom passets scen måste reservera kortets höjd för att
 sidan inte ska hoppa mellan stegen.
+
+Startsidans ingångsval är `.ui-toggle`, alltså exakt samma knapp som `ganger`:s
+nivåval. Det är värt en rad just för att formen är densamma och betydelsen inte:
+där ställs en svårighetsgrad in, här öppnas en dörr. Att den likheten är synlig
+gör det lättare att av misstag bygga tillbaka nivåväljaren, och det är därför
+skälet står skrivet både här och i `entry.ts`.
 
 **Följer medvetet inte med:** `fact-catalog.ts` och hela svårighetshärledningen,
 `fact-selector.ts`:s nivåfönster, `distractors.ts`:s aritmetiska felsvar,

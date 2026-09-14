@@ -1,0 +1,28 @@
+<ul class="entries">
+    @for (option of options; track option.step) {
+    <li>
+        <button
+            type="button"
+            class="ui-toggle entry"
+            [class.is-active]="option.step === selected && !option.locked"
+            [class.is-locked]="option.locked"
+            [disabled]="option.locked"
+            [attr.aria-pressed]="option.step === selected && !option.locked"
+            (click)="picked.emit(option.step)">
+            <span class="entry-name">{{option.name}}</span>
+            <span class="entry-blurb">
+                @if (option.locked) {
+                Låst än så länge
+                } @else {
+                {{option.blurb}}
+                }
+            </span>
+            @if (option.locked) {
+            <span class="ui-visually-hidden">
+                — öppnas när ett ord i veckan tagit sig hit av egen kraft.
+            </span>
+            }
+        </button>
+    </li>
+    }
+</ul>

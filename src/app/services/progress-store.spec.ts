@@ -69,6 +69,14 @@ describe('normalize', () => {
     expect(document.baselines.match).toHaveLength(BASELINE_WINDOW);
   });
 
+  it('bär ingen ingång — ett val som gäller ett pass ska inte bli en gammal sanning', () => {
+    // Ingången väljs på startsidan och gäller det passet. Skrevs den ned skulle
+    // nästa vecka öppna i förra veckans ingång, och då vore den ett läge.
+    const document = normalize({ ...emptyDocument(), entryStep: 'written' });
+    expect(document).toEqual(emptyDocument());
+    expect('entryStep' in document).toBe(false);
+  });
+
   it('avvisar negativa räknare — ett redigerat dokument ska inte ge negativa svar', () => {
     const document = normalize({
       words: { 'en:dog=hund': { match: { attempts: -5, correct: -1, streak: -3 } } },

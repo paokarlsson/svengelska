@@ -2,7 +2,11 @@
     @switch (screen) {
     @case ('session') {
     @if (block; as chosen) {
-    <app-session-view [block]="chosen" (exited)="showHome()" (mapped)="showMap(chosen)" />
+    <app-session-view
+        [block]="chosen"
+        [entry]="entry"
+        (exited)="showHome()"
+        (mapped)="showMap(chosen)" />
     }
     }
     @case ('map') {

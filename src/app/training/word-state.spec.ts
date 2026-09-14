@@ -12,10 +12,12 @@ import {
   currentStep,
   emptyRecord,
   emptyStat,
+  hasReached,
   masteryIn,
   medianPace,
   needFor,
   recordAttempt,
+  settled,
   stateFor,
   trainingStep,
 } from './word-state';
@@ -119,6 +121,40 @@ describe('currentStep', () => {
     });
     expect(currentStep(rusty)).toBe('recall');
   });
+
+  it('räknar ett överhoppat steg som klart när ett svårare sitter', () => {
+    // Kliver passet in i svepet mäts match aldrig. Utan den här regeln vore
+    // ordet låst till match för alltid, och automatiserat oåtkomligt.
+    const skipped = recordWith({ written: mastered() });
+    expect(skipped.match.attempts).toBe(0);
+    expect(currentStep(skipped)).toBeNull();
+    expect(stateFor(skipped)).toBe('AUTOMATIC');
+  });
+
+  it('läser aldrig regeln åt andra hållet: igenkänning täcker inget svårare', () => {
+    const recognisedOnly = recordWith({ match: mastered(), trueFalse: mastered() });
+    expect(settled(recognisedOnly, 'match')).toBe(true);
+    expect(settled(recognisedOnly, 'written')).toBe(false);
+    expect(currentStep(recognisedOnly)).toBe('recall');
+  });
+});
+
+describe('hasReached', () => {
+  it('ser inte skrivsteget i ett orört ord', () => {
+    expect(hasReached(emptyRecord(), 'written')).toBe(false);
+    expect(hasReached(emptyRecord(), 'match')).toBe(true);
+  });
+
+  it('ser varje steg i ett automatiserat ord', () => {
+    const all = Object.fromEntries(STEPS.map((step) => [step, mastered()])) as WordRecord;
+    expect(STEPS.every((step) => hasReached(all, step))).toBe(true);
+  });
+
+  it('ser fram till det pågående steget, men inte förbi det', () => {
+    const record = recordWith({ match: mastered(), trueFalse: mastered() });
+    expect(hasReached(record, 'recall')).toBe(true);
+    expect(hasReached(record, 'written')).toBe(false);
+  });
 });
 
 describe('stateFor', () => {
@@ -174,6 +210,50 @@ describe('trainingStep', () => {
     });
     trainingStep(record);
     expect(masteryIn(record.trueFalse)).toBe('mastered');
+  });
+
+  it('beter sig som förr när ingen ingång valts', () => {
+    // Kvittot på att golvet är additivt: utan argument ska ingenting ha ändrats.
+    const records = [
+      emptyRecord(),
+      recordWith({ match: mastered() }),
+      recordWith({ match: mastered(), trueFalse: statFrom([false, false]) }),
+      recordWith({ match: mastered(), trueFalse: mastered(), recall: mastered() }),
+    ];
+    for (const record of records) {
+      expect(trainingStep(record)).toBe(trainingStep(record, STEPS[0]));
+    }
+  });
+});
+
+describe('trainingStep med en vald ingång', () => {
+  it('låter ett orört ord kliva in där passet börjar, inte längst ned', () => {
+    for (const floor of STEPS) {
+      expect(trainingStep(emptyRecord(), floor)).toBe(floor);
+    }
+  });
+
+  it('är ett golv och inget tak — ett ord som kommit längre sänks inte', () => {
+    const record = recordWith({ match: mastered(), trueFalse: mastered(), recall: mastered() });
+    expect(currentStep(record)).toBe('written');
+    for (const floor of STEPS) {
+      expect(trainingStep(record, floor)).toBe('written');
+    }
+  });
+
+  it('låter stödet gå under golvet, för stöd är inget straff', () => {
+    const misses = Array<boolean>(FALLBACK_MISSES).fill(false);
+    const record = recordWith({ recall: statFrom(misses) });
+    expect(trainingStep(record, 'recall')).toBe('trueFalse');
+  });
+
+  it('mäter kämpandet i det steg ordet faktiskt visades i', () => {
+    // Missarna ligger i match, men passet kliver in i svepet: ordet har aldrig
+    // setts där, så det finns inget att falla ifrån.
+    const misses = Array<boolean>(FALLBACK_MISSES).fill(false);
+    const record = recordWith({ match: statFrom(misses) });
+    expect(trainingStep(record, 'recall')).toBe('recall');
+    expect(trainingStep(record, 'match')).toBe('match');
   });
 });
 

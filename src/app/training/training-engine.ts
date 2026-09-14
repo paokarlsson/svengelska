@@ -26,6 +26,7 @@ import {
   WordRecord,
   WordState,
   emptyRecord,
+  hasReached,
   masteryIn,
   needFor,
   recordAttempt,
@@ -136,6 +137,17 @@ export class TrainingEngine {
   /** Hur många ord i blocket som sitter i ett givet steg. */
   masteredCount(words: readonly WordPair[], step: Step): number {
     return words.filter((pair) => masteryIn(this.recordFor(pair)[step]) === 'mastered').length;
+  }
+
+  /**
+   * Om något ord i blocket tagit sig fram till steget. Det som låser upp en
+   * ingång på startsidan.
+   *
+   * Avsiktligt *ett* ord och inte alla: ingången är ett golv, och ett golv som
+   * kräver att alla redan står på det är inget golv.
+   */
+  reached(words: readonly WordPair[], step: Step): boolean {
+    return words.some((pair) => hasReached(this.recordFor(pair), step));
   }
 
   /** Om det finns något alls att visa — en karta över ett tomt block ljuger. */

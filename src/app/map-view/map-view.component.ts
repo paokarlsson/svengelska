@@ -14,14 +14,21 @@
  */
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, inject } from '@angular/core';
 import { TrainingEngine } from '../training/training-engine';
-import { STEPS, Step, WordState, masteryIn } from '../training/word-state';
+import { STEPS, Step, WordState, masteryIn, settled } from '../training/word-state';
 import { WordBlock, WordPair } from '../words/word-catalog';
 
-/** Vad ett fält säger, och hur det ska läsas. */
+/**
+ * Vad ett fält säger, och hur det ska läsas.
+ *
+ * `implied` är skillnaden mellan *mätt* och *täckt*: ett steg som aldrig övats,
+ * men som ett svårare steg har gått i god för. Det är värt en egen ton — utan
+ * den skulle ett automatiserat ord visa en grå «ny»-ruta i en kolumn det aldrig
+ * behövde passera, och kartan ljuga åt andra hållet.
+ */
 interface Cell {
   step: Step;
   label: string;
-  tone: 'unseen' | 'weak' | 'learning' | 'mastered';
+  tone: 'unseen' | 'weak' | 'learning' | 'mastered' | 'implied';
 }
 
 interface Row {
@@ -51,6 +58,7 @@ const TONE_LABEL = {
   weak: 'svag',
   learning: 'övar',
   mastered: 'sitter',
+  implied: 'räcker',
 } as const;
 
 @Component({
@@ -89,7 +97,8 @@ export class MapViewComponent implements OnChanges {
     const record = this.engine.recordFor(pair);
     const cells = STEPS.map((step): Cell => {
       const stat = record[step];
-      const tone = stat.attempts === 0 ? 'unseen' : masteryIn(stat);
+      const tone =
+        stat.attempts > 0 ? masteryIn(stat) : settled(record, step) ? 'implied' : 'unseen';
       return { step, label: TONE_LABEL[tone], tone };
     });
     return { pair, cells, automatic: this.engine.stepFor(pair) === null };
