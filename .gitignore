@@ -40,3 +40,7 @@ Thumbs.db
 # Exporterad övningsdata. Ett barns svarstider hör inte hemma i ett publikt
 # repo.
 /tools/
+
+# Claude Code: projektets egna regler (.claude/settings.json) checkas in, men
+# personliga överskrivningar gör det inte.
+.claude/settings.local.json
