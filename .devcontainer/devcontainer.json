@@ -47,6 +47,6 @@
   "workspaceFolder": "/workspace",
 
   // Vid varje start, inte bara vid bygget: iptables-regler följer inte med i imagen.
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/share/svengelska/init-firewall.sh",
   "waitFor": "postStartCommand"
 }

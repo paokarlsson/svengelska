@@ -52,9 +52,11 @@ ENV DEVCONTAINER=true \
     SHELL=/bin/zsh
 
 # node får köra brandväggsskriptet som root, och ingenting annat.
-COPY init-firewall.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/init-firewall.sh && \
-    echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+# Inte /usr/local/bin: claude-code-featuren lägger ett eget init-firewall.sh
+# där, och features körs efter Dockerfilen — vår fil skulle skrivas över.
+COPY init-firewall.sh /usr/local/share/svengelska/
+RUN chmod +x /usr/local/share/svengelska/init-firewall.sh && \
+    echo "node ALL=(root) NOPASSWD: /usr/local/share/svengelska/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
     chmod 0440 /etc/sudoers.d/node-firewall
 
 USER node
