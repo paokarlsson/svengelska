@@ -45,11 +45,16 @@
     transition: width var(--motion-fast);
 }
 
+/* Scenen är lika hög oavsett vilket steg som står på den. Golvet är
+   svepkortet, som är det högsta av de fyra, plus raden med domen och
+   knapparna under det — annars hoppar allt nedanför när ett svepkort avlöser
+   en match-runda. 24rem är kvar som ett golv under golvet, för en skärm så låg
+   att kortet krymper av sitt höjdtak. */
 .stage {
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    min-height: 24rem;
+    min-height: max(24rem, calc(var(--card-size) + 8.5rem));
     padding-top: var(--space-2);
 }
 

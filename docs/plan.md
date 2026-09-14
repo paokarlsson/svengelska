@@ -365,12 +365,35 @@ dokument, och att varje `localStorage`-fel sväljs där och ingen annanstans.
 med sitt golv, färskhetsspärren, och de fyra besluten under «Avgjort» som är
 märkta med att `ganger` lärde sig dem först.
 
-Det gäller även vyerna, fast planen kallade dem portar. Svepkortet, match-rundan
-och den deranged shuffle:n är skrivna här och inte kopierade: gesten och
-rondbygget är samma idé, men innehållet är ord och inte tal, och ett kort som
-visar `dog = hund` har inget gemensamt med ett som visar `7 × 8 = 54` utom att
-det svepas. Vad som verkligen bars över oförändrat är `src/styles/`, och det
-syns: varje `ui-`-klass i mallarna kommer därifrån.
+Det gäller även vyerna, fast planen kallade dem portar. Match-rundan och den
+deranged shuffle:n är skrivna här och inte kopierade: rondbygget är samma idé,
+men innehållet är ord och inte tal.
+
+**Svepet är undantaget, och det är ett medvetet byte.** Kortet skrevs först
+här — en egen rektangel med en egen dragning — och det var fel slags
+originalitet: gesten är inte innehåll. Nu är utseendet och svepmekaniken
+`ganger`:s, tagna rakt av. Kvadratiskt kort i kortfärgen, lutning mot draget,
+stämpel för svaret draget är på väg att ge, och ett kort som far ut ur bild åt
+det hållet. Tröskeln skalar med skärmens bredd och en knyck godtas även när den
+är kort. Måtten är mätta lika i båda apparna: samma kortstorlek, samma
+rotationsmatris, samma stämpelopacitet vid samma drag.
+
+Vad som *inte* följde med är vad kortet säger. `dog = hund` har inget gemensamt
+med `7 × 8 = 54` utom att det svepas, och Återkalla — där facit visas först och
+den som övar dömer sig själv — finns inte i `ganger` alls. Knapparna under
+kortet står därför kvar, där `ganger` gömmer sina: «jag kunde det» är ett
+påstående man ska kunna trycka på.
+
+Två saker är skrivna här som `ganger` inte har. `swipe-gesture.ts` är
+trösklarna utbrutna ur vyn, för att en regel ska gå att pröva utan en skärm —
+`ganger` har samma tal inbakade i sin komponent och därför inget test på dem.
+Och klippet i sidled ligger i skalet (`app.component.scss`): `ganger` slipper
+frågan genom att dess skal är exakt en ruta stort, medan den här sidan rullar.
+
+Vad som därutöver bars över oförändrat är `src/styles/`, och det syns: varje
+`ui-`-klass i mallarna kommer därifrån. Sedan svepet flyttade hem bor även
+`--card-size` där, eftersom passets scen måste reservera kortets höjd för att
+sidan inte ska hoppa mellan stegen.
 
 **Följer medvetet inte med:** `fact-catalog.ts` och hela svårighetshärledningen,
 `fact-selector.ts`:s nivåfönster, `distractors.ts`:s aritmetiska felsvar,

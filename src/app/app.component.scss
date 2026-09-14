@@ -10,4 +10,17 @@
     /* Bakgrunden hör till hela ytan och inte till kortet: passet byter
        innehåll hela tiden, och underlaget ska stå still. */
     min-height: 100%;
+
+    /* Svepkortet far ut ur bild på väg bort, och överskottet ska inte gå att
+       dra fram i sidled efteråt. Klippet ligger här och inte på <html> eller
+       <body>: webbläsaren flyttar upp rotens `overflow` till rutan, varpå
+       elementet självt slutar klippa — sidan går då fortfarande inte att dra
+       i, men överskottet finns kvar, och på en telefon växer layoutrutan efter
+       det så att hela sidan krymper medan kortet flyger. `ganger` klipper på
+       samma sätt, i skalet runt spelet.
+
+       `clip` och inte `hidden`, för att inte göra skalet till en rullbar ruta;
+       marginalen lämnar plats åt kortets skugga och fokusring. */
+    overflow-x: clip;
+    overflow-clip-margin: var(--space-2);
 }
