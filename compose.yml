@@ -1,0 +1,24 @@
+services:
+  svengelska:
+    image: node:24-alpine
+    container_name: svengelska
+    # Utan detta skriver containern (som annars kör som root) rootägda filer
+    # rakt in i den bind-mountade projektmappen (t.ex. .angular/cache och
+    # node_modules), vilket sen blockerar ng serve/ng build på värden.
+    # 1000:1000 matchar den vanliga första icke-root-användaren på Linux/WSL2
+    # — kör `id -u`/`id -g` och byt ut siffrorna om din användare har ett
+    # annat uid/gid.
+    user: "1000:1000"
+    working_dir: /app
+    ports:
+      - "4200:4200"
+    # node_modules ligger med i den vanliga bind-mounten i stället för en
+    # egen named volume — Docker skapar en ny named volume rootägd oavsett
+    # `user` ovan, vilket bara flyttar samma problem hit. Nackdelen: paket
+    # med native-binärer (esbuild, nice-napi m.fl.) byggs här mot Alpines
+    # musl, inte värdens glibc — kör om `npm ci` om du växlar mellan att
+    # köra `ng serve` via Docker och direkt på värden.
+    volumes:
+      - .:/app
+    command: sh -c "npm install && npm start -- --host 0.0.0.0"
+    restart: unless-stopped

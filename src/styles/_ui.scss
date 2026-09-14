@@ -1,0 +1,334 @@
+/* Appens gemensamma byggdelar: kort, rubriker, knappar, växlar och prickar.
+   De ligger globalt med flit — Angulars inkapsling scopar bara komponentens
+   egna stilar, så en global klass når in i alla mallar och behöver därför
+   bara finnas i ett exemplar i bygget. Komponenterna behåller sitt eget:
+   placering, mått och det som är just det spelets look.
+
+   Prefixet ui- är signalen i mallen om att utseendet kommer utifrån. */
+
+/* --- Kort ---------------------------------------------------------------- */
+.ui-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+}
+
+/* För kort som bär en hel skärm i stället för en sektion. */
+.ui-card--roomy {
+    padding: var(--space-5) var(--space-4);
+}
+
+/* --- Rubriker ------------------------------------------------------------
+   Alla guldrubriker i appen är samma rubrik i tre storlekar. */
+.ui-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 4.5vw, 1.35rem);
+    font-weight: 700;
+    color: var(--accent-highlight);
+    text-shadow: var(--title-shadow);
+}
+
+.ui-title--lg {
+    font-size: clamp(1.35rem, 6vw, 1.8rem);
+}
+
+.ui-title--sm {
+    font-size: clamp(0.85rem, 3.4vw, 1rem);
+}
+
+/* --- Knappar -------------------------------------------------------------
+   .ui-btn är formen; varianten ger rollen. */
+.ui-btn {
+    font-family: var(--font-display);
+    font-size: clamp(0.95rem, 3.8vw, 1.05rem);
+    font-weight: 600;
+    padding: 0.7em 1.6em;
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--motion-fast), border-color var(--motion-fast),
+        color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+/* Starta, spela igen. Grönt betyder även "rätt svar" i alla tre spelen — att
+   knappen har tjocklek och skugga är därför det som skiljer den från ett
+   facit.
+
+   Knappen ska gå att trycka på, och det är värt att behålla i ett spel för
+   barn. Däremot är det inte 2014 längre: den lodräta gradienten är borta —
+   en glans uppifrån är ett arv från knappar som ville se ut som glas — och
+   kvar är en jämn fyllning. Kanten under knappen är dess tjocklek och
+   skuggan under kanten är luften ned till kortet; förr fanns bara kanten,
+   och då blev knappen en pappersfigur i stället för ett föremål.
+
+   De tre lägena är samma färg på tre höjder, och paletten har redan ett
+   token för var och en: --accent-green i vila, --green-deep nedtryckt (djupare
+   färg läser som längre ned i skuggan, i båda lägena) och --green-shadow i
+   kanten. Hovringen räknas fram i stället, som ett steg i ljushet mot
+   underlagets motsats — uppåt mot en mörk botten, nedåt mot en ljus. Den
+   räknas i oklch och inte som en blandning, så att bara ljusheten flyttar
+   sig: en blandning mot --tone hade dragit med sig nyansen och gjort det
+   gröna blågrönt.
+
+   Texten är mörk mot det mörka lägets gröna och ljus mot det ljusas: vitt mot
+   det ljusa gröna gav 2:1, och på en smal skärm klampar knapptexten under
+   gränsen för stor text. Svagast av de sex kombinationerna — tre lägen i två
+   paletter — är 5.5:1. */
+.ui-btn--primary {
+    padding: 0.75em 2.2em;
+    font-size: clamp(1.05rem, 4.5vw, 1.3rem);
+    font-weight: 700;
+    border-color: transparent;
+    background: var(--accent-green);
+    color: var(--on-green);
+    box-shadow: 0 4px 0 var(--green-shadow),
+        0 7px 14px -4px color-mix(in oklab, var(--green-shadow) 40%, transparent);
+    /* Nedtryckningen ska kännas direkt och tas därför bort igen i :active.
+       Kvar här gäller den vägen tillbaka upp, som annars hoppar. */
+    transition: background var(--motion-fast), box-shadow var(--motion-fast),
+        transform 90ms ease-out;
+}
+
+/* Bakom hover: hover, eftersom ett finger inte hovrar. Utan den hänger
+   lyftet kvar på telefonen efter att knappen släppts. */
+@media (hover: hover) {
+    .ui-btn--primary:hover {
+        background: oklch(from var(--accent-green) calc(l + var(--lift)) c h);
+        /* Kanten växer lika mycket som knappen lyfter, så att undersidan står
+           stilla mot kortet. */
+        transform: translateY(-1px);
+        box-shadow: 0 5px 0 var(--green-shadow),
+            0 10px 18px -4px color-mix(in oklab, var(--green-shadow) 40%, transparent);
+    }
+}
+
+.ui-btn--primary:active {
+    transition: none;
+    background: var(--green-deep);
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--green-shadow),
+        0 2px 4px -2px color-mix(in oklab, var(--green-shadow) 40%, transparent);
+}
+
+/* Tillbaka, värmekarta, byt inställningar. */
+.ui-btn--secondary {
+    background: var(--fill-quiet);
+    border-color: var(--line-strong);
+}
+
+.ui-btn--secondary:hover {
+    background: var(--fill-hover);
+    border-color: var(--accent-highlight);
+}
+
+/* Avbryt, hoppa över — finns men ska inte dra blicken. */
+.ui-btn--quiet {
+    padding: 0.6em 1.3em;
+    font-size: clamp(0.85rem, 3.2vw, 0.95rem);
+    background: var(--fill-soft);
+    border-color: var(--line-strong);
+    color: var(--text-muted);
+}
+
+.ui-btn--quiet:hover {
+    background: var(--fill-quiet);
+    color: var(--text-primary);
+}
+
+/* Nollställ statistiken, avbryt på riktigt. Rött bärs av ram och fyllning;
+   texten är ljus, eftersom rött mot sin egen toning bara ger 3.4:1. */
+.ui-btn--danger {
+    background: var(--tint-red);
+    border-color: var(--accent-red);
+    color: var(--text-primary);
+}
+
+.ui-btn--danger:hover {
+    background: var(--tint-red-strong);
+}
+
+/* --- Växlar --------------------------------------------------------------
+   Nivå, antal frågor, måltid: samma knapp i två spel. */
+.ui-toggle {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.75em 0.5em;
+    border: 2px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--fill-soft);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--motion-fast), border-color var(--motion-fast),
+        color var(--motion-fast);
+}
+
+.ui-toggle:hover {
+    background: var(--fill-hover);
+    border-color: var(--accent-highlight);
+}
+
+.ui-toggle.is-active {
+    background: var(--accent-highlight);
+    border-color: var(--accent-highlight);
+    color: var(--on-highlight);
+}
+
+/* --- Prickar -------------------------------------------------------------
+   Både kalibreringens och rundans framsteg. */
+.ui-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--line-strong);
+    transition: background var(--motion-fast), transform var(--motion-fast);
+}
+
+.ui-dot--lg {
+    width: 14px;
+    height: 14px;
+}
+
+.ui-dot.is-done,
+.ui-dot.is-correct {
+    background: var(--accent-green);
+}
+
+.ui-dot.is-wrong {
+    background: var(--accent-red);
+}
+
+.ui-dot.is-current {
+    background: var(--accent-highlight);
+    transform: scale(1.3);
+}
+
+/* --- Dialog --------------------------------------------------------------- */
+.ui-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3);
+    background: var(--scrim);
+}
+
+.ui-modal {
+    max-width: 320px;
+    padding: var(--space-5);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+/* --- Värmekarta -----------------------------------------------------------
+   Rutnätet två av spelen ritar sin statistik i. Färgen på en ruta sätts av
+   komponenten, eftersom gränserna för vad som är snabbt skiljer sig åt; allt
+   annat ska se likadant ut, så att en grön ruta betyder samma sak i båda. */
+.ui-heat {
+    border-collapse: separate;
+    border-spacing: 3px;
+    margin: 0 auto;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+}
+
+.ui-heat-cell {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+    border-radius: 4px;
+}
+
+.ui-heat-cell--head {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* De mätta rutorna är ljusa i båda lägena, så siffran i dem är bläck och inte
+   vit — samma skäl som Sveps kort har sitt --card-ink. Vitt låg på 2.2:1 mot
+   den gula änden av den gamla skalan. */
+.ui-heat-cell--data {
+    color: var(--card-ink);
+    font-weight: 600;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.ui-heat-cell--data:hover {
+    transform: scale(1.2);
+    z-index: 10;
+}
+
+/* En ruta utan mätning är inte en punkt på skalan utan ett tomrum, och ska
+   därför varken bära rampens bläck eller läsa som ett värde. Den tar
+   underlagets egen färg och strecket i den är dämpad text. */
+.ui-heat-cell--untested {
+    background: var(--fill-quiet);
+    color: var(--text-muted);
+}
+
+.ui-heat-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.ui-heat-legend-bar {
+    width: 150px;
+    height: 12px;
+    border-radius: 6px;
+    /* Samma skala som time-color.ts räknar fram, och den svänger i oklch av
+       samma skäl: en toning som interpoleras i sRGB dyker ned i ljushet på
+       mitten, medan den här väger lika mycket hela vägen. Det gröna är ett
+       eget omdöme — snabbt nog — och står därför som en egen platta före
+       rampen, precis som i funktionen. */
+    background: linear-gradient(90deg in oklch,
+        oklch(0.72 0.155 152) 0%,
+        oklch(0.72 0.155 152) 10%,
+        oklch(0.72 0.145 85) 25%,
+        oklch(0.72 0.145 25) 100%);
+}
+
+/* Hela tabellen ska rymmas på en telefon utan att behöva dras i sidled. */
+@media (max-width: 420px) {
+    .ui-heat-cell {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* --- Fokus ---------------------------------------------------------------
+   Ett ställe för hela appen. Mästaren saknade fokusringar helt innan.
+   Offseten är inte bara luft: den lägger ringen utanför knappen, mot
+   underlaget, så att den syns även på den guldfärgade aktiva växeln. */
+.ui-btn:focus-visible,
+.ui-toggle:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+}
+
+/* --- För skärmläsare -----------------------------------------------------
+   Text som bär information färgen annars är ensam om att visa. */
+.ui-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

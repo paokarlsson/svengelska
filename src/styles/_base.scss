@@ -1,0 +1,35 @@
+/* Grunden under allt. Låg den här förut i Mästaren som en `*`-regel inuti
+   komponenten — den hör hemma globalt, så att alla fyra ytor räknar lika. */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    /* Så att överskjutande yta inte blinkar vitt mot den mörka startsidan. */
+    background: var(--bg-floor);
+}
+
+h1, h2, h3, p, figure {
+    margin: 0;
+}
+
+/* En enda regel för hela appen, i stället för tre olika i tre komponenter.
+   Övergångarna blir omedelbara i stället för att stängas av helt, så att
+   :hover och :active fortfarande syns. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -1,0 +1,5 @@
+/* Appens stilmall. Innehållet ligger i src/styles/ och delas av skalet och de
+   fyra stegen — se README för vad som hör hemma var. */
+@use 'styles/tokens';
+@use 'styles/base';
+@use 'styles/ui';
