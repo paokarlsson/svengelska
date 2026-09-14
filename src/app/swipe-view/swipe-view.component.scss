@@ -1,6 +1,14 @@
-/* Kortet är ett föremål på ett bord: det ligger ljust i båda lägena, det
-   lutar när det dras, och det far iväg åt det håll svaret gick. Allt som ser
-   ut som en knapp kommer från src/styles/_ui.scss. */
+/* Kortet är ett föremål på ett bord: det ligger ljust i båda lägena, det lutar
+   när det dras, det stämplas med svaret det är på väg att ge, och det far iväg
+   åt det håll svaret gick. Formen är `ganger`:s svepkort rakt av — samma gest
+   ska se likadan ut i båda apparna. Allt som ser ut som en knapp kommer från
+   src/styles/_ui.scss. */
+
+:host {
+    display: block;
+    width: 100%;
+}
+
 .swipe {
     display: flex;
     flex-direction: column;
@@ -9,115 +17,165 @@
     width: 100%;
 }
 
-/* Vad de två hållen betyder, skrivet i kanten i stället för i en instruktion.
-   Under tankefasen i Återkalla dämpas de: där finns inget att svepa än. */
-.rails {
-    display: flex;
-    justify-content: space-between;
-    width: min(100%, 22rem);
-    font-family: var(--font-display);
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    transition: opacity var(--motion-fast);
+/* --- Kortet ---------------------------------------------------------------
+   Ytterhöljet flyttas av CDK, innerkortet roterar. Skriver båda till samma
+   transform försvinner den mjuka återgången — det är ett fel `ganger` redan
+   har gjort en gång. */
+.card-slot {
+    width: var(--card-size);
+    z-index: 1; /* kortet ska glida över knapparna, inte under */
+    touch-action: none; /* annars slåss pull-to-refresh mot dragningen */
+    cursor: grab;
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.rails.is-quiet {
-    opacity: 0.25;
+.card-slot.cdk-drag-dragging {
+    cursor: grabbing;
+    transition: none;
 }
 
-.rail--deny::before {
-    content: '← ';
+/* Under fingret, och i det ögonblick nästa kort läggs på plats, ska inget
+   animeras: övergången hör till vägen tillbaka. */
+.card-slot.cdk-drag-dragging .game-card,
+.card-slot.is-instant,
+.card-slot.is-instant .game-card {
+    transition: none;
 }
 
-.rail--affirm::after {
-    content: ' →';
-}
-
-.card {
-    width: min(100%, 22rem);
-    min-height: 13rem;
+.game-card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: var(--space-1);
     padding: var(--space-4) var(--space-3);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     background: var(--card-face);
+    /* Egen textfärg: kortet är gult i båda lägena, så texten på det kan inte
+       ärva appens — den har ett eget token. */
     color: var(--card-ink);
-    box-shadow: var(--shadow-card);
-    cursor: grab;
+    font-family: var(--font-display);
     user-select: none;
-    /* Ett svep åt sidan är kortets gest, inte sidans. */
-    touch-action: none;
-    transition: box-shadow var(--motion-fast), background var(--motion-fast),
-        transform 0.25s ease-out;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none; /* stoppar iOS kopiera-meny mitt i ett drag */
+    box-shadow: var(--shadow-card);
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Under fingret ska kortet följa direkt; övergången hör till vägen tillbaka. */
-.card.is-held {
-    cursor: grabbing;
-    transition: box-shadow var(--motion-fast), background var(--motion-fast);
-}
-
-.card:focus-visible {
+.game-card:focus-visible {
     outline: var(--focus-ring);
     outline-offset: 4px;
 }
 
-/* Domen färgar kortet, inte bara texten under det: det är kortet som var
-   frågan, och färgen ska landa där blicken redan är. */
-.card.is-correct {
-    background: var(--accent-green);
-    color: var(--on-green);
+.game-card--leaving-right,
+.game-card--leaving-left {
+    opacity: 0;
+    transition: transform 260ms ease-in, opacity 260ms ease-in;
 }
 
-.card.is-wrong {
-    background: var(--accent-red);
-    color: var(--on-highlight);
-}
+.game-card--leaving-right { transform: translateX(140%) rotate(22deg); }
+.game-card--leaving-left { transform: translateX(-140%) rotate(-22deg); }
 
+/* Texten skalar med kortet och inte med rutan: kortet är kvadratiskt, och en
+   rubrik satt i vw spräcker det så fort skärmen är bred och låg. */
 .word {
-    font-family: var(--font-display);
-    font-size: clamp(1.8rem, 9vw, 2.6rem);
+    font-size: calc(var(--card-size) * 0.115);
     font-weight: 700;
+    line-height: 1.1;
     text-align: center;
+    overflow-wrap: anywhere;
 }
 
 .equals {
-    font-size: 1.1rem;
+    font-size: calc(var(--card-size) * 0.05);
     opacity: 0.55;
 }
 
 .translation {
-    font-family: var(--font-display);
-    font-size: clamp(1.5rem, 7.5vw, 2.2rem);
+    font-size: calc(var(--card-size) * 0.09);
     font-weight: 600;
+    line-height: 1.15;
     text-align: center;
+    overflow-wrap: anywhere;
 }
 
 .hint {
-    max-width: 16rem;
+    max-width: 70%;
+    font-family: var(--font-body);
+    font-size: calc(var(--card-size) * 0.042);
     text-align: center;
-    font-size: 0.9rem;
     opacity: 0.7;
 }
 
-/* Raden under kortet har alltid höjd, även när den är tom: hoppar den fram
-   och tillbaka flyttar den knapparna under fingret mellan två kort. */
+/* --- Stämplarna -----------------------------------------------------------
+   Vad draget är på väg att svara, skrivet på kortet i stället för i en
+   instruktion bredvid det. Opaciteten är hur långt kortet dragits.
+
+   Stämpeln sitter på motsatt sida mot dragriktningen — annars åker den ut ur
+   bild precis när den ska läsas. Färgerna är skrivna rakt ut och inte hämtade
+   ur --accent-green/red: de två vänder med läget, medan kortet de ligger på är
+   gult i både mörkt och ljust. */
+.stamp {
+    position: absolute;
+    top: 6%;
+    padding: 0.1em 0.4em;
+    border: 4px solid currentColor;
+    border-radius: var(--radius-sm);
+    font-size: calc(var(--card-size) * 0.055);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.stamp--affirm {
+    left: 6%;
+    color: rgb(20, 110, 20);
+    transform: rotate(-12deg);
+}
+
+.stamp--deny {
+    right: 6%;
+    color: rgb(178, 34, 34);
+    transform: rotate(12deg);
+}
+
+/* --- Domen ----------------------------------------------------------------
+   Raden har alltid höjd, även när den är tom: hoppar den fram och tillbaka
+   flyttar den knapparna under fingret mellan två kort. */
 .verdict {
-    min-height: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: clamp(1rem, 4.5vw, 1.4rem);
     color: var(--text-muted);
     text-align: center;
 }
 
+.said {
+    font-weight: bold;
+    color: var(--accent-green);
+}
+
+.said--wrong {
+    color: var(--accent-red);
+}
+
+/* --- Knapparna ------------------------------------------------------------
+   Kvar under kortet, och inte gömda som i `ganger`: i Återkalla är det den som
+   övar som dömer sig själv, och «jag kunde det» är ett påstående man ska kunna
+   trycka på. De bär samtidigt stämplarnas ord i samma vänster–höger-ordning
+   som svepet, så gesten har en etikett även innan den börjat. */
 .choices {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-2);
-    width: min(100%, 22rem);
+    width: var(--card-size);
 }
 
 .choices--single {

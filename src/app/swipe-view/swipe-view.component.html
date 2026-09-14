@@ -1,44 +1,35 @@
-@let thinking = card.kind === 'recall' && phase === 'asking';
-
 <div class="swipe">
-    <div class="rails" aria-hidden="true" [class.is-quiet]="thinking">
-        <span class="rail rail--deny">{{denyLabel}}</span>
-        <span class="rail rail--affirm">{{affirmLabel}}</span>
-    </div>
+    <div class="card-slot" cdkDrag cdkDragLockAxis="x"
+        [cdkDragDisabled]="locked || thinking" [class.is-instant]="instant"
+        (cdkDragMoved)="dragMoved($event)" (cdkDragEnded)="dragEnd($event)">
 
-    <div class="card"
-        [class.is-correct]="phase === 'feedback' && wasCorrect"
-        [class.is-wrong]="phase === 'feedback' && !wasCorrect"
-        [class.is-held]="drag !== 0"
-        [style.transform]="'translateX(' + drag + 'px) rotate(' + drag / 25 + 'deg)'"
-        tabindex="0"
-        role="group"
-        [attr.aria-label]="thinking ? 'Vad betyder ' + prompt + '?' : 'Stämmer ' + prompt + ' = ' + shown + '?'"
-        (pointerdown)="onPointerDown($event)"
-        (pointermove)="onPointerMove($event)"
-        (pointerup)="onPointerUp()"
-        (pointercancel)="onPointerUp()"
-        (keydown)="onKey($event)">
+        <div class="game-card"
+            [class.game-card--leaving-right]="leaving === 1"
+            [class.game-card--leaving-left]="leaving === -1"
+            [style.transform]="leaving ? null : 'rotate(' + rotation + 'deg)'"
+            tabindex="0"
+            role="group"
+            [attr.aria-label]="thinking ? 'Vad betyder ' + prompt + '?' : 'Stämmer ' + prompt + ' = ' + shown + '?'"
+            (pointerdown)="onPointerDown()"
+            (keydown)="onKey($event)">
 
-        <p class="word">{{prompt}}</p>
+            <span class="stamp stamp--affirm" [style.opacity]="strength(1)">{{affirmStamp}}</span>
+            <span class="stamp stamp--deny" [style.opacity]="strength(-1)">{{denyStamp}}</span>
 
-        @if (showsAnswer) {
-        <p class="equals" aria-hidden="true">=</p>
-        <p class="translation">{{shown}}</p>
-        } @else {
-        <p class="hint">Tänk på översättningen — tryck sedan på kortet</p>
-        }
+            <p class="word">{{prompt}}</p>
+
+            @if (showsAnswer) {
+            <p class="equals" aria-hidden="true">=</p>
+            <p class="translation">{{shown}}</p>
+            } @else {
+            <p class="hint">Tänk på översättningen — tryck sedan på kortet</p>
+            }
+        </div>
     </div>
 
     <p class="verdict" role="status" aria-live="polite">
-        @if (phase === 'feedback') {
-        @if (wasCorrect) {
-        Rätt!
-        } @else if (card.kind === 'trueFalse') {
-        Nej — {{prompt}} = {{truth}}
-        } @else {
-        {{prompt}} = {{truth}}
-        }
+        @if (verdict; as said) {
+        <span class="said" [class.said--wrong]="!said.correct">{{said.text}}</span>
         } @else if (thinking) {
         &nbsp;
         } @else {
@@ -53,11 +44,11 @@
     } @else {
     <div class="choices">
         <button type="button" class="ui-btn ui-btn--secondary choice choice--deny"
-            [disabled]="phase === 'feedback'" (click)="answer(false)">
+            [disabled]="locked" (click)="answer(false)">
             {{denyLabel}}
         </button>
         <button type="button" class="ui-btn ui-btn--secondary choice choice--affirm"
-            [disabled]="phase === 'feedback'" (click)="answer(true)">
+            [disabled]="locked" (click)="answer(true)">
             {{affirmLabel}}
         </button>
     </div>

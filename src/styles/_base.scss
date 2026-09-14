@@ -20,18 +20,20 @@ html, body {
 
 /* Toningen ligger på dokumentet och inte på ett kort: passet byter innehåll
    hela tiden, och underlaget ska stå still medan det sker. Fäst mot rutan, så
-   att den täcker hela skärmen även när sidan är kortare än den. */
+   att den täcker hela skärmen även när sidan är kortare än den.
+
+   Svepkortet som far ut ur bild klipps inte här utan i skalet, se
+   app.component.scss. Varken <html> eller <body> kan göra det: webbläsaren
+   flyttar upp deras `overflow` till rutan, och elementet självt blir synligt
+   igen. */
 html {
     background-image: var(--surface);
     background-attachment: fixed;
 }
 
-/* Annars målar kroppen över toningen på sin egen höjd. Sidled är avstängd för
-   att svepkortet ska kunna åka ut ur bild utan att sidan går att dra i sidled
-   efteråt — kortet är ju på väg bort. */
+/* Annars målar kroppen över toningen på sin egen höjd. */
 body {
     background: transparent;
-    overflow-x: hidden;
 }
 
 h1, h2, h3, p, figure {

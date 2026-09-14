@@ -173,6 +173,16 @@
        ritar något i toppen håller sig undan så här långt in. */
     --shell-back-space: 7rem;
 
+    /* Svepkortets sida. Kortet är kvadratiskt, så det är både bredd och höjd.
+       440 och 88vw är `ganger`:s mått; höjdtaket är lägre här, eftersom ett
+       pass har en rad och en mätare ovanför kortet och knappar under det —
+       där äger svepet hela rutan.
+
+       Måttet står här och inte i svepvyn för att passets scen måste kunna
+       räkna med det: den reserverar kortets höjd även i de steg som inte har
+       ett kort, så att sidan inte hoppar när ett steg avlöser ett annat. */
+    --card-size: min(440px, 88vw, 52vh);
+
     /* Enbart för avdelare och annat som inte är en kontroll. */
     --line-soft: color-mix(in oklab, var(--tone) 12%, transparent);
 
