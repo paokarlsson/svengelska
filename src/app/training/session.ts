@@ -6,9 +6,10 @@
  * uppgift är vyernas sak; vad som ska övas härnäst är den här filens.
  *
  * Det är här appen skiljer sig mest från `ganger`, som har tre spel i en meny.
- * Här finns ingen meny: den som övar trycker igång ett pass, och stegen växlar
- * under fötterna på hen allteftersom orden rör sig. Att inte behöva välja är
- * hela produktprincipen.
+ * Här finns ingen meny utan en *ingång*: den som övar väljer var veckan börjar
+ * och trycker igång, och därefter växlar stegen under fötterna på hen
+ * allteftersom orden rör sig. Skillnaden är hela produktprincipen — ingången
+ * gäller det första kortet, resten är mätningens.
  *
  * Dirigenten äger inga regler heller. Steget kommer från `word-state.ts`,
  * urvalet från `word-selector.ts`, felsvaren från `distractors.ts`. Det den
@@ -88,6 +89,11 @@ export class TrainingSession {
   constructor(
     private readonly engine: TrainingEngine,
     readonly block: WordBlock,
+    /**
+     * Var passet kliver in. Ett golv, inte ett läge: det gäller det första
+     * kortet, och varje kort efter det avgörs av mätningen. Se `draw()`.
+     */
+    private readonly entry: Step = STEPS[0],
     private readonly random: Random = Math.random,
   ) {
     for (const pair of block.words) {
@@ -190,7 +196,7 @@ export class TrainingSession {
     const waiting = this.retry.findIndex((pair) => !blocked.has(wordKey(pair)));
     if (waiting >= 0) {
       const pair = this.retry.splice(waiting, 1)[0];
-      const step = trainingStep(this.engine.recordFor(pair));
+      const step = trainingStep(this.engine.recordFor(pair), this.entry);
       if (step !== null) {
         return { pair, step };
       }
@@ -200,6 +206,7 @@ export class TrainingSession {
       (pair) => this.engine.recordFor(pair),
       this.recent,
       this.random,
+      this.entry,
     );
   }
 

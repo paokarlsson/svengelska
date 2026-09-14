@@ -6,8 +6,9 @@
  * igen. Att steget kan byta mellan två kort — match, sedan skriva, sedan
  * sant/falskt — är inget den behöver hantera: det är bara nästa uppgift.
  *
- * Det finns med flit ingen knapp som väljer övning. Läget är motorns beslut
- * och inte användarens, och en meny här hade varit det första steget bort från
+ * Det finns med flit ingen knapp som väljer övning *här*. Ingången valdes på
+ * startsidan och gäller det första kortet; varje kort efter det är motorns
+ * beslut. En meny mitt i passet hade varit det första steget bort från
  * produktprincipen.
  */
 import {
@@ -24,7 +25,9 @@ import { MatchViewComponent } from '../match-view/match-view.component';
 import { SwipeCard, SwipeViewComponent } from '../swipe-view/swipe-view.component';
 import { WriteViewComponent } from '../write-view/write-view.component';
 import { Answer, SessionSummary, Task, TrainingSession } from '../training/session';
+import { DEFAULT_ENTRY } from '../training/entry';
 import { TrainingEngine } from '../training/training-engine';
+import { Step } from '../training/word-state';
 import { WordBlock, WordPair } from '../words/word-catalog';
 
 @Component({
@@ -36,6 +39,9 @@ import { WordBlock, WordPair } from '../words/word-catalog';
 })
 export class SessionViewComponent implements OnInit, OnDestroy {
   @Input({ required: true }) block!: WordBlock;
+  /** Var passet kliver in. «Ett pass till» återanvänder den — den som valde
+   *  svep vill svepa igen. */
+  @Input() entry: Step = DEFAULT_ENTRY;
 
   /** Tillbaka till listorna. */
   @Output() readonly exited = new EventEmitter<void>();
@@ -66,7 +72,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   start(): void {
-    this.session = new TrainingSession(this.engine, this.block);
+    this.session = new TrainingSession(this.engine, this.block, this.entry);
     this.summary = null;
     this.advance();
   }

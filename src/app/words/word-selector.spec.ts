@@ -57,6 +57,17 @@ describe('exposures', () => {
     const found = exposures([A], library({ a: DONE_EVERYWHERE() }));
     expect(found).toEqual([{ pair: A, step: 'written' }]);
   });
+
+  it('lägger varje exponering minst på golvet', () => {
+    const found = exposures([A, B], library({ a: recordWith({ match: statFrom(MASTERED) }) }), 'recall');
+    expect(found.map((exposure) => exposure.step)).toEqual(['recall', 'recall']);
+  });
+
+  it('låter golvet lyfta men aldrig sänka', () => {
+    const past = recordWith({ match: statFrom(MASTERED), trueFalse: statFrom(MASTERED) });
+    const found = exposures([A], library({ a: past }), 'match');
+    expect(found[0].step).toBe('recall');
+  });
 });
 
 describe('selectNext', () => {
@@ -113,6 +124,29 @@ describe('selectNext', () => {
     expect(maintenance / draws).toBeLessThan(GROUP_SHARES.mastered * 2);
   });
 
+  it('fördelar sig över grupperna även när match hoppats över', () => {
+    // Samma spann-test som ovan, men för ord som aldrig sett match. Utan
+    // `settled()` faller alla i `weak` och GROUP_SHARES slutar betyda något.
+    const skipped = () => recordWith({ written: statFrom(MASTERED) });
+    const entries = {
+      a: skipped(),
+      b: skipped(),
+      c: recordWith({ recall: statFrom(WEAK) }),
+      d: recordWith({ recall: statFrom(LEARNING) }),
+    };
+    const random = seeded(99);
+    const draws = 3000;
+    let maintenance = 0;
+    for (let i = 0; i < draws; i++) {
+      const drawn = selectNext([A, B, C, D], library(entries), [], random, 'recall')!;
+      if (drawn.pair === A || drawn.pair === B) {
+        maintenance++;
+      }
+    }
+    expect(maintenance / draws).toBeGreaterThan(GROUP_SHARES.mastered / 2);
+    expect(maintenance / draws).toBeLessThan(GROUP_SHARES.mastered * 2);
+  });
+
   it('lägger vikten på det svaga inom gruppen', () => {
     const entries = {
       a: recordWith({ match: statFrom(WEAK, 3) }),
@@ -140,5 +174,20 @@ describe('companionsFor', () => {
 
   it('tar inte fler än blocket har', () => {
     expect(companionsFor(A, [A, B], library({}), 5, seeded(1))).toHaveLength(2);
+  });
+
+  it('fyller rundan även när inget ord alls står i match', () => {
+    // Med en ingång över match är `sameStep` tom; fallbacken på hela blocket är
+    // precis vad den finns för.
+    const skipped = recordWith({ written: statFrom(MASTERED) });
+    const round = companionsFor(
+      A,
+      [A, B, C, D],
+      library({ a: skipped, b: skipped, c: skipped, d: skipped }),
+      4,
+      seeded(2),
+    );
+    expect(round).toHaveLength(4);
+    expect(new Set(round.map(wordKey)).size).toBe(4);
   });
 });

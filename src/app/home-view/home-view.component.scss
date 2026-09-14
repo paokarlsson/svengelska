@@ -1,5 +1,6 @@
-/* Listorna som kort med en mätare i kanten. Kortet självt är knappen — att
-   behöva träffa en liten «starta» är fel på en surfplatta. */
+/* Ett stort kort för veckan som är framme, och de andra hopfällda bakom en
+   knapp. Kortet är inte längre självt knappen: det var rätt när det inte fanns
+   något val i det, men nu finns fyra ingångar att trycka på. */
 .home {
     display: flex;
     flex-direction: column;
@@ -13,6 +14,53 @@
 
 .lead {
     color: var(--text-muted);
+}
+
+.week {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.week-head {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.week-name {
+    color: var(--accent-highlight);
+}
+
+.week-count {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.week-entry {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.entry-heading {
+    color: var(--text-muted);
+}
+
+.week-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.week-actions .ui-btn--primary {
+    flex: 1;
+    min-width: 12ch;
+}
+
+.switcher {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: stretch;
 }
 
 .blocks {
@@ -52,9 +100,9 @@
     outline-offset: 3px;
 }
 
-/* Den lista som övades sist får en kant och ingen knapp till: «fortsätt» är
-   inte ett annat val, det är samma. */
-.block.is-last .block-open {
+/* Veckan som redan ligger uppe i kortet får en kant, så att utfällningen visar
+   var man är och inte bara vart man kan gå. */
+.block.is-current .block-open {
     border-color: var(--line-highlight);
 }
 
@@ -85,10 +133,6 @@
     height: 100%;
     background: var(--accent-green);
     transition: width var(--motion-fast);
-}
-
-.block-map {
-    align-self: center;
 }
 
 .foot {

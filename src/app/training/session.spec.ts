@@ -75,11 +75,18 @@ describe('TrainingSession', () => {
     await engine.hydrate();
   });
 
-  it('börjar i match, eftersom inget ord kan något än', () => {
-    const session = new TrainingSession(engine, BLOCK);
+  it('börjar i den ingång passet fick', () => {
+    const session = new TrainingSession(engine, BLOCK, 'match');
     const task = session.nextTask()!;
     expect(task.kind).toBe('match');
     expect(pairsIn(task)).toHaveLength(MATCH_ROUND);
+  });
+
+  it('kliver in där användaren valde, hur orört blocket än är', () => {
+    for (const entry of STEPS) {
+      const session = new TrainingSession(engine, BLOCK, entry);
+      expect(stepIn(session.nextTask()!)).toBe(entry);
+    }
   });
 
   it('byter steg under passets gång utan att fråga någon', () => {
@@ -137,6 +144,71 @@ describe('TrainingSession', () => {
     expect(session.blockComplete).toBe(true);
     expect(session.done).toBe(true);
     expect(session.nextTask()).toBeNull();
+  });
+
+  it('låter ingen ingång göra blocket omöjligt att slutföra', () => {
+    // Vakten mot den tysta fällan: mäts aldrig ett överhoppat steg pekar
+    // `currentStep()` på det för alltid, och blocket kan aldrig bli klart.
+    for (const entry of STEPS) {
+      engine = new TrainingEngine();
+      engine.useRepository(new FakeRepository());
+      let session = new TrainingSession(engine, BLOCK, entry);
+
+      for (let pass = 0; pass < 40 && !session.blockComplete; pass++) {
+        while (!session.done) {
+          const task = session.nextTask()!;
+          for (const pair of pairsIn(task)) {
+            session.record(pair, stepIn(task), true, DEFAULT_BASELINE[stepIn(task)]);
+          }
+        }
+        session = new TrainingSession(engine, BLOCK, entry);
+      }
+      expect(session.blockComplete).toBe(true);
+    }
+  });
+
+  it('är ett golv och inget läge: ett ord som sitter puttas vidare uppåt', () => {
+    const session = new TrainingSession(engine, BLOCK, 'recall');
+    let reachedWritten = false;
+
+    for (let i = 0; i < 200 && !reachedWritten; i++) {
+      const task = session.nextTask();
+      if (task === null) {
+        break;
+      }
+      reachedWritten = task.kind === 'written';
+      session.record(pairsIn(task)[0], stepIn(task), true, DEFAULT_BASELINE[stepIn(task)]);
+    }
+    expect(reachedWritten).toBe(true);
+  });
+
+  it('…och nedåt: ett ord som kämpar får stöd under ingången', () => {
+    const session = new TrainingSession(engine, BLOCK, 'recall');
+    let supported = false;
+
+    for (let i = 0; i < 60 && !supported; i++) {
+      const task = session.nextTask()!;
+      supported = STEPS.indexOf(stepIn(task)) < STEPS.indexOf('recall');
+      session.record(pairsIn(task)[0], stepIn(task), false, 4);
+    }
+    expect(supported).toBe(true);
+  });
+
+  it('visar inte samma ord två gånger i rad, oavsett ingång', () => {
+    for (const entry of STEPS) {
+      engine = new TrainingEngine();
+      engine.useRepository(new FakeRepository());
+      const session = new TrainingSession(engine, BLOCK, entry);
+
+      let previous = '';
+      for (let i = 0; i < SESSION_LENGTH; i++) {
+        const task = session.nextTask()!;
+        const key = wordKey(pairsIn(task)[0]);
+        expect(key).not.toBe(previous);
+        previous = key;
+        session.record(pairsIn(task)[0], stepIn(task), true, 2);
+      }
+    }
   });
 
   it('berättar vilka ord som tog ett steg', () => {

@@ -156,8 +156,34 @@ function hits(stat: StepStat): number {
 }
 
 /**
- * Steget ordet ska övas i härnäst: det första som ännu inte sitter. `null` när
- * alla fyra sitter, vilket är vad `AUTOMATIC` betyder.
+ * Om steget är avklarat: det sitter självt, eller något svårare sitter.
+ *
+ * Nödvändig i samma stund passets ingång går att välja. Kliver ett pass in i
+ * `recall` mäts `match` aldrig, och `masteryIn()` på ett tomt steg är `weak` —
+ * läste `currentStep()` bara sin egen dom skulle den peka på `match` för
+ * alltid, och då kunde inget ord någonsin bli automatiserat.
+ *
+ * Regeln läses bara *nedåt*: `slice` går från steget och uppåt, så ett
+ * behärskat `match` gör aldrig `written` avklarat. Fri produktion bevisar
+ * igenkänning; igenkänning bevisar aldrig produktion. Det är samma asymmetri
+ * som `stateFor()` redan vilar på, läst åt andra hållet.
+ *
+ * För ett ord som gått stegen i ordning ändrar den ingenting — har det nått
+ * skrivsteget sitter allt under ändå. Grenen kan bara falla ut för ett ord som
+ * hoppat över något, vilket är precis vad den finns för.
+ *
+ * Hörnfall: ett ord som nått automatiserat via svep-ingången och sedan tappar
+ * `written` får `currentStep() === 'match'`, eftersom ingen mätning finns kvar
+ * under. Det är ärligt — det finns ingen dom som håller — och i passet är det
+ * osynligt, för golvet i `trainingStep()` lyfter ordet till ingångssteget igen.
+ */
+export function settled(record: WordRecord, step: Step): boolean {
+  return STEPS.slice(STEPS.indexOf(step)).some((above) => masteryIn(record[above]) === 'mastered');
+}
+
+/**
+ * Steget ordet ska övas i härnäst: det första som ännu inte är avklarat. `null`
+ * när alla fyra är det, vilket är vad `AUTOMATIC` betyder.
  *
  * Att gå framåt kräver alltså att steget under är behärskat, men inte att det
  * förblir det — ett ord som tappar sitt grepp om `recall` hamnar där igen av
@@ -165,29 +191,57 @@ function hits(stat: StepStat): number {
  * nedflyttning. Det är vinsten med att härleda i stället för att lagra.
  */
 export function currentStep(record: WordRecord): Step | null {
-  return STEPS.find((step) => masteryIn(record[step]) !== 'mastered') ?? null;
+  return STEPS.find((step) => !settled(record, step)) ?? null;
+}
+
+/**
+ * Om ordet tagit sig fram till steget — dess nuvarande steg, eller passerat.
+ *
+ * Det som låser upp en ingång på startsidan. Skild från `settled()`: den frågar
+ * om steget är *avklarat*, den här om det är *nått*.
+ */
+export function hasReached(record: WordRecord, step: Step): boolean {
+  const current = currentStep(record);
+  return current === null || STEPS.indexOf(current) >= STEPS.indexOf(step);
 }
 
 /**
  * Steget ordet faktiskt ska visas i nu.
  *
- * Skiljer sig från `currentStep()` bara när ordet nyss missat flera gånger i
- * rad: då hämtas stöd från steget under. Tillbakagången är ett *urvalsbeslut*
- * och ingen tillståndsändring — ordets dom i det steg det föll ifrån står kvar,
- * och det klättrar tillbaka så snart stödet hjälpt. Ett straff som nollställer
- * framsteg vore något annat, och sämre.
+ * Skiljer sig från `currentStep()` på två sätt. Det ena är stödet: har ordet
+ * nyss missat flera gånger i rad hämtas nästa exponering från steget under.
+ * Tillbakagången är ett *urvalsbeslut* och ingen tillståndsändring — ordets dom
+ * i det steg det föll ifrån står kvar, och det klättrar tillbaka så snart
+ * stödet hjälpt. Ett straff som nollställer framsteg vore något annat, och
+ * sämre.
+ *
+ * Det andra är `floor`: var passet kliver in. Det är ett *golv och inget läge* —
+ * användaren säger var veckan börjar, men varje kort efter det första avgörs av
+ * mätningen. Ett ord som sitter puttas vidare uppåt av `currentStep()` mitt i
+ * passet, precis som förut.
  */
-export function trainingStep(record: WordRecord): Step | null {
+export function trainingStep(record: WordRecord, floor: Step = STEPS[0]): Step | null {
   const step = currentStep(record);
   if (step === null) {
     return null;
   }
 
-  const stat = record[step];
+  // Math.max, inte min: golvet lyfter ett ord till där passet kliver in, men
+  // sänker aldrig ett ord som redan kommit längre.
+  const index = Math.max(STEPS.indexOf(step), STEPS.indexOf(floor));
+
+  // Domen läses ur det *klampade* steget. Lyfte golvet ordet till `recall` ska
+  // frågan "kämpar det?" avgöras av de senaste svepsvaren — inte av match-svar
+  // som kanske aldrig finns.
+  const stat = record[STEPS[index]];
   const lately = stat.recent.slice(-FALLBACK_MISSES);
   const struggling = lately.length === FALLBACK_MISSES && lately.every((ok) => !ok);
-  const index = STEPS.indexOf(step);
-  return struggling && index > 0 ? STEPS[index - 1] : step;
+
+  // Stödet klampas medvetet *inte* om: det får gå under golvet. Golvet är
+  // användarens antagande, missarna är en mätning, och mätningen väger tyngre.
+  // Hölls stödet över golvet skulle ett ord som kämpar i ingångssteget fastna
+  // där utan väg ut — och då vore valet ett läge trots allt.
+  return struggling && index > 0 ? STEPS[index - 1] : STEPS[index];
 }
 
 /** Etiketten som visas. Härledd, aldrig lagrad. */

@@ -1,0 +1,40 @@
+/* Rutnätet och det låsta läget. Allt annat är `.ui-toggle` i src/styles/. */
+.entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+}
+
+.entry {
+    width: 100%;
+    display: grid;
+    gap: 2px;
+    text-align: left;
+}
+
+.entry-name {
+    display: block;
+}
+
+.entry-blurb {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* Låst och synlig, inte gömd: det som ska komma ska synas, annars ser stegen ut
+   att vara tre. Dämpad men läsbar — den är ett löfte och inte ett fel. */
+.entry.is-locked {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.entry.is-locked:hover {
+    background: var(--fill-soft);
+    border-color: var(--line-strong);
+}

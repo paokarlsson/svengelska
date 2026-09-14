@@ -45,6 +45,22 @@ describe('TrainingEngine', () => {
     expect(engine.hasPractice).toBe(false);
   });
 
+  it('låter en ingång låsas upp av ett ord, inte av alla', () => {
+    const block = [DOG, CAT];
+    expect(engine.reached(block, 'written')).toBe(false);
+    expect(engine.reached(block, 'match')).toBe(true);
+
+    for (const step of ['match', 'trueFalse', 'recall'] as const) {
+      for (let i = 0; i < 5; i++) {
+        engine.record(DOG, step, true, DEFAULT_BASELINE[step]);
+      }
+    }
+
+    expect(engine.stepFor(DOG)).toBe('written');
+    expect(engine.stepFor(CAT)).toBe('match');
+    expect(engine.reached(block, 'written')).toBe(true);
+  });
+
   it('lagrar farten som kvot mot stegets baslinje, aldrig som sekunder', async () => {
     // Halva baslinjen in ska bli kvoten 0,5 ut, oavsett vilket steg det är.
     engine.record(DOG, 'written', true, DEFAULT_BASELINE.written / 2);

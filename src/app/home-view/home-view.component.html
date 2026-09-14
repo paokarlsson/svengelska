@@ -1,38 +1,78 @@
 <section class="home">
     <header class="intro">
         <h1 class="ui-title ui-title--lg">Svengelska</h1>
-        <p class="lead">
-            Välj veckans glosor. Resten sköter sig själv — varje ord får den övning det behöver.
-        </p>
     </header>
 
-    <ul class="blocks">
-        @for (card of cards; track card.block.id) {
-        <li class="block" [class.is-last]="card.block.id === lastBlockId">
-            <button type="button" class="block-open" (click)="chosen.emit(card.block)">
-                <span class="block-name">{{card.block.name}}</span>
-                <span class="block-count">
-                    @if (card.started) {
-                    {{card.automatic}} av {{card.block.words.length}} ord sitter
-                    } @else {
-                    {{card.block.words.length}} ord — inte påbörjad
-                    }
-                </span>
-                <span class="bar" aria-hidden="true">
-                    <span class="bar-fill" [style.width.%]="percent(card)"></span>
-                </span>
-            </button>
+    @if (card; as week) {
+    <div class="ui-card ui-card--roomy week">
+        <div class="week-head">
+            <h2 class="ui-title week-name">{{week.block.name}}</h2>
+            <p class="week-count">
+                @if (week.started) {
+                {{week.automatic}} av {{week.block.words.length}} ord sitter
+                } @else {
+                {{week.block.words.length}} ord — inte påbörjad
+                }
+            </p>
+            <span class="bar" aria-hidden="true">
+                <span class="bar-fill" [style.width.%]="percent(week)"></span>
+            </span>
+        </div>
 
-            @if (card.started) {
-            <button type="button" class="ui-btn ui-btn--quiet block-map" (click)="mapped.emit(card.block)">
+        <div class="week-entry">
+            <h3 class="ui-title ui-title--sm entry-heading" id="entry-heading">Börja med</h3>
+            <app-entry-picker
+                [options]="entries"
+                [selected]="entry"
+                (picked)="choose($event)" />
+        </div>
+
+        <div class="week-actions">
+            <button type="button" class="ui-btn ui-btn--primary" (click)="start()">
+                Kör igång
+            </button>
+            @if (week.started) {
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="mapped.emit(week.block)">
                 Kartan
             </button>
             }
-        </li>
-        }
-    </ul>
+        </div>
+    </div>
 
-    @if (cards.length === 0) {
+    <div class="switcher">
+        <button
+            type="button"
+            class="ui-btn ui-btn--secondary"
+            [attr.aria-expanded]="switching"
+            (click)="switching = !switching">
+            Byt vecka
+        </button>
+
+        @if (switching) {
+        <ul class="blocks">
+            @for (other of cards; track other.block.id) {
+            <li class="block" [class.is-current]="other.block.id === week.block.id">
+                <button type="button" class="block-open" (click)="pick(other.block)">
+                    <span class="block-name">{{other.block.name}}</span>
+                    <span class="block-count">
+                        @if (other.started) {
+                        {{other.automatic}} av {{other.block.words.length}} ord sitter
+                        } @else {
+                        {{other.block.words.length}} ord — inte påbörjad
+                        }
+                    </span>
+                    <span class="bar" aria-hidden="true">
+                        <span class="bar-fill" [style.width.%]="percent(other)"></span>
+                    </span>
+                </button>
+            </li>
+            }
+        </ul>
+        }
+    </div>
+    }
+
+    @if (!hasBlocks) {
     <p class="lead">
         Ingen ordlista hittades. Listorna byggs ur <code>data/glosor.csv</code> med
         <code>npm run words</code>.
