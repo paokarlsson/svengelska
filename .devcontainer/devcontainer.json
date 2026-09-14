@@ -16,6 +16,14 @@
 
   "remoteUser": "node",
 
+  // ng serve binds till 0.0.0.0 via angular.json (dess default är loopback,
+  // och en port som bara lyssnar på ::1 går inte att vidarebefordra ut ur
+  // containern). Det här gör den nåbar från värdens webbläsare.
+  "forwardPorts": [4200],
+  "portsAttributes": {
+    "4200": { "label": "Svengelska (ng serve)", "onAutoForward": "notify" }
+  },
+
   "mounts": [
     "source=svengelska-claude-config-${devcontainerId},target=/home/node/.claude,type=volume",
     "source=svengelska-bashhistory-${devcontainerId},target=/commandhistory,type=volume"
