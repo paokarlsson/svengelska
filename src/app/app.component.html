@@ -1,47 +1,17 @@
 <main class="shell">
-    <h1 class="ui-title ui-title--lg">Svengelska</h1>
-
-    <section class="ui-card ui-card--roomy">
-        <h2 class="ui-title ui-title--sm">{{block.name}}</h2>
-        <p class="lead">
-            {{block.words.length}} glosor följs åt genom fyra steg. Varje ord rör sig i sin egen takt.
-        </p>
-
-        <ul class="steps">
-            @for (step of steps; track step) {
-            <li class="step">
-                <span class="step-name">{{stepLabel(step)}}</span>
-                <span class="step-count">{{masteredIn(step)}} / {{block.words.length}}</span>
-            </li>
-            }
-        </ul>
-
-        @if (!hasPractice) {
-        <p class="lead lead--quiet">Ingen träning ännu — alla ord är outforskade, inte svaga.</p>
-        }
-    </section>
-
-    <section class="ui-card ui-card--roomy">
-        <h2 class="ui-title ui-title--sm">Orden</h2>
-        <table class="words">
-            <thead>
-                <tr>
-                    <th scope="col">Engelska</th>
-                    <th scope="col">Svenska</th>
-                    <th scope="col">Tillstånd</th>
-                    <th scope="col">Övas i</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (pair of block.words; track pair.en) {
-                <tr>
-                    <td>{{pair.en}}</td>
-                    <td>{{pair.sv}}</td>
-                    <td>{{stateOf(pair)}}</td>
-                    <td>{{stepOf(pair)}}</td>
-                </tr>
-                }
-            </tbody>
-        </table>
-    </section>
+    @switch (screen) {
+    @case ('session') {
+    @if (block; as chosen) {
+    <app-session-view [block]="chosen" (exited)="showHome()" (mapped)="showMap(chosen)" />
+    }
+    }
+    @case ('map') {
+    @if (block; as chosen) {
+    <app-map-view [block]="chosen" (back)="showHome()" />
+    }
+    }
+    @default {
+    <app-home-view (chosen)="open($event)" (mapped)="showMap($event)" />
+    }
+    }
 </main>

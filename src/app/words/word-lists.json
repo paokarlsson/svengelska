@@ -1,0 +1,878 @@
+[
+  {
+    "id": "v1-familj",
+    "name": "Vecka 1 – Familj",
+    "words": [
+      {
+        "en": "mother",
+        "sv": "mamma",
+        "distractorsEn": [
+          "father",
+          "sister",
+          "grandmother"
+        ],
+        "distractorsSv": [
+          "pappa",
+          "syster",
+          "mormor"
+        ]
+      },
+      {
+        "en": "father",
+        "sv": "pappa",
+        "distractorsEn": [
+          "mother",
+          "brother",
+          "grandfather"
+        ],
+        "distractorsSv": [
+          "mamma",
+          "bror",
+          "farfar"
+        ]
+      },
+      {
+        "en": "sister",
+        "sv": "syster",
+        "distractorsEn": [
+          "brother",
+          "cousin",
+          "mother"
+        ],
+        "distractorsSv": [
+          "bror",
+          "kusin",
+          "mamma"
+        ]
+      },
+      {
+        "en": "brother",
+        "sv": "bror",
+        "distractorsEn": [
+          "sister",
+          "cousin",
+          "father"
+        ],
+        "distractorsSv": [
+          "syster",
+          "kusin",
+          "pappa"
+        ]
+      },
+      {
+        "en": "grandmother",
+        "sv": "mormor",
+        "distractorsEn": [
+          "grandfather",
+          "aunt",
+          "mother"
+        ],
+        "distractorsSv": [
+          "morfar",
+          "moster",
+          "mamma"
+        ]
+      },
+      {
+        "en": "grandfather",
+        "sv": "morfar",
+        "distractorsEn": [
+          "grandmother",
+          "uncle",
+          "father"
+        ],
+        "distractorsSv": [
+          "mormor",
+          "morbror",
+          "pappa"
+        ]
+      },
+      {
+        "en": "aunt",
+        "sv": "moster",
+        "distractorsEn": [
+          "uncle",
+          "cousin",
+          "grandmother"
+        ],
+        "distractorsSv": [
+          "morbror",
+          "kusin",
+          "mormor"
+        ]
+      },
+      {
+        "en": "uncle",
+        "sv": "morbror",
+        "distractorsEn": [
+          "aunt",
+          "cousin",
+          "grandfather"
+        ],
+        "distractorsSv": [
+          "moster",
+          "kusin",
+          "morfar"
+        ]
+      },
+      {
+        "en": "cousin",
+        "sv": "kusin",
+        "distractorsEn": [
+          "sister",
+          "aunt",
+          "baby"
+        ],
+        "distractorsSv": [
+          "syster",
+          "moster",
+          "bebis"
+        ]
+      },
+      {
+        "en": "baby",
+        "sv": "bebis",
+        "distractorsEn": [
+          "cousin",
+          "sister",
+          "child"
+        ],
+        "distractorsSv": [
+          "kusin",
+          "syster",
+          "barn"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "v2-skolan",
+    "name": "Vecka 2 – Skolan",
+    "words": [
+      {
+        "en": "teacher",
+        "sv": "lärare",
+        "distractorsEn": [
+          "friend",
+          "classroom",
+          "student"
+        ],
+        "distractorsSv": [
+          "vän",
+          "klassrum",
+          "elev"
+        ]
+      },
+      {
+        "en": "classroom",
+        "sv": "klassrum",
+        "distractorsEn": [
+          "teacher",
+          "desk",
+          "break"
+        ],
+        "distractorsSv": [
+          "lärare",
+          "bänk",
+          "rast"
+        ]
+      },
+      {
+        "en": "pencil",
+        "sv": "penna",
+        "distractorsEn": [
+          "ruler",
+          "eraser",
+          "book"
+        ],
+        "distractorsSv": [
+          "linjal",
+          "suddgummi",
+          "bok"
+        ]
+      },
+      {
+        "en": "book",
+        "sv": "bok",
+        "distractorsEn": [
+          "pencil",
+          "homework",
+          "desk"
+        ],
+        "distractorsSv": [
+          "penna",
+          "läxa",
+          "bänk"
+        ]
+      },
+      {
+        "en": "ruler",
+        "sv": "linjal",
+        "distractorsEn": [
+          "pencil",
+          "eraser",
+          "desk"
+        ],
+        "distractorsSv": [
+          "penna",
+          "suddgummi",
+          "bänk"
+        ]
+      },
+      {
+        "en": "eraser",
+        "sv": "suddgummi",
+        "distractorsEn": [
+          "ruler",
+          "pencil",
+          "book"
+        ],
+        "distractorsSv": [
+          "linjal",
+          "penna",
+          "bok"
+        ]
+      },
+      {
+        "en": "desk",
+        "sv": "skrivbord",
+        "distractorsEn": [
+          "classroom",
+          "chair",
+          "book"
+        ],
+        "distractorsSv": [
+          "klassrum",
+          "stol",
+          "bok"
+        ]
+      },
+      {
+        "en": "break",
+        "sv": "rast",
+        "distractorsEn": [
+          "homework",
+          "classroom",
+          "friend"
+        ],
+        "distractorsSv": [
+          "läxa",
+          "klassrum",
+          "vän"
+        ]
+      },
+      {
+        "en": "homework",
+        "sv": "läxa",
+        "distractorsEn": [
+          "break",
+          "book",
+          "teacher"
+        ],
+        "distractorsSv": [
+          "rast",
+          "bok",
+          "lärare"
+        ]
+      },
+      {
+        "en": "friend",
+        "sv": "vän",
+        "distractorsEn": [
+          "teacher",
+          "cousin",
+          "classroom"
+        ],
+        "distractorsSv": [
+          "lärare",
+          "kusin",
+          "klassrum"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "v3-djur",
+    "name": "Vecka 3 – Djur",
+    "words": [
+      {
+        "en": "dog",
+        "sv": "hund",
+        "distractorsEn": [
+          "cat",
+          "cow",
+          "mouse"
+        ],
+        "distractorsSv": [
+          "katt",
+          "ko",
+          "mus"
+        ]
+      },
+      {
+        "en": "cat",
+        "sv": "katt",
+        "distractorsEn": [
+          "dog",
+          "rabbit",
+          "mouse"
+        ],
+        "distractorsSv": [
+          "hund",
+          "kanin",
+          "mus"
+        ]
+      },
+      {
+        "en": "horse",
+        "sv": "häst",
+        "distractorsEn": [
+          "cow",
+          "sheep",
+          "dog"
+        ],
+        "distractorsSv": [
+          "ko",
+          "får",
+          "hund"
+        ]
+      },
+      {
+        "en": "rabbit",
+        "sv": "kanin",
+        "distractorsEn": [
+          "mouse",
+          "cat",
+          "sheep"
+        ],
+        "distractorsSv": [
+          "mus",
+          "katt",
+          "får"
+        ]
+      },
+      {
+        "en": "bird",
+        "sv": "fågel",
+        "distractorsEn": [
+          "fish",
+          "spider",
+          "mouse"
+        ],
+        "distractorsSv": [
+          "fisk",
+          "spindel",
+          "mus"
+        ]
+      },
+      {
+        "en": "fish",
+        "sv": "fisk",
+        "distractorsEn": [
+          "bird",
+          "sheep",
+          "cow"
+        ],
+        "distractorsSv": [
+          "fågel",
+          "får",
+          "ko"
+        ]
+      },
+      {
+        "en": "cow",
+        "sv": "ko",
+        "distractorsEn": [
+          "horse",
+          "sheep",
+          "dog"
+        ],
+        "distractorsSv": [
+          "häst",
+          "får",
+          "hund"
+        ]
+      },
+      {
+        "en": "sheep",
+        "sv": "får",
+        "distractorsEn": [
+          "cow",
+          "horse",
+          "rabbit"
+        ],
+        "distractorsSv": [
+          "ko",
+          "häst",
+          "kanin"
+        ]
+      },
+      {
+        "en": "spider",
+        "sv": "spindel",
+        "distractorsEn": [
+          "bird",
+          "mouse",
+          "fish"
+        ],
+        "distractorsSv": [
+          "fågel",
+          "mus",
+          "fisk"
+        ]
+      },
+      {
+        "en": "mouse",
+        "sv": "mus",
+        "distractorsEn": [
+          "rabbit",
+          "cat",
+          "spider"
+        ],
+        "distractorsSv": [
+          "kanin",
+          "katt",
+          "spindel"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "v4-mat",
+    "name": "Vecka 4 – Mat",
+    "words": [
+      {
+        "en": "apple",
+        "sv": "äpple",
+        "distractorsEn": [
+          "banana",
+          "bread",
+          "potato"
+        ],
+        "distractorsSv": [
+          "banan",
+          "bröd",
+          "potatis"
+        ]
+      },
+      {
+        "en": "bread",
+        "sv": "bröd",
+        "distractorsEn": [
+          "cheese",
+          "rice",
+          "apple"
+        ],
+        "distractorsSv": [
+          "ost",
+          "ris",
+          "äpple"
+        ]
+      },
+      {
+        "en": "milk",
+        "sv": "mjölk",
+        "distractorsEn": [
+          "water",
+          "egg",
+          "cheese"
+        ],
+        "distractorsSv": [
+          "vatten",
+          "ägg",
+          "ost"
+        ]
+      },
+      {
+        "en": "cheese",
+        "sv": "ost",
+        "distractorsEn": [
+          "bread",
+          "milk",
+          "egg"
+        ],
+        "distractorsSv": [
+          "bröd",
+          "mjölk",
+          "ägg"
+        ]
+      },
+      {
+        "en": "egg",
+        "sv": "ägg",
+        "distractorsEn": [
+          "milk",
+          "cheese",
+          "chicken"
+        ],
+        "distractorsSv": [
+          "mjölk",
+          "ost",
+          "kyckling"
+        ]
+      },
+      {
+        "en": "water",
+        "sv": "vatten",
+        "distractorsEn": [
+          "milk",
+          "rice",
+          "bread"
+        ],
+        "distractorsSv": [
+          "mjölk",
+          "ris",
+          "bröd"
+        ]
+      },
+      {
+        "en": "banana",
+        "sv": "banan",
+        "distractorsEn": [
+          "apple",
+          "potato",
+          "rice"
+        ],
+        "distractorsSv": [
+          "äpple",
+          "potatis",
+          "ris"
+        ]
+      },
+      {
+        "en": "potato",
+        "sv": "potatis",
+        "distractorsEn": [
+          "rice",
+          "banana",
+          "bread"
+        ],
+        "distractorsSv": [
+          "ris",
+          "banan",
+          "bröd"
+        ]
+      },
+      {
+        "en": "rice",
+        "sv": "ris",
+        "distractorsEn": [
+          "potato",
+          "water",
+          "bread"
+        ],
+        "distractorsSv": [
+          "potatis",
+          "vatten",
+          "bröd"
+        ]
+      },
+      {
+        "en": "chicken",
+        "sv": "kyckling",
+        "distractorsEn": [
+          "egg",
+          "cheese",
+          "milk"
+        ],
+        "distractorsSv": [
+          "ägg",
+          "ost",
+          "mjölk"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "v5-kroppen",
+    "name": "Vecka 5 – Kroppen",
+    "words": [
+      {
+        "en": "head",
+        "sv": "huvud",
+        "distractorsEn": [
+          "hand",
+          "hair",
+          "ear"
+        ],
+        "distractorsSv": [
+          "hand",
+          "hår",
+          "öra"
+        ]
+      },
+      {
+        "en": "arm",
+        "sv": "arm",
+        "distractorsEn": [
+          "leg",
+          "hand",
+          "foot"
+        ],
+        "distractorsSv": [
+          "ben",
+          "hand",
+          "fot"
+        ]
+      },
+      {
+        "en": "leg",
+        "sv": "ben",
+        "distractorsEn": [
+          "arm",
+          "foot",
+          "hand"
+        ],
+        "distractorsSv": [
+          "arm",
+          "fot",
+          "hand"
+        ]
+      },
+      {
+        "en": "hand",
+        "sv": "hand",
+        "distractorsEn": [
+          "arm",
+          "foot",
+          "leg"
+        ],
+        "distractorsSv": [
+          "arm",
+          "fot",
+          "ben"
+        ]
+      },
+      {
+        "en": "foot",
+        "sv": "fot",
+        "distractorsEn": [
+          "hand",
+          "leg",
+          "arm"
+        ],
+        "distractorsSv": [
+          "hand",
+          "ben",
+          "arm"
+        ]
+      },
+      {
+        "en": "eye",
+        "sv": "öga",
+        "distractorsEn": [
+          "ear",
+          "nose",
+          "mouth"
+        ],
+        "distractorsSv": [
+          "öra",
+          "näsa",
+          "mun"
+        ]
+      },
+      {
+        "en": "ear",
+        "sv": "öra",
+        "distractorsEn": [
+          "eye",
+          "nose",
+          "mouth"
+        ],
+        "distractorsSv": [
+          "öga",
+          "näsa",
+          "mun"
+        ]
+      },
+      {
+        "en": "nose",
+        "sv": "näsa",
+        "distractorsEn": [
+          "mouth",
+          "ear",
+          "eye"
+        ],
+        "distractorsSv": [
+          "mun",
+          "öra",
+          "öga"
+        ]
+      },
+      {
+        "en": "mouth",
+        "sv": "mun",
+        "distractorsEn": [
+          "nose",
+          "ear",
+          "eye"
+        ],
+        "distractorsSv": [
+          "näsa",
+          "öra",
+          "öga"
+        ]
+      },
+      {
+        "en": "hair",
+        "sv": "hår",
+        "distractorsEn": [
+          "head",
+          "ear",
+          "eye"
+        ],
+        "distractorsSv": [
+          "huvud",
+          "öra",
+          "öga"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "v6-vader",
+    "name": "Vecka 6 – Väder",
+    "words": [
+      {
+        "en": "sunny",
+        "sv": "soligt",
+        "distractorsEn": [
+          "warm",
+          "cloudy",
+          "summer"
+        ],
+        "distractorsSv": [
+          "varmt",
+          "molnigt",
+          "sommar"
+        ]
+      },
+      {
+        "en": "rainy",
+        "sv": "regnigt",
+        "distractorsEn": [
+          "cloudy",
+          "windy",
+          "cold"
+        ],
+        "distractorsSv": [
+          "molnigt",
+          "blåsigt",
+          "kallt"
+        ]
+      },
+      {
+        "en": "cloudy",
+        "sv": "molnigt",
+        "distractorsEn": [
+          "rainy",
+          "windy",
+          "cold"
+        ],
+        "distractorsSv": [
+          "regnigt",
+          "blåsigt",
+          "kallt"
+        ]
+      },
+      {
+        "en": "windy",
+        "sv": "blåsigt",
+        "distractorsEn": [
+          "rainy",
+          "cloudy",
+          "snowy"
+        ],
+        "distractorsSv": [
+          "regnigt",
+          "molnigt",
+          "snöigt"
+        ]
+      },
+      {
+        "en": "snowy",
+        "sv": "snöigt",
+        "distractorsEn": [
+          "cold",
+          "winter",
+          "windy"
+        ],
+        "distractorsSv": [
+          "kallt",
+          "vinter",
+          "blåsigt"
+        ]
+      },
+      {
+        "en": "warm",
+        "sv": "varmt",
+        "distractorsEn": [
+          "sunny",
+          "summer",
+          "cold"
+        ],
+        "distractorsSv": [
+          "soligt",
+          "sommar",
+          "kallt"
+        ]
+      },
+      {
+        "en": "cold",
+        "sv": "kallt",
+        "distractorsEn": [
+          "snowy",
+          "winter",
+          "warm"
+        ],
+        "distractorsSv": [
+          "snöigt",
+          "vinter",
+          "varmt"
+        ]
+      },
+      {
+        "en": "spring",
+        "sv": "vår",
+        "distractorsEn": [
+          "summer",
+          "warm",
+          "sunny"
+        ],
+        "distractorsSv": [
+          "sommar",
+          "varmt",
+          "soligt"
+        ]
+      },
+      {
+        "en": "summer",
+        "sv": "sommar",
+        "distractorsEn": [
+          "spring",
+          "warm",
+          "sunny"
+        ],
+        "distractorsSv": [
+          "vår",
+          "varmt",
+          "soligt"
+        ]
+      },
+      {
+        "en": "winter",
+        "sv": "vinter",
+        "distractorsEn": [
+          "snowy",
+          "cold",
+          "autumn"
+        ],
+        "distractorsSv": [
+          "snöigt",
+          "kallt",
+          "höst"
+        ]
+      }
+    ]
+  }
+]

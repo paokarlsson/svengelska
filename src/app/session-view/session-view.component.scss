@@ -1,0 +1,101 @@
+/* Passets ram: en rad i toppen, en mätare, och en scen som byter innehåll.
+   Scenen har en botten i höjd så att kortet inte hoppar när ett steg med
+   färre rader avlöser ett med fler. */
+.session {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.block-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.tally {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    min-width: 3.5rem;
+    text-align: right;
+}
+
+.meter {
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--fill-quiet);
+    overflow: hidden;
+}
+
+.meter-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent-green);
+    transition: width var(--motion-fast);
+}
+
+.stage {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 24rem;
+    padding-top: var(--space-2);
+}
+
+.done {
+    text-align: center;
+    display: grid;
+    gap: var(--space-3);
+    justify-items: center;
+}
+
+.score {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 6vw, 1.9rem);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.lead {
+    color: var(--text-muted);
+}
+
+.lead--quiet {
+    font-size: 0.9rem;
+}
+
+.moved {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1) var(--space-2);
+    font-family: var(--font-display);
+}
+
+.moved li {
+    padding: 0.25em 0.7em;
+    border-radius: var(--radius-pill);
+    background: var(--tint-green);
+    font-size: 0.9rem;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+}

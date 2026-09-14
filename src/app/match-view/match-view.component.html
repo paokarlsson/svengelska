@@ -1,0 +1,39 @@
+<div class="match">
+    <p class="lead">Para ihop orden</p>
+
+    <div class="columns">
+        <ul class="column" aria-label="Engelska">
+            @for (pair of left; track key(pair)) {
+            <li>
+                <button type="button" class="cell"
+                    [class.is-selected]="selectedEn === pair"
+                    [class.is-solved]="isSolved(pair)"
+                    [class.is-wrong]="shaking && selectedEn === pair"
+                    [attr.aria-pressed]="selectedEn === pair"
+                    [disabled]="isSolved(pair)"
+                    (click)="chooseEn(pair)">
+                    {{pair.en}}
+                </button>
+            </li>
+            }
+        </ul>
+
+        <ul class="column" aria-label="Svenska">
+            @for (pair of right; track key(pair)) {
+            <li>
+                <button type="button" class="cell"
+                    [class.is-selected]="selectedSv === pair"
+                    [class.is-solved]="isSolved(pair)"
+                    [class.is-wrong]="shaking && selectedSv === pair"
+                    [attr.aria-pressed]="selectedSv === pair"
+                    [disabled]="isSolved(pair)"
+                    (click)="chooseSv(pair)">
+                    {{pair.sv}}
+                </button>
+            </li>
+            }
+        </ul>
+    </div>
+
+    <p class="count" role="status" aria-live="polite">{{solved.size}} av {{pairs.length}} ihopparade</p>
+</div>

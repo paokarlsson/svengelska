@@ -1,0 +1,65 @@
+@let thinking = card.kind === 'recall' && phase === 'asking';
+
+<div class="swipe">
+    <div class="rails" aria-hidden="true" [class.is-quiet]="thinking">
+        <span class="rail rail--deny">{{denyLabel}}</span>
+        <span class="rail rail--affirm">{{affirmLabel}}</span>
+    </div>
+
+    <div class="card"
+        [class.is-correct]="phase === 'feedback' && wasCorrect"
+        [class.is-wrong]="phase === 'feedback' && !wasCorrect"
+        [class.is-held]="drag !== 0"
+        [style.transform]="'translateX(' + drag + 'px) rotate(' + drag / 25 + 'deg)'"
+        tabindex="0"
+        role="group"
+        [attr.aria-label]="thinking ? 'Vad betyder ' + prompt + '?' : 'Stämmer ' + prompt + ' = ' + shown + '?'"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp()"
+        (pointercancel)="onPointerUp()"
+        (keydown)="onKey($event)">
+
+        <p class="word">{{prompt}}</p>
+
+        @if (showsAnswer) {
+        <p class="equals" aria-hidden="true">=</p>
+        <p class="translation">{{shown}}</p>
+        } @else {
+        <p class="hint">Tänk på översättningen — tryck sedan på kortet</p>
+        }
+    </div>
+
+    <p class="verdict" role="status" aria-live="polite">
+        @if (phase === 'feedback') {
+        @if (wasCorrect) {
+        Rätt!
+        } @else if (card.kind === 'trueFalse') {
+        Nej — {{prompt}} = {{truth}}
+        } @else {
+        {{prompt}} = {{truth}}
+        }
+        } @else if (thinking) {
+        &nbsp;
+        } @else {
+        Svep åt sidan, eller tryck
+        }
+    </p>
+
+    @if (thinking) {
+    <div class="choices choices--single">
+        <button type="button" class="ui-btn ui-btn--primary" (click)="showAnswer()">Visa facit</button>
+    </div>
+    } @else {
+    <div class="choices">
+        <button type="button" class="ui-btn ui-btn--secondary choice choice--deny"
+            [disabled]="phase === 'feedback'" (click)="answer(false)">
+            {{denyLabel}}
+        </button>
+        <button type="button" class="ui-btn ui-btn--secondary choice choice--affirm"
+            [disabled]="phase === 'feedback'" (click)="answer(true)">
+            {{affirmLabel}}
+        </button>
+    </div>
+    }
+</div>

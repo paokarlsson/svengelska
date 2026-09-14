@@ -1,0 +1,34 @@
+<section class="map">
+    <header class="bar">
+        <button type="button" class="ui-btn ui-btn--quiet" (click)="back.emit()">Tillbaka</button>
+        <h2 class="ui-title ui-title--sm">{{block.name}}</h2>
+    </header>
+
+    <p class="lead">{{automatic}} av {{rows.length}} ord sitter hela vägen.</p>
+
+    <ul class="rows">
+        @for (row of rows; track row.pair.en) {
+        <li class="row" [class.is-automatic]="row.automatic">
+            <p class="pair">
+                <span class="en">{{row.pair.en}}</span>
+                <span class="arrow" aria-hidden="true">→</span>
+                <span class="sv">{{row.pair.sv}}</span>
+                <span class="ui-visually-hidden">, {{stateOf(row.pair)}}</span>
+            </p>
+            <ul class="cells">
+                @for (cell of row.cells; track cell.step) {
+                <li class="cell" [class]="'is-' + cell.tone">
+                    <span class="cell-step">{{stepLabel(cell.step)}}</span>
+                    <span class="cell-label">{{cell.label}}</span>
+                </li>
+                }
+            </ul>
+        </li>
+        }
+    </ul>
+
+    <p class="legend">
+        Fälten fylls i tur och ordning. Ett ord räknas som helt först när
+        <strong>Skriva</strong> sitter — att känna igen ett ord är inte samma sak som att kunna det.
+    </p>
+</section>

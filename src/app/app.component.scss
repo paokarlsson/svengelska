@@ -1,64 +1,13 @@
 /* Skalets egen layout. Allt som ser ut som en knapp, ett kort eller en rubrik
    kommer från src/styles/_ui.scss — ui-prefixet i mallen är signalen. */
 .shell {
-    max-width: 46rem;
+    max-width: 34rem;
     margin: 0 auto;
     padding: var(--space-4) var(--space-3) var(--space-5);
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-}
-
-.lead {
-    margin: 0 0 var(--space-3);
-    color: var(--text-muted);
-}
-
-.lead--quiet {
-    margin-bottom: 0;
-    font-size: 0.9rem;
-}
-
-.steps {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-1);
-}
-
-.step {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-2);
-    padding: var(--space-1) 0;
-    border-bottom: 1px solid var(--line-soft);
-}
-
-.step:last-child {
-    border-bottom: none;
-}
-
-.step-count {
-    font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
-}
-
-.words {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-}
-
-.words th,
-.words td {
-    text-align: left;
-    padding: var(--space-1) var(--space-2) var(--space-1) 0;
-    border-bottom: 1px solid var(--line-soft);
-}
-
-.words th {
-    font-weight: 600;
-    color: var(--text-muted);
-    font-size: 0.85rem;
+    /* Bakgrunden hör till hela ytan och inte till kortet: passet byter
+       innehåll hela tiden, och underlaget ska stå still. */
+    min-height: 100%;
 }

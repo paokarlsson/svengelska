@@ -3,6 +3,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
+    /* Ordlistorna ligger som JSON och importeras av `words/word-catalog.ts`. */
+    "resolveJsonModule": true,
     "types": []
   },
   "files": [

@@ -1,0 +1,53 @@
+<section class="session">
+    <header class="bar">
+        <button type="button" class="ui-btn ui-btn--quiet" (click)="leave()">Avsluta</button>
+        <p class="block-name">{{block.name}}</p>
+        <p class="tally" aria-hidden="true">{{tally}} / {{session.target}}</p>
+    </header>
+
+    <div class="meter" role="progressbar" [attr.aria-valuenow]="tally" aria-valuemin="0"
+        [attr.aria-valuemax]="session.target" aria-label="Passets framsteg">
+        <span class="meter-fill" [style.width.%]="progress"></span>
+    </div>
+
+    @if (summary === null) {
+    <div class="stage">
+        @if (task?.kind === 'match') {
+        <app-match-view [pairs]="matchPairs" (answered)="onAnswer($event)" (completed)="onCompleted()" />
+        } @else if (card; as swipe) {
+        <app-swipe-view [card]="swipe" (answered)="onAnswer($event)" (completed)="onCompleted()" />
+        } @else if (writePair; as pair) {
+        <app-write-view [pair]="pair" (answered)="onAnswer($event)" (completed)="onCompleted()" />
+        }
+    </div>
+    } @else {
+    <div class="ui-card ui-card--roomy done">
+        <h2 class="ui-title">
+            @if (session.blockComplete) { Hela listan sitter! } @else { Passet är klart }
+        </h2>
+
+        <p class="score">{{summary.correct}} rätt av {{summary.answered}}</p>
+
+        @if (summary.advanced.length > 0) {
+        <p class="lead">Ord som tog ett steg:</p>
+        <ul class="moved">
+            @for (pair of summary.advanced; track pair.en) {
+            <li>{{pair.en}} → {{pair.sv}}</li>
+            }
+        </ul>
+        } @else {
+        <p class="lead">Inget ord bytte steg den här gången — det kommer.</p>
+        }
+
+        <p class="lead lead--quiet">{{summary.automatic}} av {{block.words.length}} ord sitter hela vägen.</p>
+
+        <div class="actions">
+            @if (!session.blockComplete) {
+            <button type="button" class="ui-btn ui-btn--primary" (click)="start()">Ett pass till</button>
+            }
+            <button type="button" class="ui-btn ui-btn--secondary" (click)="mapped.emit()">Kartan</button>
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="exited.emit()">Byt lista</button>
+        </div>
+    </div>
+    }
+</section>

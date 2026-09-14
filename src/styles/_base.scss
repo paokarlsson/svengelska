@@ -11,9 +11,27 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     /* Så att överskjutande yta inte blinkar vitt mot den mörka startsidan. */
     background: var(--bg-floor);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+}
+
+/* Toningen ligger på dokumentet och inte på ett kort: passet byter innehåll
+   hela tiden, och underlaget ska stå still medan det sker. Fäst mot rutan, så
+   att den täcker hela skärmen även när sidan är kortare än den. */
+html {
+    background-image: var(--surface);
+    background-attachment: fixed;
+}
+
+/* Annars målar kroppen över toningen på sin egen höjd. Sidled är avstängd för
+   att svepkortet ska kunna åka ut ur bild utan att sidan går att dra i sidled
+   efteråt — kortet är ju på väg bort. */
+body {
+    background: transparent;
+    overflow-x: hidden;
 }
 
 h1, h2, h3, p, figure {

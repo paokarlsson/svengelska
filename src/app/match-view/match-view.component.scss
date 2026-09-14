@@ -1,0 +1,94 @@
+/* Två kolumner med lika breda celler. Att de är lika breda är inte bara
+   ordning: en cell som är bredare för att ordet är längre skvallrar om vilket
+   par som hör ihop. */
+.match {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.lead {
+    font-family: var(--font-display);
+    color: var(--text-muted);
+}
+
+.columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    width: min(100%, 26rem);
+}
+
+.column {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+}
+
+.cell {
+    width: 100%;
+    min-height: 3.2rem;
+    padding: 0.6em 0.4em;
+    font-family: var(--font-display);
+    font-size: clamp(0.9rem, 3.6vw, 1.05rem);
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-card-raised);
+    border: 2px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    /* Långa ord ska brytas i cellen, inte spränga kolumnen. */
+    overflow-wrap: anywhere;
+    transition: background var(--motion-fast), border-color var(--motion-fast),
+        color var(--motion-fast), opacity var(--motion-fast);
+}
+
+.cell:hover:not(:disabled) {
+    border-color: var(--accent-highlight);
+}
+
+.cell:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+}
+
+.cell.is-selected {
+    background: var(--accent-highlight);
+    border-color: var(--accent-highlight);
+    color: var(--on-highlight);
+}
+
+/* Ett löst par lämnar kvar sin plats men slutar vara ett alternativ. Att
+   cellerna inte försvinner är med flit: hoppar kolumnen ihop flyttar sig allt
+   annat under fingret. */
+.cell.is-solved {
+    background: var(--tint-green);
+    border-color: var(--accent-green);
+    color: var(--text-muted);
+    opacity: 0.55;
+    cursor: default;
+}
+
+.cell.is-wrong {
+    background: var(--tint-red-strong);
+    border-color: var(--accent-red);
+    color: var(--text-primary);
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.count {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}

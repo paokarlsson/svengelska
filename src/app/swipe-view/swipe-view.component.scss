@@ -1,0 +1,139 @@
+/* Kortet är ett föremål på ett bord: det ligger ljust i båda lägena, det
+   lutar när det dras, och det far iväg åt det håll svaret gick. Allt som ser
+   ut som en knapp kommer från src/styles/_ui.scss. */
+.swipe {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+/* Vad de två hållen betyder, skrivet i kanten i stället för i en instruktion.
+   Under tankefasen i Återkalla dämpas de: där finns inget att svepa än. */
+.rails {
+    display: flex;
+    justify-content: space-between;
+    width: min(100%, 22rem);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    transition: opacity var(--motion-fast);
+}
+
+.rails.is-quiet {
+    opacity: 0.25;
+}
+
+.rail--deny::before {
+    content: '← ';
+}
+
+.rail--affirm::after {
+    content: ' →';
+}
+
+.card {
+    width: min(100%, 22rem);
+    min-height: 13rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--card-face);
+    color: var(--card-ink);
+    box-shadow: var(--shadow-card);
+    cursor: grab;
+    user-select: none;
+    /* Ett svep åt sidan är kortets gest, inte sidans. */
+    touch-action: none;
+    transition: box-shadow var(--motion-fast), background var(--motion-fast),
+        transform 0.25s ease-out;
+}
+
+/* Under fingret ska kortet följa direkt; övergången hör till vägen tillbaka. */
+.card.is-held {
+    cursor: grabbing;
+    transition: box-shadow var(--motion-fast), background var(--motion-fast);
+}
+
+.card:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 4px;
+}
+
+/* Domen färgar kortet, inte bara texten under det: det är kortet som var
+   frågan, och färgen ska landa där blicken redan är. */
+.card.is-correct {
+    background: var(--accent-green);
+    color: var(--on-green);
+}
+
+.card.is-wrong {
+    background: var(--accent-red);
+    color: var(--on-highlight);
+}
+
+.word {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 9vw, 2.6rem);
+    font-weight: 700;
+    text-align: center;
+}
+
+.equals {
+    font-size: 1.1rem;
+    opacity: 0.55;
+}
+
+.translation {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 7.5vw, 2.2rem);
+    font-weight: 600;
+    text-align: center;
+}
+
+.hint {
+    max-width: 16rem;
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+/* Raden under kortet har alltid höjd, även när den är tom: hoppar den fram
+   och tillbaka flyttar den knapparna under fingret mellan två kort. */
+.verdict {
+    min-height: 1.6rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    width: min(100%, 22rem);
+}
+
+.choices--single {
+    grid-template-columns: 1fr;
+    justify-items: center;
+}
+
+.choice--deny:hover {
+    border-color: var(--accent-red);
+}
+
+.choice--affirm:hover {
+    border-color: var(--accent-green);
+}
+
+.choice:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

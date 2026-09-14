@@ -1,0 +1,78 @@
+/* Ett ord, ett fält, en knapp. Steget har inget stöd kvar att ge, och skärmen
+   ska se ut därefter. */
+.write {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    width: min(100%, 22rem);
+    margin: 0 auto;
+}
+
+.prompt-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.word {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
+    font-weight: 700;
+    color: var(--accent-highlight);
+    text-shadow: var(--title-shadow);
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.field {
+    width: 100%;
+    padding: 0.6em 0.8em;
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 5.5vw, 1.5rem);
+    text-align: center;
+    color: var(--text-primary);
+    background: var(--bg-card-raised);
+    border: 2px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.field:focus {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+    border-color: var(--accent-highlight);
+}
+
+.field.is-correct {
+    background: var(--tint-green);
+    border-color: var(--accent-green);
+}
+
+/* Nästan rätt är sin egen färg och inte en blek variant av fel: betydelsen
+   satt, stavningen inte. Vore den röd sa skärmen att ingenting stämde. */
+.field.is-near {
+    background: var(--tint-highlight);
+    border-color: var(--accent-orange);
+}
+
+.field.is-wrong {
+    background: var(--tint-red);
+    border-color: var(--accent-red);
+}
+
+.verdict {
+    min-height: 1.6rem;
+    text-align: center;
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.verdict strong {
+    color: var(--text-primary);
+}
+
+.actions {
+    min-height: 3.2rem;
+    display: flex;
+    align-items: center;
+}

@@ -1,0 +1,119 @@
+/* En rad per ord, fyra fält per rad. Färgen bär betydelse och står därför
+   aldrig ensam: varje fält har sin text — sitter, övar, svag, ny. */
+.map {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.lead {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+}
+
+.row {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    display: grid;
+    gap: var(--space-2);
+}
+
+.row.is-automatic {
+    border-left: 3px solid var(--accent-green);
+}
+
+.pair {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-family: var(--font-display);
+    overflow-wrap: anywhere;
+}
+
+.en {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.arrow {
+    color: var(--text-muted);
+}
+
+.sv {
+    color: var(--text-muted);
+}
+
+.cells {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-1);
+}
+
+.cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-1) 0.4em;
+    border-radius: 6px;
+    background: var(--fill-quiet);
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+.cell-step {
+    color: var(--text-muted);
+    font-size: 0.65rem;
+}
+
+.cell-label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Ett oprövat fält är inte en punkt på skalan utan ett tomrum, och ska varken
+   läsa som svagt eller som ett värde — samma regel som värmekartans
+   .ui-heat-cell--untested i src/styles/_ui.scss. */
+.cell.is-unseen .cell-label {
+    color: var(--text-muted);
+}
+
+.cell.is-weak {
+    background: var(--tint-red);
+}
+
+.cell.is-learning {
+    background: var(--tint-highlight);
+}
+
+.cell.is-mastered {
+    background: var(--tint-green);
+}
+
+.legend {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.legend strong {
+    color: var(--text-primary);
+}
