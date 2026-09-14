@@ -7,34 +7,25 @@
     }
   },
 
-  // Claude Code installeras via den officiella featuren, inte med en
-  // handskriven npm-rad. Featuren lägger också till VS Code-tillägget.
   "features": {
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
 
-  // Brandväggen sätter iptables-regler inifrån containern, vilket kräver
-  // dessa två. Inget annat i konfigurationen behöver dem.
+  // Brandväggen sätter iptables-regler inifrån containern.
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
 
   "remoteUser": "node",
 
-  // Två named volumes, så att inloggning och historik överlever en rebuild.
-  // ${devcontainerId} håller det här projektets auth skild från andra repos.
   "mounts": [
     "source=svengelska-claude-config-${devcontainerId},target=/home/node/.claude,type=volume",
     "source=svengelska-bashhistory-${devcontainerId},target=/commandhistory,type=volume"
   ],
 
   "containerEnv": {
-    // ~/.claude.json ligger normalt UTANFÖR ~/.claude, så volymen ovan räcker
-    // inte ensam för att slippa logga in igen. Den här variabeln får Claude
-    // Code att skriva filen inuti volymen i stället.
+    // ~/.claude.json ligger utanför ~/.claude, så volymen ovan räcker inte
+    // ensam för att slippa logga in igen. Den här pekar filen in i volymen.
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
-    // Ingen auto-uppdatering inne i imagen.
     "DISABLE_AUTOUPDATER": "1",
-    // Stänger telemetri och felrapportering. Därför står Datadog-domänerna
-    // heller inte i brandväggens allowlist.
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
@@ -55,9 +46,7 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
 
-  // Brandväggen måste sättas upp varje gång containern startar, inte bara vid
-  // bygget: iptables-regler lever i containerns nätverksnamnrymd och följer
-  // inte med i imagen.
+  // Vid varje start, inte bara vid bygget: iptables-regler följer inte med i imagen.
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
   "waitFor": "postStartCommand"
 }
