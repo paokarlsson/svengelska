@@ -17,7 +17,7 @@ det, står under «Arvet från ganger».
 
 ## Idén
 
-Ett avgränsat block — tjugo glosor — förs genom fyra successivt mer krävande
+Ett avgränsat block — veckans glosor — förs genom fyra successivt mer krävande
 steg. Varje steg tar bort ett stöd:
 
     Match → Sant/falskt → Återkalla → Skriva
@@ -27,8 +27,8 @@ Eller kognitivt:
 > igenkänning med stöd → igenkänning → aktiv återkallning → fri produktion
 
 Blocket är stabilt genom hela passet. Samma ord följer med genom alla fyra
-stegen, **men varje ord rör sig i sin egen takt** — fjorton ord kan ha lämnat
-Match medan sex är kvar, och för den som övar är det fortfarande ett block.
+stegen, **men varje ord rör sig i sin egen takt** — sju ord kan ha lämnat Match
+medan tre är kvar, och för den som övar är det fortfarande ett block.
 
 Principen under allt: **komplexitet under ytan, enkelhet på ytan.** Ingen
 nivåväljare, ingen träningsplan, ingen statistik att tolka. Den centrala loopen
@@ -137,100 +137,128 @@ användaren inte ska behöva välja nivå eller planera sin träning, och en
 lägesmeny hade varit första steget bort från den. `ganger`:s egen plan går åt
 samma håll (dess steg 6, «ta bort nivåknapparna»).
 
+### Riktningen är en: engelska frågar, svenskan svarar
+
+Öppen fråga 1, avgjord åt det billigaste hållet — men medvetet, inte av
+tröghet. `hund → dog` är en annan färdighet än `dog → hund` och den svårare av
+de två, och att träna båda i samma mått hade gjort måttet till ett medelvärde
+av två saker.
+
+Därför: **en riktning i taget.** Nyckelprefixet (`en:`) och listans
+`distractorsEn` ligger kvar och är oanvända, och det är hela förberedelsen som
+behövs — den dagen `sv:hund=dog` ska tränas är det en ny kanal i dokumentet och
+inga omskrivna anropare.
+
+### «Nästan rätt» räknas som fel i domen, men aldrig som ett fel i tonen
+
+Öppen fråga 2, avgjord åt det tredje alternativet: ett svar som ligger ett
+tecken från facit räknas som **fel**, får en egen återkoppling — «Nästan — det
+stavas *syster*» — och kommer tillbaka i samma pass.
+
+Skälet är att skrivsteget är det enda som mäter stavning. Räknades ett felstavat
+svar som rätt skulle ett ord kunna nå «automatiserat» utan att någon gång ha
+stavats rätt, och det är precis den lögn README lovar att appen inte berättar.
+Att i stället skilja på betydelse och stavning *i domen* kräver ett fält till
+per ord, och det fältet finns det ingen som läser än.
+
+Ombytta grannar räknas som ett fel och inte två (`hudn` ligger ett steg från
+`hund`): två fingrar i fel ordning är den vanligaste felskrivningen av ett ord
+man faktiskt kan. Korta ord — under fyra tecken — bedöms aldrig som nästan, för
+där ligger grannarna för tätt: `ko` och `ku` är inte en slarvig stavning utan
+ett annat ord.
+
+### Felsvaren står i listan, inte i koden
+
+Öppen fråga 3, avgjord av innehållet: varje glosa bär sina egna felsvar
+(`distractorsSv`), skrivna av den som kan orden. Risken frågan pekade ut —
+att blocket lärs som *mängd*, så att `dog = katt` går att avfärda för att
+`katt` hör till `cat` — finns bara när felsvaren dras ur samma tio ord. Ett
+skrivet felsvar får komma från veckans tema i stort.
+
+Blocket är kvar som *fallback*, så att en lista med bara två kolumner går att
+öva på. Någon andel utifrån blocket att hålla konstant (`ganger`:s
+`NEAR_NUMBER_WEIGHT`) finns därmed inte: här är det listans författare som
+avgör, vilket är både billigare och sannare än en siffra ingen mätt.
+
+### Listan är data, och ett block är listans egen grupp
+
+Öppen fråga 4, avgjord så långt den behövde avgöras för att appen ska gå att
+öva i. Orden ligger i `data/glosor.csv` — en rad per glosa, en kolumn för
+veckan — och `npm run words` gör om dem till `src/app/words/word-lists.json`,
+som appen läser.
+
+Tre följder är värda att skriva ned:
+
+- **Ett block är en vecka, inte tjugo ord.** `BLOCK_SIZE` är borta. Den som
+  skriver listan grupperar den, eftersom det är hen som vet vad veckan
+  innehåller; systemet ska inte dela en lista i bitar efter en siffra som var
+  en gissning från början.
+- **Blocket är stabilt mellan pass**, inte bara under ett. Det är ett objekt i
+  listan och inte en vy över något längre.
+- **Nyckeln bär inte blocket.** `water = vatten` står i både Mat och
+  Vardagsord och är samma glosa; framstegen följer ordet, inte listan det råkade
+  stå i.
+
+Vad som *inte* är avgjort är hur listor kommer in utan en textredigerare och en
+terminal. Se steg 6.
+
+### Facit i steg 3 visas när fingret rör kortet
+
+Öppen fråga 5, avgjord åt det tredje alternativet. En fast fördröjning straffar
+den snabba och stressar den långsamma; en extra knapp gör steget till två
+interaktioner i stället för en. Rör sig fingret har återkallningen redan hänt,
+och det är den tiden som mäts — inte tiden det tar att därefter trycka på «jag
+kunde det», som bara säger något om tummen.
+
+Knappen «Visa facit» finns ändå, för den som sitter vid ett tangentbord. Den
+gör exakt samma sak.
+
+### Ett färdigt ord lämnar inte urvalet
+
+`needFor` har ett golv för att ett behärskat ord ska komma sällan men aldrig
+aldrig. Det golvet vore verkningslöst om ett ord som klarat alla fyra steg föll
+ur urvalsrymden, och det är precis vad som händer om «har ett nästa steg» får
+betyda «ska visas». Därför underhålls ett automatiserat ord i sitt sista steg,
+och utgör urvalets tredje grupp.
+
+*När ett pass är slut* är dirigentens fråga och inte urvalets. Att blanda ihop
+de två är hur ett färdigt ord tyst försvinner ur systemet — och då märks det
+aldrig när det rostat.
+
 ---
 
 ## Öppna frågor
 
-### 1. Åt vilket håll översätts det?
+Fråga 1–5 är avgjorda och står under «Avgjort». Kvar står de två som inte gick
+att avgöra vid ett skrivbord.
 
-I dag är `en` frågan och `sv` facit. Men `hund → dog` är en annan färdighet än
-`dog → hund`, och den svårare av de två.
+### 1. När är ett block klart — och vad händer med orden som släpar?
 
-Tre vägar: bara en riktning, båda blandat i samma mått, eller båda som skilda
-kanaler i samma ord. Den sista är dyrast och sannast, och nyckelprefixet är
-redan format för den (`en:` / `sv:`).
+*(Tidigare fråga 6. Halvt avgjord.)*
 
-Avgörs av: vad som faktiskt ska tränas. Det är ett produktbeslut, inte en
-mätning. Att välja *nu* är billigare än senare — ett tillagt håll är en ny
-kanal i dokumentet.
+Det som är byggt: ett **pass** är slut efter tjugo svar, och ett **block** är
+klart när varje ord i det sitter hela vägen ut. Sammanfattningen säger vilka ord
+som tog ett steg, och kartan visar resten.
 
-### 2. Vad betyder «nästan rätt»?
+Det som inte är byggt är konceptets andra halva: att de ord som släpar ska följa
+med in i nästa block i stället för att hålla kvar det. I dag är blocken
+oberoende, och ett ord som fastnar fastnar i sin vecka. Att låta det följa med
+är inte svårt — nyckeln bär inte blocket, så samma glosa i två listor är redan
+samma framsteg — men det kräver ett svar på vad «nästa block» är när listorna är
+veckor och veckan efter har sina egna tio ord.
 
-Konceptet säger uttryckligen att betydelsen kan sitta medan stavningen inte gör
-det, och det kräver en tredje utfallskategori som `ganger` inte har någon
-motsvarighet till — där är ett svar rätt eller fel.
+Avgörs av: att se ett barn använda appen i några veckor. Inte av resonemang.
 
-Frågan är inte hur nära miss *upptäcks* (Levenshtein ≤ 1 duger), utan vad den
-ska betyda:
-
-- räknas som rätt för betydelsen och fel för stavningen — två mått per ord?
-- räknas som rätt, men ordet får komma igen snart?
-- räknas som fel, med en vänligare återkoppling?
-
-Det första är sannast och kräver ett fält till i `written`. Det andra är
-billigast. Ta ställning innan `spelling.ts` skrivs, inte under.
-
-Samma fråga gäller `also`-formerna: `hunden` för `hund` är inte ett stavfel utan
-en annan form, och det är inte självklart att det ska vägas likadant.
-
-### 3. Räcker blocket som distraktorkälla?
-
-Konceptet säger att felaktiga översättningar helst ska hämtas ur samma block
-eller samma semantiska område. Blocket är gratis och pedagogiskt rätt.
-
-Risken är att blocket lärs som *mängd*: med tjugo ord där alla felsvar kommer ur
-samma tjugo går det att svara rätt på `dog = katt` genom att veta att `katt` hör
-till `cat`, utan att veta vad `dog` betyder. Uteslutning är en riktig strategi
-och delvis vad steg 1 ska mäta — men den ska inte överleva till steg 2.
-
-Möjlig motvikt: låt en minoritet av felsvaren komma utifrån blocket. `ganger`
-håller sin motsvarande andel (`NEAR_NUMBER_WEIGHT`) konstant på 15 % på alla
-nivåer, och andelen är där mätt ur referensdata. Här finns ingen referensdata.
-
-### 4. Var kommer orden ifrån?
-
-`SEED_BLOCK` finns för att det ska gå att öva alls. Konceptet säger ingenting om
-innehållet, och det är den största produktytan som saknas:
-
-- skrivs listor in i appen, klistras de in, eller importeras de?
-- vem delar upp en lista i block om tjugo — användaren eller systemet?
-- ska ett block kunna blandas om mellan pass, eller är det stabilt för alltid?
-
-Blocket ska vara stabilt under ett pass. Om det ska vara stabilt *mellan* pass
-är en annan fråga, och den avgör om «blocket» är ett objekt som lagras eller en
-vy över en längre lista.
-
-### 5. Hur lång är pausen före facit i steg 3?
-
-«Efter en kort stund visas facit» — men en fast fördröjning straffar den snabba
-och stressar den långsamma, och en knapptryckning gör steget till två
-interaktioner i stället för en.
-
-Ett tredje alternativ: visa facit när fingret börjar röra sig. Då mäts
-återkallningstiden på det som faktiskt hände, och tempot behålls.
-
-Avgörs av: att pröva det på en surfplatta. Inte av resonemang.
-
-### 6. När är ett block klart?
-
-Alla tjugo orden automatiserade är ett hårt krav — några ord kommer att släpa,
-och konceptet säger att blocket ska kunna avslutas med en tydlig känsla av att
-något är genomarbetat.
-
-Trolig form: blocket är klart när de flesta orden nått `written`, och de som
-släpar följer med in i nästa block i stället för att hålla kvar det. Då blir
-«svåra ord återkommer oftare» något systemet gör åt användaren, vilket är
-poängen.
-
-### 7. Ska Match vara diagnostisk här?
+### 2. Ska Match vara diagnostisk här?
 
 `ganger` håller Para ihops urval slumpmässigt för att kunna mäta om
 matchningstider säger något om samma fakta i svep — och konstaterar att i samma
 stund spelet väljer efter vad det redan tror blir loggen ett eko av den tron.
 
-Samma fråga finns här, med samma fönster som stänger sig självt. Skillnaden är
-att `ganger` har 55 fakta och en obiaserad ordning att mäta mot; ett block om
-tjugo ger tunnare underlag.
+Samma fråga finns här, med samma fönster som stänger sig självt: Match-rundan
+fylls efter `needFor`, alltså efter vad appen redan tror. Skillnaden är att
+`ganger` har 55 fakta och en obiaserad ordning att mäta mot; ett block om tio
+ger tunnare underlag.
 
 Beslut: bygg ingen observationslogg förrän frågan faktiskt ska besvaras. Att
 kopiera loggen «för säkerhets skull» ger data ingen läser.
@@ -239,61 +267,47 @@ kopiera loggen «för säkerhets skull» ger data ingen läser.
 
 ## Kvarvarande steg
 
-Ordningen är vald så att varje steg går att pröva när det är klart.
+Steg 1–5 i den ursprungliga planen är byggda: rättningen (`training/spelling.ts`),
+urvalet (`words/word-selector.ts`), sessionsdirigenten (`training/session.ts`),
+de fyra vyerna och kartan. Vad som ändrades på vägen står under «Avgjort».
 
-### Steg 1 — rättningen ✱ näst på tur
+Två saker ur den listan blev inte som planerat, och det är värt en rad var:
 
-`training/spelling.ts`: jämför ett skrivet svar mot `acceptedAnswers()`, och
-svara rätt / nästan / fel. Kräver att öppen fråga 2 avgjorts först.
+**Kartan blev ingen värmekarta, och `services/time-color.ts` skrevs aldrig.**
+Regeln den skulle bära — att färgen alltid mäts mot *stegets egen* tröskel —
+kommer gratis, eftersom `masteryIn()` dömer på kvoter mot stegets baslinje och
+inte på sekunder. Kartan visar därför fyra fält per ord med sin dom i klartext
+(sitter, övar, svag, ny), och färgen är domens och inte en ramp. En ramp hade
+krävt en skala att läsa, och det är precis vad «ingen statistik att tolka»
+utesluter.
 
-### Steg 2 — urvalet inom blocket
+**Sant/falskt och Återkalla blev en komponent och inte två.** Samma kort, samma
+gest, samma återkoppling; det enda som skiljer är vem som dömer och vad tiden
+mäter. Planen gissade det, och gissningen höll.
 
-`words/word-selector.ts`: dra nästa ord ur blocket för ett givet steg. Vikterna
-finns redan (`needFor`), och färskhetsspärren är värd att lyfta från `ganger`s
-`RECENT_MEMORY` — ett svårt ord ska komma tillbaka efter några andra ord, inte
-omedelbart.
+### Steg 6 — ordlistor in, utan terminal
 
-Konceptets 60–70 / 20–30 / 10–15 är en fördelning, och `ganger`s plan påpekar
-att **med multiplicerade vikter går det inte att ange en andel, bara hoppas på
-den**. Vill man ha en fördelning måste urvalet ske i två steg: dra grupp först,
-dra ord inom grupp sedan. Då blir fördelningen ett tal som går att testa.
+`data/glosor.csv` plus `npm run words` löser innehållet för den som har repot.
+Det löser det inte för den som bara har appen. Vad som saknas är en väg in i
+webbläsaren: klistra in en lista, eller läsa en CSV-fil.
 
-### Steg 3 — sessionsdirigenten
+Formen är redan förberedd — `parseBlocks()` tar emot vad som helst och gör det
+den kan av det, precis som `normalize()` i `progress-store.ts` gör med ett
+redigerat dokument. Det som fattas är en yta och ett beslut om var en inklistrad
+lista *bor*: i framstegsdokumentet, eller under en egen nyckel med en egen
+version.
 
-Det som gör de fyra vyerna till ett pass: håller blocket, frågar motorn vilket
-steg nästa ord ska visas i, och byter vy därefter. Det är här appen skiljer sig
-mest från `ganger`, som har tre spel i en meny.
+### Steg 7 — den andra riktningen
 
-### Steg 4 — de fyra vyerna
+`sv:hund=dog` som en egen kanal. Se «Riktningen är en» under «Avgjort» för vad
+som redan ligger på plats, och `distractorsEn` i listorna för felsvaren som
+väntar på den.
 
-Portas från `ganger` i den här ordningen, för att varje port är billigare än den
-föregående:
+Gör det inte förrän någon faktiskt vill träna det hållet.
 
-| Vy | Källa | Vad som ändras |
-| --- | --- | --- |
-| Sant/falskt | `swipe-view/` | kortets text och distraktorn; gest, brasa och rond är oförändrade |
-| Återkalla | `swipe-view/` igen | samma komponent, tvåstegskort, domaren är användaren själv |
-| Match | `match-view/` | `Fact` blir `WordPair`; rondbygget och den deranged shuffle:n bär |
-| Skriva | `master-view/` | timer och rondflöde bär; nivåapparaten följer inte med |
+### Steg 8 — mät konstanterna
 
-### Steg 5 — kartan
-
-Inte `ganger`s triangel — den formen finns bara för att 7 × 8 och 8 × 7 är samma
-tal. Här är det en lista med ett fält per steg, alltså precis den tabell
-konceptet skissar:
-
-    dog → hund    match: sitter  sant/falskt: sitter  återkalla: övar  skriva: svag
-
-`services/time-color.ts` och regeln att färgen alltid mäts mot *stegets egen*
-tröskel bärs över oförändrade.
-
-### Steg 6 — ordlistor in
-
-Se öppen fråga 4. Sist, eftersom allt annat går att pröva på `SEED_BLOCK`.
-
-### Steg 7 — mät konstanterna
-
-Alla siffror i tabellen nedan är gissningar. `ganger`s plan argumenterar utförligt
+Alla siffror i tabellen nedan är gissningar. `ganger`:s plan argumenterar utförligt
 för att en simuleringsrigg är fel verktyg när användarbasen är ett par barn vid
 ett köksbord som går att titta på medan de spelar, och det argumentet gäller
 oförändrat här.
@@ -302,6 +316,11 @@ Vad som ska testas är **invarianter, inte siffror**: ett test som låser `WINDO
 till 5 låser fast gissningen och är värdelöst; ett test som säger att
 lyckandegraden inte får falla under 75 % över ett pass fångar att någon gjort
 träningen till ett förhör.
+
+Två invarianter finns redan, och båda är värda att behålla formen på:
+fördelningen mellan urvalsgrupperna mäts som ett spann och inte som ett tal
+(`word-selector.spec.ts`), och att samma ord aldrig kommer två gånger i rad
+mäts över ett helt pass (`session.spec.ts`).
 
 ---
 
@@ -316,10 +335,19 @@ Satta på känsla, inte ur mätdata. Markerade `ANTAGANDE:` i koden.
 | `MASTERED_PACE` | `training/word-state.ts` | Hur snabbt ett behärskat ord måste vara |
 | `FALLBACK_MISSES` | `training/word-state.ts` | När ett ord får stöd av steget under |
 | `NEED_FLOOR` / `NEED_CEILING` | `training/word-state.ts` | Hur sällan ett behärskat ord ändå kommer |
+| `NEAR_DISTANCE`, `MIN_NEAR_LENGTH` | `training/spelling.ts` | Var gränsen går mellan «nästan» och «ett annat ord» |
+| `SESSION_LENGTH` | `training/session.ts` | Hur långt ett pass är |
+| `MATCH_ROUND` | `training/session.ts` | Hur många par en match-runda visar |
+| `RECENT_MEMORY` | `words/word-selector.ts` | Hur länge ett nyss övat ord är spärrat |
+| `GROUP_SHARES` | `words/word-selector.ts` | Fördelningen svaga / på gång / underhåll |
+| `TRUE_SHARE` | `words/distractors.ts` | Hur ofta ett påstående i steg 2 är sant |
 | `DEFAULT_BASELINE` | `services/progress-store.ts` | Farten varje steg antas ha innan den mätts |
 | `BASELINE_WINDOW`, `MIN_BASELINE_SAMPLES` | `services/progress-store.ts` | Hur snabbt baslinjen följer spelaren |
 | `MIN_SAMPLE` / `MAX_SAMPLE` | `training/training-engine.ts` | Vad som räknas som ett tappat kort |
-| `BLOCK_SIZE` | `words/word-catalog.ts` | Blockets storlek |
+
+Tiderna i vyerna — hur länge en återkoppling står kvar, hur långt ett svep måste
+dras — är också gissningar, men av ett annat slag: de avgörs av att hålla i en
+surfplatta, inte av mätdata, och står därför inte här.
 
 ---
 
@@ -336,6 +364,13 @@ dokument, och att varje `localStorage`-fel sväljs där och ingen annanstans.
 **Bärs över som resonemang, inte som kod:** treskiktningen, `needWeight`:s form
 med sitt golv, färskhetsspärren, och de fyra besluten under «Avgjort» som är
 märkta med att `ganger` lärde sig dem först.
+
+Det gäller även vyerna, fast planen kallade dem portar. Svepkortet, match-rundan
+och den deranged shuffle:n är skrivna här och inte kopierade: gesten och
+rondbygget är samma idé, men innehållet är ord och inte tal, och ett kort som
+visar `dog = hund` har inget gemensamt med ett som visar `7 × 8 = 54` utom att
+det svepas. Vad som verkligen bars över oförändrat är `src/styles/`, och det
+syns: varje `ui-`-klass i mallarna kommer därifrån.
 
 **Följer medvetet inte med:** `fact-catalog.ts` och hela svårighetshärledningen,
 `fact-selector.ts`:s nivåfönster, `distractors.ts`:s aritmetiska felsvar,

@@ -1,67 +1,53 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { SEED_BLOCK, WordPair } from './words/word-catalog';
+import { HomeViewComponent } from './home-view/home-view.component';
+import { MapViewComponent } from './map-view/map-view.component';
+import { SessionViewComponent } from './session-view/session-view.component';
 import { TrainingEngine } from './training/training-engine';
-import { STEPS, Step, WordState } from './training/word-state';
+import { WordBlock, blockById } from './words/word-catalog';
 
-/** Vad ett tillstånd heter för den som tittar. */
-const STATE_LABEL: Record<WordState, string> = {
-  UNSEEN: 'Ny',
-  MATCH: 'Match',
-  TRUE_FALSE: 'Sant/falskt',
-  RECALL: 'Återkalla',
-  WRITTEN: 'Skriva',
-  AUTOMATIC: 'Sitter',
-};
-
-const STEP_LABEL: Record<Step, string> = {
-  match: 'Match',
-  trueFalse: 'Sant/falskt',
-  recall: 'Återkalla',
-  written: 'Skriva',
-};
+/** De tre ytorna. Inget av dem är ett *läge* — se kommentaren nedan. */
+type Screen = 'home' | 'session' | 'map';
 
 /**
- * Skalet, tills sessionsdirigenten finns.
+ * Skalet: vilken av tre ytor som visas, och vilken lista de handlar om.
  *
- * Visar blocket och vad motorn anser om varje ord. Det är avsiktligt mer än en
- * platshållare och mindre än en meny: det enda som går att se innan någon vy
- * finns är att lagret, härledningen och motorn talar samma språk — och det är
- * precis vad den här sidan visar.
+ * Det här är allt skalet gör. Ingen router — appen har tre ytor och ingen av
+ * dem är värd en adress; ingen tjänst, för valet av lista är inget någon annan
+ * behöver veta om.
  *
- * Notera att det *inte* finns någon knapp som väljer övning. Konceptets
- * produktprincip är att läget är motorns beslut och inte användarens, och en
- * meny här hade varit det första steget bort från den.
+ * Notera vad som *inte* finns: en knapp som väljer övning. Startsidan väljer
+ * ord, passet väljer steg, och mellan dem finns ingen meny. Att den som övar
+ * aldrig behöver välja nivå eller planera sin träning är produktprincipen, och
+ * en lägesväljare här hade varit det första steget bort från den.
  */
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrl: 'app.component.scss',
+  imports: [HomeViewComponent, MapViewComponent, SessionViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
   private readonly engine = inject(TrainingEngine);
 
-  readonly block = SEED_BLOCK;
-  readonly steps = STEPS;
+  screen: Screen = 'home';
+  /** Listan som visas. Vid uppstart den som övades sist, om den finns kvar. */
+  block: WordBlock | null = blockById(this.engine.activeBlockId);
 
-  stateOf(pair: WordPair): string {
-    return STATE_LABEL[this.engine.stateFor(pair)];
+  open(block: WordBlock): void {
+    this.block = block;
+    // Vilket block som övas ligger i framstegsdokumentet, så att nästa besök
+    // kan peka ut var man var. Det är lagrets sak, inte skalets.
+    this.engine.setActiveBlock(block.id);
+    this.screen = 'session';
   }
 
-  stepOf(pair: WordPair): string {
-    const step = this.engine.stepFor(pair);
-    return step === null ? '—' : STEP_LABEL[step];
+  showMap(block: WordBlock): void {
+    this.block = block;
+    this.screen = 'map';
   }
 
-  stepLabel(step: Step): string {
-    return STEP_LABEL[step];
-  }
-
-  masteredIn(step: Step): number {
-    return this.engine.masteredCount(this.block.words, step);
-  }
-
-  get hasPractice(): boolean {
-    return this.engine.hasPractice;
+  showHome(): void {
+    this.screen = 'home';
   }
 }

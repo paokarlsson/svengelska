@@ -1,0 +1,41 @@
+<form class="write" (ngSubmit)="submit()">
+    <p class="prompt-label">Skriv på svenska</p>
+    <p class="word">{{pair.en}}</p>
+
+    <input #field
+        class="field"
+        [class.is-correct]="verdict === 'correct'"
+        [class.is-near]="verdict === 'near'"
+        [class.is-wrong]="verdict === 'wrong'"
+        name="answer"
+        type="text"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        enterkeyhint="done"
+        aria-label="Översättning"
+        [readOnly]="verdict !== null"
+        [(ngModel)]="typed">
+
+    <p class="verdict" role="status" aria-live="polite">
+        @switch (verdict) {
+        @case ('correct') { Rätt! }
+        @case ('near') { Nästan — det stavas <strong>{{answer}}</strong> }
+        @case ('wrong') { {{pair.en}} = <strong>{{answer}}</strong> }
+        @default { &nbsp; }
+        }
+    </p>
+
+    <!-- Raden har höjd även när knappen bytts ut, så att inget hoppar under
+         fingret mellan svaret och nästa ord. -->
+    <div class="actions">
+        @if (verdict === null) {
+        <button type="submit" class="ui-btn ui-btn--primary" [disabled]="typed.trim().length === 0">
+            Svara
+        </button>
+        } @else if (verdict !== 'correct') {
+        <button type="button" class="ui-btn ui-btn--primary" (click)="next()">Nästa</button>
+        }
+    </div>
+</form>
