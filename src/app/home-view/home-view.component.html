@@ -21,22 +21,16 @@
 
         <div class="week-entry">
             <h3 class="ui-title ui-title--sm entry-heading" id="entry-heading">Börja med</h3>
-            <app-entry-picker
-                [options]="entries"
-                [selected]="entry"
-                (picked)="choose($event)" />
+            <app-entry-picker [options]="entries" (picked)="start($event)" />
         </div>
 
+        @if (week.started) {
         <div class="week-actions">
-            <button type="button" class="ui-btn ui-btn--primary" (click)="start()">
-                Kör igång
-            </button>
-            @if (week.started) {
             <button type="button" class="ui-btn ui-btn--quiet" (click)="mapped.emit(week.block)">
                 Kartan
             </button>
-            }
         </div>
+        }
     </div>
 
     <div class="switcher">
