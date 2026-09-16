@@ -3,6 +3,7 @@ import { MATCH_ROUND, SESSION_LENGTH, Task, TrainingSession } from './session';
 import { TrainingEngine } from './training-engine';
 import { DEFAULT_BASELINE, ProgressDocument, ProgressRepository, emptyDocument } from '../services/progress-store';
 import { WordBlock, WordPair, wordKey } from '../words/word-catalog';
+import { Random } from '../words/shuffle';
 import { STEPS, Step } from './word-state';
 
 /** Lagret som inte rör en webbläsare. */
@@ -30,6 +31,16 @@ const WORDS: readonly WordPair[] = [
 ];
 
 const BLOCK: WordBlock = { id: 'test', name: 'Test', words: WORDS };
+
+/**
+ * En slumpkälla som alltid drar det första alternativet.
+ *
+ * Där en fördelning ska prövas behövs en fröad följd (se `word-selector.spec`),
+ * men här är frågan vilket *steg* ett bestämt ord visas i, och då är slumpen
+ * bara brus: ett test som drar ett ord av sex och hoppas att det blir rätt är
+ * nyckfullt av skäl som inte har med det testade att göra.
+ */
+const FIRST_CANDIDATE: Random = () => 0;
 
 /** Orden en uppgift handlar om, oavsett vilken vy som skulle ritat den. */
 function pairsIn(task: Task): readonly WordPair[] {
@@ -168,18 +179,24 @@ describe('TrainingSession', () => {
   });
 
   it('är ett golv och inget läge: ett ord som sitter puttas vidare uppåt', () => {
-    const session = new TrainingSession(engine, BLOCK, 'recall');
-    let reachedWritten = false;
+    // Ordet nötte klart återkalla i ett tidigare pass; resten av blocket är
+    // orört. Golvet säger `recall`, mätningen säger att just det här ordet är
+    // förbi det, och mätningen väger tyngre.
+    //
+    // Att det är ett *tidigare* pass är ingen bekvämlighet utan vad som gäller:
+    // ett orört ord hinner aldrig förbi sin ingång inom ett pass. Se
+    // «Uppflyttningen sker mellan pass» i docs/plan.md.
+    master(WORDS[0], 'recall');
+    const session = new TrainingSession(engine, BLOCK, 'recall', FIRST_CANDIDATE);
 
-    for (let i = 0; i < 200 && !reachedWritten; i++) {
-      const task = session.nextTask();
-      if (task === null) {
-        break;
-      }
-      reachedWritten = task.kind === 'written';
-      session.record(pairsIn(task)[0], stepIn(task), true, DEFAULT_BASELINE[stepIn(task)]);
-    }
-    expect(reachedWritten).toBe(true);
+    const lifted = session.nextTask()!;
+    expect(lifted.kind).toBe('written');
+    expect(pairsIn(lifted)[0].en).toBe(WORDS[0].en);
+
+    // Och golvet står kvar för de andra: det lyfter ett orört ord till
+    // ingången, och sänker aldrig det som kommit längre.
+    session.record(pairsIn(lifted)[0], stepIn(lifted), true, DEFAULT_BASELINE.written);
+    expect(stepIn(session.nextTask()!)).toBe('recall');
   });
 
   it('…och nedåt: ett ord som kämpar får stöd under ingången', () => {
@@ -194,19 +211,33 @@ describe('TrainingSession', () => {
     expect(supported).toBe(true);
   });
 
-  it('visar inte samma ord två gånger i rad, oavsett ingång', () => {
+  it('visar inte samma kort två gånger i rad, oavsett ingång', () => {
     for (const entry of STEPS) {
       engine = new TrainingEngine();
       engine.useRepository(new FakeRepository());
       const session = new TrainingSession(engine, BLOCK, entry);
 
       let previous = '';
-      for (let i = 0; i < SESSION_LENGTH; i++) {
+      while (!session.done) {
         const task = session.nextTask()!;
-        const key = wordKey(pairsIn(task)[0]);
-        expect(key).not.toBe(previous);
-        previous = key;
-        session.record(pairsIn(task)[0], stepIn(task), true, 2);
+        const answered = pairsIn(task);
+
+        // En match-runda är fem par på skärmen samtidigt och har inget enskilt
+        // ord att jämföra med det föregående — spärren gäller korten. Vad den
+        // lovar om rundan är i stället att nästa kort inte upprepar något ur
+        // den, och det är vad `previous` bär vidare.
+        if (task.kind !== 'match') {
+          expect(wordKey(answered[0])).not.toBe(previous);
+        }
+
+        // Hela rundan besvaras, för det är vad vyn gör: `match-view` skickar ett
+        // svar per par. Svarade testet bara för det första paret såg dirigenten
+        // aldrig de andra fyra, och spärren den bygger på `recent` vore mätt mot
+        // något appen inte gör.
+        for (const pair of answered) {
+          session.record(pair, stepIn(task), true, 2);
+        }
+        previous = wordKey(answered[answered.length - 1]);
       }
     }
   });

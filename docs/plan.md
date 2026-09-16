@@ -37,8 +37,10 @@ för att få göra det. Därför väljs *ingången* på startsidan — var passe
 in — medan stegen därefter är motorns.
 
 Ingången är ett golv och inte ett läge. Ett ord som sitter puttas vidare uppåt
-av sin egen mätning mitt i passet, och ett ord som kämpar får stöd från steget
-under — också när det steget ligger under golvet.
+av sin egen mätning, och ett ord som kämpar får stöd från steget under — också
+när det steget ligger under golvet. Rörelsen uppåt sker mellan pass och nedåt
+mitt i ett; varför den asymmetrin finns står under «Uppflyttningen sker mellan
+pass».
 
 Principen under allt: **komplexitet under ytan, enkelhet på ytan.** Ingen
 nivåväljare, ingen träningsplan, ingen statistik att tolka. Den centrala loopen
@@ -195,6 +197,45 @@ Svepet är default, och det är inget hopp: det är appens centrum, och en app s
 `ganger`:s steg 6 — «ta bort nivåknapparna» — pekar fortfarande åt samma håll,
 och det är därför det här *inte* är en nivåväljare: det finns ingen
 svårighetsgrad att ställa in, bara en dörr att gå in genom.
+
+### Uppflyttningen sker mellan pass, nedflyttningen mitt i ett
+
+Ett *orört* ord hinner aldrig förbi sin ingång inom ett och samma pass, och det
+följer av fyra konstanter som var och en är satt av andra skäl:
+
+| Konstant | Värde | Vad den gör här |
+| --- | --- | --- |
+| `RECENT_MEMORY` | 4 | Spärrar ordet i fyra drag, så det kan komma tidigast vart femte |
+| `MIN_ATTEMPTS` | 4 | Fyra svar innan steget alls får dömas |
+| `MASTERED_HITS` | 4 | Fyra rätt i fönstret för att steget ska sitta |
+| `SESSION_LENGTH` | 20 | Så många svar passet är |
+
+Ett ord som kommer på drag 1 kommer sedan tidigast på 6, 11 och 16. Det fjärde
+svaret är alltså det som gör steget behärskat, och det *femte* draget — där
+ordet skulle visas i nästa steg — infaller tidigast på drag 21. Passet är slut
+vid 20. Ett orört block får därför aldrig se ett ord flytta upp under passets
+gång, och med tio ord i en riktig vecka är marginalen större än så.
+
+Det är ingen brist, utan vad siffrorna säger tillsammans: att bli behärskad *ska*
+kosta fyra svar spridda över tid, och att inte nöta samma glosa i rad är hela
+skälet till spärren. Uppflyttningen är det andra passets sak, och för ett ord som
+redan kommit en bit är den omedelbar — golvet sänker aldrig den som kommit
+längre.
+
+Nedflyttningen är osymmetrisk och ska vara det: stödet i `trainingStep()` kräver
+bara `FALLBACK_MISSES` = 2 missar i rad, så ett ord som kämpar får hjälp redan i
+samma pass. Det är avsiktligt. Att få stöd för sent är att fastna; att flyttas
+upp för sent är bara att vänta till i morgon.
+
+Vad som skulle ändra det är `MASTERED_HITS`, inte ingången — och `MIN_ATTEMPTS`
+med den, eftersom fyra rätt kräver fyra svar oavsett vad den står på. Krävdes
+tre rätt i stället för fyra sitter steget på drag 11 och ordet visas i nästa på
+drag 16, alltså inom passet. Om det är rätt är en av sakerna som ska mätas och
+inte resoneras fram — se «Steg 8 — mät konstanterna».
+
+`session.spec.ts` prövar därför golvet på ett ord som nötte klart sitt steg i ett
+*tidigare* pass. Ett test som väntade sig uppflyttning inom passet prövade inte
+regeln utan aritmetiken ovan, och kunde aldrig bli grönt.
 
 ### Riktningen är en: engelska frågar, svenskan svarar
 
