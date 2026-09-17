@@ -104,3 +104,24 @@
     justify-content: center;
     gap: var(--space-2);
 }
+
+/* Fyra tal på en rad: rätt i tempo, rätt men segt, fel, vet ej. Att de står
+   bredvid varandra och inte som en enda «poäng» är hela grenens mätning i
+   sammanfattad form — ett varv med många «vet ej» och få fel säger något helt
+   annat än ett varv med tvärtom. */
+.split {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2) var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-body);
+    color: var(--text-muted);
+}
+
+.split strong {
+    font-family: var(--font-display);
+    color: var(--text);
+}

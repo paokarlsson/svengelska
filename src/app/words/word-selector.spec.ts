@@ -18,7 +18,8 @@ function seeded(seed: number): () => number {
 
 function statFrom(outcomes: readonly boolean[], pace = 1): StepStat {
   return outcomes.reduce<StepStat>(
-    (stat, correct, index) => recordAttempt(stat, { correct, pace, at: index }),
+    (stat, correct, index) =>
+      recordAttempt(stat, { outcome: correct ? 'hit' : 'miss', pace, at: index }),
     emptyStat(),
   );
 }
@@ -169,7 +170,7 @@ describe('companionsFor', () => {
     const round = companionsFor(A, [A, B, C, D], library({ b: past, c: past, d: past }), 4, seeded(2));
     expect(round).toHaveLength(4);
     expect(round[0]).toBe(A);
-    expect(new Set(round.map(wordKey)).size).toBe(4);
+    expect(new Set(round.map((pair) => wordKey(pair))).size).toBe(4);
   });
 
   it('tar inte fler än blocket har', () => {
@@ -188,6 +189,6 @@ describe('companionsFor', () => {
       seeded(2),
     );
     expect(round).toHaveLength(4);
-    expect(new Set(round.map(wordKey)).size).toBe(4);
+    expect(new Set(round.map((pair) => wordKey(pair))).size).toBe(4);
   });
 });

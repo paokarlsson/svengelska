@@ -1,52 +1,76 @@
 <section class="session">
     <header class="bar">
         <button type="button" class="ui-btn ui-btn--quiet" (click)="leave()">Avsluta</button>
-        <p class="block-name">{{block.name}}</p>
-        <p class="tally" aria-hidden="true">{{tally}} / {{session.target}}</p>
+        <p class="block-name">{{week.name}}</p>
+        <p class="tally" aria-hidden="true">
+            @if (warmingUp) { Uppvärmning } @else { {{tally}} / {{session.target}} }
+        </p>
     </header>
 
     <div class="meter" role="progressbar" [attr.aria-valuenow]="tally" aria-valuemin="0"
-        [attr.aria-valuemax]="session.target" aria-label="Passets framsteg">
+        [attr.aria-valuemax]="session.target" aria-label="Varvets framsteg">
         <span class="meter-fill" [style.width.%]="progress"></span>
     </div>
 
     @if (summary === null) {
     <div class="stage">
-        @if (task?.kind === 'match') {
-        <app-match-view [pairs]="matchPairs" (answered)="onAnswer($event)" (completed)="onCompleted()" />
+        @if (empty) {
+        <div class="ui-card ui-card--roomy done">
+            <h2 class="ui-title">Inget är moget just nu</h2>
+            <p class="lead">
+                Allt som setts har fått sin vila, och dagens nya ord är slut. Höj antalet nya ord
+                per dag på startsidan om du vill vidare i dag.
+            </p>
+            <div class="actions">
+                <button type="button" class="ui-btn ui-btn--secondary" (click)="exited.emit()">
+                    Tillbaka
+                </button>
+            </div>
+        </div>
         } @else if (card; as swipe) {
         <app-swipe-view [card]="swipe" (answered)="onAnswer($event)" (completed)="onCompleted()" />
-        } @else if (writePair; as pair) {
-        <app-write-view [pair]="pair" (answered)="onAnswer($event)" (completed)="onCompleted()" />
         }
     </div>
     } @else {
     <div class="ui-card ui-card--roomy done">
-        <h2 class="ui-title">
-            @if (session.blockComplete) { Hela listan sitter! } @else { Passet är klart }
-        </h2>
+        <h2 class="ui-title">Varvet är klart</h2>
 
-        <p class="score">{{summary.correct}} rätt av {{summary.answered}}</p>
+        <p class="score">{{summary.hits + summary.slow}} rätt av {{summary.answered}}</p>
+
+        <ul class="split">
+            <li><strong>{{summary.hits}}</strong> i tempo</li>
+            <li><strong>{{summary.slow}}</strong> rätt men segt</li>
+            <li><strong>{{summary.misses}}</strong> fel</li>
+            <li><strong>{{summary.unsure}}</strong> vet ej</li>
+        </ul>
 
         @if (summary.advanced.length > 0) {
-        <p class="lead">Ord som tog ett steg:</p>
+        <p class="lead">Håll som kommer tillbaka mer sällan nu:</p>
         <ul class="moved">
-            @for (pair of summary.advanced; track pair.en) {
-            <li>{{pair.en}} → {{pair.sv}}</li>
+            @for (word of summary.advanced; track word.pair.en + word.direction) {
+            <li>
+                @if (word.direction === 'en') { {{word.pair.en}} → {{word.pair.sv}} }
+                @else { {{word.pair.sv}} → {{word.pair.en}} }
+            </li>
             }
         </ul>
         } @else {
-        <p class="lead">Inget ord bytte steg den här gången — det kommer.</p>
+        <p class="lead">Inget håll flyttade fram den här gången — det kommer.</p>
         }
 
-        <p class="lead lead--quiet">{{summary.automatic}} av {{block.words.length}} ord sitter hela vägen.</p>
+        @if (short) {
+        <p class="lead lead--quiet">
+            Varvet blev {{summary.words}} ord i stället för {{roundWords}}: fler var inte mogna, och
+            dagens nya ord är slut.
+        </p>
+        }
+
+        <p class="lead lead--quiet">{{summary.mastered}} ord sitter åt båda hållen.</p>
 
         <div class="actions">
-            @if (!session.blockComplete) {
-            <button type="button" class="ui-btn ui-btn--primary" (click)="start()">Ett pass till</button>
-            }
+            <button type="button" class="ui-btn ui-btn--primary" (click)="start()">Ett varv till</button>
             <button type="button" class="ui-btn ui-btn--secondary" (click)="mapped.emit()">Kartan</button>
-            <button type="button" class="ui-btn ui-btn--quiet" (click)="exited.emit()">Byt lista</button>
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="exited.emit()">Tillbaka</button>
         </div>
     </div>
     }

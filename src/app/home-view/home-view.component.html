@@ -9,7 +9,7 @@
             <h2 class="ui-title week-name">{{week.block.name}}</h2>
             <p class="week-count">
                 @if (week.started) {
-                {{week.automatic}} av {{week.block.words.length}} ord sitter
+                {{week.mastered}} av {{week.block.words.length}} ord sitter åt båda hållen
                 } @else {
                 {{week.block.words.length}} ord — inte påbörjad
                 }
@@ -20,8 +20,12 @@
         </div>
 
         <div class="week-entry">
-            <h3 class="ui-title ui-title--sm entry-heading" id="entry-heading">Börja med</h3>
-            <app-entry-picker [options]="entries" (picked)="start($event)" />
+            <button type="button" class="ui-btn ui-btn--primary start" (click)="start()">
+                Kör igång
+            </button>
+            <p class="week-note">
+                Tio ord åt båda hållen. {{newWordsLeft}} nya ord kvar i dag.
+            </p>
         </div>
 
         @if (week.started) {
@@ -50,7 +54,7 @@
                     <span class="block-name">{{other.block.name}}</span>
                     <span class="block-count">
                         @if (other.started) {
-                        {{other.automatic}} av {{other.block.words.length}} ord sitter
+                        {{other.mastered}} av {{other.block.words.length}} ord sitter
                         } @else {
                         {{other.block.words.length}} ord — inte påbörjad
                         }
@@ -62,6 +66,38 @@
             </li>
             }
         </ul>
+        }
+    </div>
+
+    <div class="settings">
+        <button
+            type="button"
+            class="ui-btn ui-btn--quiet"
+            [attr.aria-expanded]="settingsOpen"
+            (click)="settingsOpen = !settingsOpen">
+            Inställningar
+        </button>
+
+        @if (settingsOpen) {
+        <div class="ui-card panel">
+            <label class="field" for="new-per-day">
+                <span class="field-name">Nya ord per dag</span>
+                <span class="field-value">{{newWordsPerDay}}</span>
+            </label>
+            <input
+                id="new-per-day"
+                class="slider"
+                type="range"
+                min="0"
+                [max]="maxNewPerDay"
+                step="1"
+                [value]="newWordsPerDay"
+                (input)="setNewWordsPerDay($any($event.target).value)" />
+            <p class="field-note">
+                Hur många glosor som får introduceras på ett dygn. Repetitionen av det du redan
+                sett påverkas inte — sätt noll för att bara repetera.
+            </p>
+        </div>
         }
     </div>
     }

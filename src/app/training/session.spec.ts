@@ -1,258 +1,210 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MATCH_ROUND, SESSION_LENGTH, Task, TrainingSession } from './session';
+import { Task, TrainingSession } from './session';
+import { CALIBRATION_CARDS } from './calibration';
+import { ROUND_WORDS } from './round';
 import { TrainingEngine } from './training-engine';
-import { DEFAULT_BASELINE, ProgressDocument, ProgressRepository, emptyDocument } from '../services/progress-store';
-import { WordBlock, WordPair, wordKey } from '../words/word-catalog';
-import { Random } from '../words/shuffle';
-import { STEPS, Step } from './word-state';
+import { Response } from './word-state';
+import { ProgressDocument, ProgressRepository, emptyDocument } from '../services/progress-store';
+import { WordPair, pairKey } from '../words/word-catalog';
 
-/** Lagret som inte rör en webbläsare. */
-class FakeRepository implements ProgressRepository {
+class MemoryRepository implements ProgressRepository {
   private document = emptyDocument();
-
   async load(): Promise<ProgressDocument> {
     return this.document;
   }
-
-  async save(): Promise<void> {}
-
+  async save(document: ProgressDocument): Promise<void> {
+    this.document = document;
+  }
   async clear(): Promise<void> {
     this.document = emptyDocument();
   }
 }
 
-const WORDS: readonly WordPair[] = [
-  { en: 'mother', sv: 'mamma', distractorsSv: ['pappa'] },
-  { en: 'father', sv: 'pappa' },
-  { en: 'sister', sv: 'syster' },
-  { en: 'brother', sv: 'bror' },
-  { en: 'aunt', sv: 'moster' },
-  { en: 'uncle', sv: 'morbror' },
-];
-
-const BLOCK: WordBlock = { id: 'test', name: 'Test', words: WORDS };
-
-/**
- * En slumpkälla som alltid drar det första alternativet.
- *
- * Där en fördelning ska prövas behövs en fröad följd (se `word-selector.spec`),
- * men här är frågan vilket *steg* ett bestämt ord visas i, och då är slumpen
- * bara brus: ett test som drar ett ord av sex och hoppas att det blir rätt är
- * nyckfullt av skäl som inte har med det testade att göra.
- */
-const FIRST_CANDIDATE: Random = () => 0;
-
-/** Orden en uppgift handlar om, oavsett vilken vy som skulle ritat den. */
-function pairsIn(task: Task): readonly WordPair[] {
-  switch (task.kind) {
-    case 'match':
-      return task.pairs;
-    case 'trueFalse':
-      return [task.statement.pair];
-    default:
-      return [task.pair];
-  }
+function seeded(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 1103515245 + 12345) % 2147483648;
+    return state / 2147483648;
+  };
 }
 
-/** Steget en uppgift hör till. */
-function stepIn(task: Task): Step {
-  return task.kind === 'match' ? 'match' : task.kind === 'trueFalse' ? 'trueFalse' : task.kind;
+function words(count: number): WordPair[] {
+  return Array.from({ length: count }, (_, i) => ({
+    en: `w${i}`,
+    sv: `o${i}`,
+    distractorsEn: [`w${(i + 1) % count}`],
+    distractorsSv: [`o${(i + 1) % count}`],
+  }));
+}
+
+const CATALOG = words(30);
+
+/** Spelar ett helt varv med samma svar på varje kort. Returnerar uppgifterna. */
+function play(session: TrainingSession, response: Response | ((task: Task) => Response)): Task[] {
+  const seen: Task[] = [];
+  for (let guard = 0; guard < 200; guard++) {
+    const task = session.nextTask();
+    if (task === null) {
+      return seen;
+    }
+    seen.push(task);
+    session.record(task, typeof response === 'function' ? response(task) : response, 1);
+  }
+  throw new Error('varvet tog aldrig slut');
 }
 
 describe('TrainingSession', () => {
   let engine: TrainingEngine;
 
-  /** Nöter ett steg tills det sitter, utan att gå via en vy. */
-  function master(pair: WordPair, step: Step): void {
-    for (let i = 0; i < 5; i++) {
-      engine.record(pair, step, true, DEFAULT_BASELINE[step]);
-    }
-  }
-
-  function masterThrough(last: Step): void {
-    for (const pair of WORDS) {
-      for (const step of STEPS) {
-        master(pair, step);
-        if (step === last) {
-          break;
-        }
-      }
-    }
-  }
-
   beforeEach(async () => {
     engine = new TrainingEngine();
-    engine.useRepository(new FakeRepository());
+    engine.useRepository(new MemoryRepository());
     await engine.hydrate();
+    engine.setNewWordsPerDay(ROUND_WORDS);
   });
 
-  it('börjar i den ingång passet fick', () => {
-    const session = new TrainingSession(engine, BLOCK, 'match');
-    const task = session.nextTask()!;
-    expect(task.kind).toBe('match');
-    expect(pairsIn(task)).toHaveLength(MATCH_ROUND);
+  function round(seed = 1): TrainingSession {
+    return new TrainingSession(engine, CATALOG, CATALOG, seeded(seed));
+  }
+
+  it('inleder varvet med kalibreringen och sedan tjugo kort', () => {
+    const session = round();
+    expect(session.target).toBe(ROUND_WORDS * 2);
+
+    const tasks = play(session, 'affirm');
+    const probes = tasks.filter((task) => task.calibration !== null);
+    expect(probes).toHaveLength(CALIBRATION_CARDS);
+    // Kalibreringen ligger först, och inte utspridd i varvet.
+    expect(tasks.slice(0, CALIBRATION_CARDS).every((task) => task.calibration !== null)).toBe(true);
   });
 
-  it('kliver in där användaren valde, hur orört blocket än är', () => {
-    for (const entry of STEPS) {
-      const session = new TrainingSession(engine, BLOCK, entry);
-      expect(stepIn(session.nextTask()!)).toBe(entry);
+  it('visar varje ord åt båda hållen', () => {
+    const tasks = play(round(), 'affirm').filter((task) => task.calibration === null);
+    const byWord = new Map<string, Set<string>>();
+    for (const task of tasks) {
+      const key = pairKey(task.statement.pair);
+      byWord.set(key, (byWord.get(key) ?? new Set()).add(task.statement.direction));
+    }
+    expect(byWord.size).toBe(ROUND_WORDS);
+    for (const directions of byWord.values()) {
+      expect([...directions].sort()).toEqual(['en', 'sv']);
     }
   });
 
-  it('byter steg under passets gång utan att fråga någon', () => {
-    masterThrough('recall');
-    const session = new TrainingSession(engine, BLOCK);
-    expect(session.nextTask()!.kind).toBe('written');
-  });
-
-  it('räknar svaren och slutar när passet är fullt', () => {
-    const session = new TrainingSession(engine, BLOCK);
-    for (let i = 0; i < SESSION_LENGTH; i++) {
-      const task = session.nextTask()!;
-      session.record(pairsIn(task)[0], stepIn(task), i % 2 === 0, 2);
-    }
-    expect(session.answered).toBe(SESSION_LENGTH);
-    expect(session.correct).toBe(SESSION_LENGTH / 2);
-    expect(session.done).toBe(true);
-    expect(session.nextTask()).toBeNull();
-  });
-
-  it('låter ett missat ord komma tillbaka i samma pass', () => {
-    masterThrough('recall');
-    const session = new TrainingSession(engine, BLOCK);
-
-    const missed = session.nextTask()!;
-    const pair = pairsIn(missed)[0];
-    session.record(pair, stepIn(missed), false, 4);
-
-    let returned = false;
-    for (let i = 0; i < 6 && !returned; i++) {
-      const task = session.nextTask()!;
-      returned = pairsIn(task).some((word) => wordKey(word) === wordKey(pair));
-      session.record(pairsIn(task)[0], stepIn(task), true, 2);
-    }
-    expect(returned).toBe(true);
-  });
-
-  it('visar inte samma ord två gånger i rad', () => {
-    masterThrough('recall');
-    const session = new TrainingSession(engine, BLOCK);
-
-    let previous = '';
-    for (let i = 0; i < SESSION_LENGTH; i++) {
-      const task = session.nextTask()!;
-      const key = wordKey(pairsIn(task)[0]);
-      expect(key).not.toBe(previous);
-      previous = key;
-      session.record(pairsIn(task)[0], stepIn(task), true, 2);
-    }
-  });
-
-  it('vet när blocket är genomarbetat, och slutar då oavsett passets längd', () => {
-    masterThrough('written');
-    const session = new TrainingSession(engine, BLOCK);
-    expect(session.blockComplete).toBe(true);
-    expect(session.done).toBe(true);
-    expect(session.nextTask()).toBeNull();
-  });
-
-  it('låter ingen ingång göra blocket omöjligt att slutföra', () => {
-    // Vakten mot den tysta fällan: mäts aldrig ett överhoppat steg pekar
-    // `currentStep()` på det för alltid, och blocket kan aldrig bli klart.
-    for (const entry of STEPS) {
-      engine = new TrainingEngine();
-      engine.useRepository(new FakeRepository());
-      let session = new TrainingSession(engine, BLOCK, entry);
-
-      for (let pass = 0; pass < 40 && !session.blockComplete; pass++) {
-        while (!session.done) {
-          const task = session.nextTask()!;
-          for (const pair of pairsIn(task)) {
-            session.record(pair, stepIn(task), true, DEFAULT_BASELINE[stepIn(task)]);
-          }
-        }
-        session = new TrainingSession(engine, BLOCK, entry);
-      }
-      expect(session.blockComplete).toBe(true);
-    }
-  });
-
-  it('är ett golv och inget läge: ett ord som sitter puttas vidare uppåt', () => {
-    // Ordet nötte klart återkalla i ett tidigare pass; resten av blocket är
-    // orört. Golvet säger `recall`, mätningen säger att just det här ordet är
-    // förbi det, och mätningen väger tyngre.
-    //
-    // Att det är ett *tidigare* pass är ingen bekvämlighet utan vad som gäller:
-    // ett orört ord hinner aldrig förbi sin ingång inom ett pass. Se
-    // «Uppflyttningen sker mellan pass» i docs/plan.md.
-    master(WORDS[0], 'recall');
-    const session = new TrainingSession(engine, BLOCK, 'recall', FIRST_CANDIDATE);
-
-    const lifted = session.nextTask()!;
-    expect(lifted.kind).toBe('written');
-    expect(pairsIn(lifted)[0].en).toBe(WORDS[0].en);
-
-    // Och golvet står kvar för de andra: det lyfter ett orört ord till
-    // ingången, och sänker aldrig det som kommit längre.
-    session.record(pairsIn(lifted)[0], stepIn(lifted), true, DEFAULT_BASELINE.written);
-    expect(stepIn(session.nextTask()!)).toBe('recall');
-  });
-
-  it('…och nedåt: ett ord som kämpar får stöd under ingången', () => {
-    const session = new TrainingSession(engine, BLOCK, 'recall');
-    let supported = false;
-
-    for (let i = 0; i < 60 && !supported; i++) {
-      const task = session.nextTask()!;
-      supported = STEPS.indexOf(stepIn(task)) < STEPS.indexOf('recall');
-      session.record(pairsIn(task)[0], stepIn(task), false, 4);
-    }
-    expect(supported).toBe(true);
-  });
-
-  it('visar inte samma kort två gånger i rad, oavsett ingång', () => {
-    for (const entry of STEPS) {
-      engine = new TrainingEngine();
-      engine.useRepository(new FakeRepository());
-      const session = new TrainingSession(engine, BLOCK, entry);
-
-      let previous = '';
-      while (!session.done) {
-        const task = session.nextTask()!;
-        const answered = pairsIn(task);
-
-        // En match-runda är fem par på skärmen samtidigt och har inget enskilt
-        // ord att jämföra med det föregående — spärren gäller korten. Vad den
-        // lovar om rundan är i stället att nästa kort inte upprepar något ur
-        // den, och det är vad `previous` bär vidare.
-        if (task.kind !== 'match') {
-          expect(wordKey(answered[0])).not.toBe(previous);
-        }
-
-        // Hela rundan besvaras, för det är vad vyn gör: `match-view` skickar ett
-        // svar per par. Svarade testet bara för det första paret såg dirigenten
-        // aldrig de andra fyra, och spärren den bygger på `recent` vore mätt mot
-        // något appen inte gör.
-        for (const pair of answered) {
-          session.record(pair, stepIn(task), true, 2);
-        }
-        previous = wordKey(answered[answered.length - 1]);
+  it('lägger aldrig samma ords två håll intill varandra', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const scored = play(round(seed), 'affirm').filter((task) => task.calibration === null);
+      for (let i = 1; i < scored.length; i++) {
+        expect(pairKey(scored[i].statement.pair)).not.toBe(pairKey(scored[i - 1].statement.pair));
       }
     }
   });
 
-  it('berättar vilka ord som tog ett steg', () => {
-    const session = new TrainingSession(engine, BLOCK);
-    const pair = WORDS[0];
-    for (let i = 0; i < 5; i++) {
-      session.record(pair, 'match', true, DEFAULT_BASELINE.match);
-    }
+  /**
+   * Kalibreringen är ett instrument och ingen övning. Räknades provet skulle
+   * mätstickan ligga i samma hög som det den mäter.
+   */
+  it('låter kalibreringen inte bli en dom eller en låda', () => {
+    const session = round();
+    const probe = session.nextTask()!;
+    expect(probe.calibration).not.toBeNull();
 
+    session.record(probe, 'affirm', 1.2);
+    const word = { pair: probe.statement.pair, direction: probe.statement.direction };
+    expect(engine.statFor(word).attempts).toBe(0);
+    expect(session.answered).toBe(0);
+  });
+
+  it('kastar ett kalibreringsprov som mötts med «vet ej»', () => {
+    // Ett lätt ord som inte var lätt mäter fel sak med rätt precision.
+    const session = round();
+    const first = session.nextTask()!;
+    session.record(first, 'unsure', 1.2);
+
+    const replacement = session.nextTask()!;
+    expect(replacement.calibration).toBe(first.calibration);
+    expect(pairKey(replacement.statement.pair)).not.toBe(pairKey(first.statement.pair));
+  });
+
+  it('kommer förbi kalibreringen även för den som svepar «vet ej» på allt', () => {
+    // Ett varv som aldrig börjar är sämre än ett varv med grundvärden som golv.
+    const tasks = play(round(), 'unsure');
+    expect(tasks.filter((task) => task.calibration === null).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * Varvet ska täcka varje ord åt båda hållen minst en gång. Ett varv som
+   * kortas av sina egna misstag täcker minst där det behövs mest.
+   */
+  it('tar tillbaka ett missat kort efter de tjugo, inte i stället för ett', () => {
+    const session = round();
+    let firstScored: Task | null = null;
+    const tasks = play(session, (task) => {
+      if (task.calibration !== null) {
+        return 'affirm';
+      }
+      if (firstScored === null) {
+        firstScored = task;
+        // Ett svar som garanterat är fel, oavsett vad kortet påstod.
+        return task.statement.truthy ? 'deny' : 'affirm';
+      }
+      return task.statement.truthy ? 'affirm' : 'deny';
+    });
+
+    const scored = tasks.filter((task) => task.calibration === null);
+    expect(scored).toHaveLength(ROUND_WORDS * 2 + 1);
+    expect(pairKey(scored.at(-1)!.statement.pair)).toBe(pairKey(firstScored!.statement.pair));
+  });
+
+  it('tar tillbaka ett «vet ej» på samma sätt som ett fel', () => {
+    const session = round();
+    let once = false;
+    const tasks = play(session, (task) => {
+      if (task.calibration !== null) {
+        return 'affirm';
+      }
+      if (!once) {
+        once = true;
+        return 'unsure';
+      }
+      return task.statement.truthy ? 'affirm' : 'deny';
+    });
+    expect(tasks.filter((task) => task.calibration === null)).toHaveLength(ROUND_WORDS * 2 + 1);
+  });
+
+  it('räknar de fyra utfallen var för sig', () => {
+    const session = round();
+    play(session, (task) =>
+      task.calibration !== null ? 'affirm' : task.statement.truthy ? 'affirm' : 'unsure',
+    );
     const summary = session.summary();
-    expect(summary.answered).toBe(5);
-    expect(summary.correct).toBe(5);
-    expect(summary.advanced.map((word) => word.en)).toEqual([pair.en]);
-    expect(summary.automatic).toBe(0);
+    expect(summary.answered).toBe(summary.hits + summary.slow + summary.misses + summary.unsure);
+    expect(summary.unsure).toBeGreaterThan(0);
+    expect(summary.words).toBe(ROUND_WORDS);
+  });
+
+  it('säger vilka håll som flyttade fram', () => {
+    const session = round();
+    play(session, (task) =>
+      task.calibration !== null ? 'affirm' : task.statement.truthy ? 'affirm' : 'deny',
+    );
+    const summary = session.summary();
+    expect(summary.advanced.length).toBeGreaterThan(0);
+    expect(summary.misses).toBe(0);
+  });
+
+  it('blir hellre kort än fyller ut: tom budget och inget moget ger inget varv', () => {
+    engine.setNewWordsPerDay(0);
+    const session = round();
+    expect(session.target).toBe(0);
+    expect(session.nextTask()).toBeNull();
+    expect(session.done).toBe(true);
+  });
+
+  it('säger ifrån när varvet inte räckte till tio ord', () => {
+    engine.setNewWordsPerDay(3);
+    const session = round();
+    expect(session.words).toBe(3);
+    expect(session.short).toBe(true);
   });
 });

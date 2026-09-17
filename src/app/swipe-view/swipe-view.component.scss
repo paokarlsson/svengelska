@@ -1,8 +1,12 @@
 /* Kortet är ett föremål på ett bord: det ligger ljust i båda lägena, det lutar
    när det dras, det stämplas med svaret det är på väg att ge, och det far iväg
-   åt det håll svaret gick. Formen är `ganger`:s svepkort rakt av — samma gest
-   ska se likadan ut i båda apparna. Allt som ser ut som en knapp kommer från
-   src/styles/_ui.scss. */
+   åt det håll svaret gick. Formen i sidled är `ganger`:s svepkort rakt av —
+   samma gest ska se likadan ut i båda apparna.
+
+   Nedåt är appens eget, och ser med flit annorlunda ut: kortet *läggs undan*
+   i stället för att slungas iväg. Ett «vet ej» är ingen kastad dom utan ett
+   erkännande, och rörelsen ska inte se ut som ett misslyckande. Allt som ser ut
+   som en knapp kommer från src/styles/_ui.scss. */
 
 :host {
     display: block;
@@ -71,13 +75,18 @@
 }
 
 .game-card--leaving-right,
-.game-card--leaving-left {
+.game-card--leaving-left,
+.game-card--leaving-down {
     opacity: 0;
     transition: transform 260ms ease-in, opacity 260ms ease-in;
 }
 
 .game-card--leaving-right { transform: translateX(140%) rotate(22deg); }
 .game-card--leaving-left { transform: translateX(-140%) rotate(-22deg); }
+
+/* Rakt ned, utan lutning, och kortare väg än åt sidorna: undanlagt, inte
+   kastat. */
+.game-card--leaving-down { transform: translateY(80%) scale(0.9); }
 
 /* Texten skalar med kortet och inte med rutan: kortet är kvadratiskt, och en
    rubrik satt i vw spräcker det så fort skärmen är bred och låg. */
@@ -143,6 +152,16 @@
     transform: rotate(12deg);
 }
 
+/* Nederst och rakt: «vet ej» har ingen sida att luta åt. Tonen är dämpad med
+   flit — stämpeln ska inte se ut som en dom, för det är den inte. */
+.stamp--unsure {
+    top: auto;
+    bottom: 6%;
+    left: 50%;
+    color: rgb(90, 90, 100);
+    transform: translateX(-50%);
+}
+
 /* --- Domen ----------------------------------------------------------------
    Raden har alltid höjd, även när den är tom: hoppar den fram och tillbaka
    flyttar den knapparna under fingret mellan två kort. */
@@ -166,16 +185,29 @@
     color: var(--accent-red);
 }
 
+/* Ingen dom, bara en översättning: varken grönt eller rött. */
+.said--taught {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
 /* --- Knapparna ------------------------------------------------------------
-   Kvar under kortet, och inte gömda som i `ganger`: i Återkalla är det den som
-   övar som dömer sig själv, och «jag kunde det» är ett påstående man ska kunna
-   trycka på. De bär samtidigt stämplarnas ord i samma vänster–höger-ordning
-   som svepet, så gesten har en etikett även innan den börjat. */
+   Kvar under kortet, och inte gömda som i `ganger`: «vet ej» är ett påstående
+   man ska kunna trycka på, och den som inte vill svepa ska kunna svara ändå.
+
+   Rätt och fel ligger bredvid varandra i samma vänster–höger-ordning som
+   svepet, och «vet ej» på egen rad under — nedåt ligger nedanför. Knappraden är
+   alltså en karta över fingret och ingen rangordning, och gesten har en etikett
+   redan innan den börjat. */
 .choices {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-2);
     width: var(--card-size);
+}
+
+.choice--unsure {
+    grid-column: 1 / -1;
 }
 
 .choices--single {

@@ -1,65 +1,51 @@
 /**
- * Kartan: vad systemet anser om varje ord, steg för steg.
+ * Kartan: vad systemet anser om varje ord, åt vart och ett av hållen.
  *
- * Inte `ganger`:s triangel — den formen finns bara för att 7 × 8 och 8 × 7 är
- * samma tal, och ordpar har ingen sådan symmetri att rita. Här är det en lista
- * med ett fält per steg, alltså precis den tabell konceptet skissar:
+ * Före grenen var det ett fält per steg. Nu är det **en rad per riktning**, och
+ * det är inte kosmetik: det är den enda ytan där det går att se att
+ * `hund → dog` släpar efter `dog → hund`, och det är precis vad testet vill
+ * se. Att slå ihop dem till en rad vore att visa medelvärdet av två färdigheter
+ * och kalla det en.
  *
- *     dog → hund    match: sitter  sant/falskt: sitter  återkalla: övar  skriva: svag
- *
- * Färgen mäts alltid mot *stegets egen* tröskel, och det kommer gratis:
- * `masteryIn()` dömer på kvoter mot stegets baslinje, inte på sekunder. Ett
- * grönt fält betyder därför samma sak i alla fyra kolumnerna, fast ett svep
- * och ett skrivet svar ligger på olika tidsskalor.
+ * Fyra toner och inte tre. `taught` — «inte lärt» — är hållet som fått «vet ej»
+ * oftare än det fått fel, och det är skillnaden mellan ett ord som lärts in fel
+ * och ett som aldrig lärts in. Åtgärden skiljer sig, och kartan är stället där
+ * en människa kan se vilken som behövs.
  */
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, inject } from '@angular/core';
 import { TrainingEngine } from '../training/training-engine';
-import { STEPS, Step, WordState, masteryIn, settled } from '../training/word-state';
-import { WordBlock, WordPair } from '../words/word-catalog';
+import { Mastery, StepStat, masteryIn } from '../training/word-state';
+import { Direction, DirectedWord, WordBlock, WordPair } from '../words/word-catalog';
 
-/**
- * Vad ett fält säger, och hur det ska läsas.
- *
- * `implied` är skillnaden mellan *mätt* och *täckt*: ett steg som aldrig övats,
- * men som ett svårare steg har gått i god för. Det är värt en egen ton — utan
- * den skulle ett automatiserat ord visa en grå «ny»-ruta i en kolumn det aldrig
- * behövde passera, och kartan ljuga åt andra hållet.
- */
-interface Cell {
-  step: Step;
-  label: string;
-  tone: 'unseen' | 'weak' | 'learning' | 'mastered' | 'implied';
-}
+type Tone = 'unseen' | 'weak' | 'learning' | 'mastered' | 'taught';
 
 interface Row {
-  pair: WordPair;
-  cells: readonly Cell[];
-  automatic: boolean;
+  word: DirectedWord;
+  asked: string;
+  answer: string;
+  label: string;
+  tone: Tone;
 }
 
-const STEP_LABEL: Record<Step, string> = {
-  match: 'Match',
-  trueFalse: 'Sant/falskt',
-  recall: 'Återkalla',
-  written: 'Skriva',
-};
+interface Group {
+  pair: WordPair;
+  rows: readonly Row[];
+  /** Ordet sitter när båda hållen gör det. */
+  settled: boolean;
+}
 
-const STATE_LABEL: Record<WordState, string> = {
-  UNSEEN: 'Ny',
-  MATCH: 'Match',
-  TRUE_FALSE: 'Sant/falskt',
-  RECALL: 'Återkalla',
-  WRITTEN: 'Skriva',
-  AUTOMATIC: 'Sitter',
-};
-
-const TONE_LABEL = {
+const TONE_LABEL: Record<Tone, string> = {
   unseen: 'ny',
   weak: 'svag',
   learning: 'övar',
   mastered: 'sitter',
-  implied: 'räcker',
-} as const;
+  taught: 'inte lärt',
+};
+
+const DIRECTION_LABEL: Record<Direction, string> = {
+  en: 'engelska → svenska',
+  sv: 'svenska → engelska',
+};
 
 @Component({
   selector: 'app-map-view',
@@ -74,33 +60,54 @@ export class MapViewComponent implements OnChanges {
 
   private readonly engine = inject(TrainingEngine);
 
-  rows: readonly Row[] = [];
-  automatic = 0;
+  groups: readonly Group[] = [];
+  settled = 0;
 
   ngOnChanges(): void {
-    this.rows = this.block.words.map((pair) => this.rowFor(pair));
-    this.automatic = this.rows.filter((row) => row.automatic).length;
+    this.groups = this.block.words.map((pair) => this.groupFor(pair));
+    this.settled = this.groups.filter((group) => group.settled).length;
   }
 
-  stepLabel(step: Step): string {
-    return STEP_LABEL[step];
+  directionLabel(direction: Direction): string {
+    return DIRECTION_LABEL[direction];
   }
 
-  readonly steps = STEPS;
-
-  /** Etiketten för ordet som helhet — härledd, precis som fälten. */
-  stateOf(pair: WordPair): string {
-    return STATE_LABEL[this.engine.stateFor(pair)];
+  private groupFor(pair: WordPair): Group {
+    const rows = (['en', 'sv'] as const).map((direction) => this.rowFor({ pair, direction }));
+    return { pair, rows, settled: rows.every((row) => row.tone === 'mastered') };
   }
 
-  private rowFor(pair: WordPair): Row {
-    const record = this.engine.recordFor(pair);
-    const cells = STEPS.map((step): Cell => {
-      const stat = record[step];
-      const tone =
-        stat.attempts > 0 ? masteryIn(stat) : settled(record, step) ? 'implied' : 'unseen';
-      return { step, label: TONE_LABEL[tone], tone };
-    });
-    return { pair, cells, automatic: this.engine.stepFor(pair) === null };
+  private rowFor(word: DirectedWord): Row {
+    const stat = this.engine.statFor(word);
+    const tone = toneFor(stat);
+    return {
+      word,
+      asked: word.direction === 'en' ? word.pair.en : word.pair.sv,
+      answer: word.direction === 'en' ? word.pair.sv : word.pair.en,
+      label: TONE_LABEL[tone],
+      tone,
+    };
   }
+}
+
+/**
+ * Tonen ett håll får.
+ *
+ * `taught` går före domen och inte efter: ett håll där luckorna är fler än
+ * felen är inte «svagt» i betydelsen fellärt, det är oövat. Att låta den tonen
+ * ta över även från `learning` är avsiktligt — ett ord som svarats rätt några
+ * gånger men fortfarande möts med «vet ej» lika ofta är inte på gång, det
+ * gissas fram.
+ */
+function toneFor(stat: StepStat): Tone {
+  if (stat.attempts === 0) {
+    return 'unseen';
+  }
+  const unsure = stat.recent.filter((outcome) => outcome === 'unsure').length;
+  const missed = stat.recent.filter((outcome) => outcome === 'miss').length;
+  const mastery: Mastery = masteryIn(stat);
+  if (mastery !== 'mastered' && unsure > missed && unsure > 0) {
+    return 'taught';
+  }
+  return mastery;
 }

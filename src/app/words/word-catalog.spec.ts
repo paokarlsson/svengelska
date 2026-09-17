@@ -44,7 +44,7 @@ describe('WORD_BLOCKS', () => {
 
   it('har unika nycklar inom varje block — två rader som är samma glosa vore två sanningar', () => {
     for (const block of WORD_BLOCKS) {
-      const keys = block.words.map(wordKey);
+      const keys = block.words.map((pair) => wordKey(pair));
       expect(new Set(keys).size, block.id).toBe(keys.length);
     }
   });

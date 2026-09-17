@@ -1,126 +1,188 @@
 import { describe, expect, it } from 'vitest';
 import {
   BASELINE_WINDOW,
+  CHANNELS,
   DEFAULT_BASELINE,
+  DEFAULT_NEW_PER_DAY,
+  MAX_NEW_PER_DAY,
   MAX_SAMPLES,
   MIN_BASELINE_SAMPLES,
   SCHEMA_VERSION,
   baselineFor,
+  channelFor,
   emptyDocument,
   hasContent,
   normalize,
 } from './progress-store';
-import { emptyRecord, recordAttempt, emptyStat } from '../training/word-state';
-
-describe('emptyDocument', () => {
-  it('bär sitt versionsnummer, så nästa ändring har någonstans att hänga', () => {
-    expect(emptyDocument().schemaVersion).toBe(SCHEMA_VERSION);
-  });
-
-  it('är tomt, och vet om det', () => {
-    expect(hasContent(emptyDocument())).toBe(false);
-  });
-});
 
 describe('normalize', () => {
-  it('ger ett tomt dokument för skräp i stället för att krascha', () => {
-    for (const junk of [null, undefined, 42, 'nej', [], { words: 'inte ett objekt' }]) {
+  it('ger ett tomt dokument för skräp', () => {
+    for (const junk of [null, 42, 'nej', [], undefined]) {
       expect(normalize(junk)).toEqual(emptyDocument());
     }
   });
 
-  it('behåller det som går att känna igen och kastar resten', () => {
-    const document = normalize({
-      schemaVersion: 1,
-      words: {
-        'en:dog=hund': {
-          match: { attempts: 3, correct: 2, streak: 0, paces: [1.1], recent: [true, false], lastSeen: 7 },
-          trueFalse: 'trasig',
-        },
-        'en:cat=katt': 'inte ett kort',
-      },
-      baselines: { match: [2, 3], trueFalse: ['nej', 1.2], recall: null, written: [] },
-      activeBlockId: 'seed-1',
-      framtidaFält: { som: 'inte finns än' },
-    });
-
-    expect(document.words['en:dog=hund'].match.attempts).toBe(3);
-    expect(document.words['en:dog=hund'].match.paces).toEqual([1.1]);
-    // Ett trasigt steg blir tomt; resten av ordet överlever.
-    expect(document.words['en:dog=hund'].trueFalse).toEqual(emptyStat());
-    expect(document.words['en:cat=katt']).toEqual(emptyRecord());
-    expect(document.baselines.match).toEqual([2, 3]);
-    expect(document.baselines.trueFalse).toEqual([1.2]);
-    expect(document.baselines.recall).toEqual([]);
-    expect(document.activeBlockId).toBe('seed-1');
-  });
-
-  it('klipper fönster som vuxit sig för långa', () => {
+  it('behåller det som går att känna igen och släpper resten', () => {
     const document = normalize({
       words: {
         'en:dog=hund': {
-          match: { attempts: 99, correct: 99, streak: 9, paces: Array(20).fill(1), recent: Array(20).fill(true), lastSeen: 1 },
+          trueFalse: { attempts: 3, correct: 2, streak: 1, paces: [1, 2], recent: ['hit'], box: 2 },
+          skräp: 17,
         },
       },
-      baselines: { match: Array(40).fill(2) },
+      baselines: { 'en:true': [1.2, 1.4], strunt: [9] },
+      activeBlockId: 'v1',
     });
-    expect(document.words['en:dog=hund'].match.paces).toHaveLength(MAX_SAMPLES);
-    expect(document.words['en:dog=hund'].match.recent).toHaveLength(MAX_SAMPLES);
-    expect(document.baselines.match).toHaveLength(BASELINE_WINDOW);
+
+    const stat = document.words['en:dog=hund'].trueFalse;
+    expect(stat.attempts).toBe(3);
+    expect(stat.box).toBe(2);
+    expect(stat.recent).toEqual(['hit']);
+    expect(document.baselines['en:true']).toEqual([1.2, 1.4]);
+    expect(document.activeBlockId).toBe('v1');
   });
 
-  it('bär ingen ingång — ett val som gäller ett pass ska inte bli en gammal sanning', () => {
-    // Ingången väljs på startsidan och gäller det passet. Skrevs den ned skulle
-    // nästa vecka öppna i förra veckans ingång, och då vore den ett läge.
-    const document = normalize({ ...emptyDocument(), entryStep: 'written' });
-    expect(document).toEqual(emptyDocument());
-    expect('entryStep' in document).toBe(false);
-  });
-
-  it('avvisar negativa räknare — ett redigerat dokument ska inte ge negativa svar', () => {
+  it('klipper fönstren till sin längd', () => {
     const document = normalize({
-      words: { 'en:dog=hund': { match: { attempts: -5, correct: -1, streak: -3 } } },
+      words: {
+        'en:dog=hund': {
+          trueFalse: {
+            paces: Array(MAX_SAMPLES + 4).fill(1),
+            recent: Array(MAX_SAMPLES + 4).fill('hit'),
+          },
+        },
+      },
+      baselines: { 'en:true': Array(BASELINE_WINDOW + 5).fill(2) },
     });
-    expect(document.words['en:dog=hund'].match.attempts).toBe(0);
-    expect(document.words['en:dog=hund'].match.correct).toBe(0);
+    expect(document.words['en:dog=hund'].trueFalse.paces).toHaveLength(MAX_SAMPLES);
+    expect(document.words['en:dog=hund'].trueFalse.recent).toHaveLength(MAX_SAMPLES);
+    expect(document.baselines['en:true']).toHaveLength(BASELINE_WINDOW);
+  });
+
+  it('vägrar negativa räknare', () => {
+    const document = normalize({
+      words: { 'en:dog=hund': { trueFalse: { attempts: -3, box: -1 } } },
+    });
+    expect(document.words['en:dog=hund'].trueFalse.attempts).toBe(0);
+    expect(document.words['en:dog=hund'].trueFalse.box).toBe(0);
+  });
+});
+
+/**
+ * Första gången `schemaVersion` gör nytta. Ett dokument skrivet av version 1
+ * ska gå att öva vidare på — inte för att formen är helig, utan för att ett
+ * barn som redan lagt tjugo varv inte ska förlora dem för att appen bytte form.
+ */
+describe('migreringen från version 1', () => {
+  const v1 = {
+    schemaVersion: 1,
+    words: {
+      'en:dog=hund': {
+        trueFalse: {
+          attempts: 5,
+          correct: 4,
+          streak: 2,
+          paces: [1, 1.2],
+          recent: [true, true, false, true, true],
+          lastSeen: 1000,
+        },
+      },
+    },
+    baselines: { match: [3, 3.1], trueFalse: [1.5, 1.6, 1.7], recall: [], written: [6] },
+    activeBlockId: 'v3-djur',
+  };
+
+  it('översätter utfallen utan att hitta på', () => {
+    // Ingenting lagrat före grenen kan vara en lucka — gesten fanns inte — och
+    // ingenting kan vara segt, eftersom kanalgolven inte heller fanns.
+    const stat = normalize(v1).words['en:dog=hund'].trueFalse;
+    expect(stat.recent).toEqual(['hit', 'hit', 'miss', 'hit', 'hit']);
+  });
+
+  it('sår alla fyra kanalerna ur det gamla svepfönstret', () => {
+    // Det är spelarens egen tumme, mätt på samma gest fast utan uppdelning.
+    // Bättre än att börja från grundvärdena, och kalibreringen skriver ändå
+    // över det inom ett varv.
+    const document = normalize(v1);
+    for (const channel of CHANNELS) {
+      expect(document.baselines[channel]).toEqual([1.5, 1.6, 1.7]);
+    }
+  });
+
+  it('ger ett gammalt ord ingen låda och ingen första gång', () => {
+    const stat = normalize(v1).words['en:dog=hund'].trueFalse;
+    expect(stat.box).toBe(0);
+    expect(stat.firstSeen).toBeNull();
+  });
+
+  it('behåller listan som övades och sätter inställningarna till standard', () => {
+    const document = normalize(v1);
+    expect(document.activeBlockId).toBe('v3-djur');
+    expect(document.settings.newWordsPerDay).toBe(DEFAULT_NEW_PER_DAY);
+    expect(document.schemaVersion).toBe(SCHEMA_VERSION);
+  });
+});
+
+describe('inställningarna', () => {
+  it('står på standard när ingen rört dem', () => {
+    expect(emptyDocument().settings.newWordsPerDay).toBe(DEFAULT_NEW_PER_DAY);
+  });
+
+  it('klampar ett redigerat dokument i stället för att tro på det', () => {
+    expect(normalize({ settings: { newWordsPerDay: -4 } }).settings.newWordsPerDay).toBe(0);
+    expect(normalize({ settings: { newWordsPerDay: 900 } }).settings.newWordsPerDay).toBe(
+      MAX_NEW_PER_DAY,
+    );
+    expect(normalize({ settings: 'nej' }).settings.newWordsPerDay).toBe(DEFAULT_NEW_PER_DAY);
+  });
+});
+
+describe('channelFor', () => {
+  it('skiljer riktning och sanningsvärde åt', () => {
+    expect(channelFor('en', true)).toBe('en:true');
+    expect(channelFor('sv', false)).toBe('sv:false');
+    expect(new Set(CHANNELS).size).toBe(4);
   });
 });
 
 describe('baselineFor', () => {
-  it('använder stegets grundvärde tills det finns mätningar nog', () => {
+  it('använder grundvärdet innan det finns mätningar nog', () => {
     const document = emptyDocument();
-    expect(baselineFor(document, 'written')).toBe(DEFAULT_BASELINE.written);
+    expect(baselineFor(document, 'sv:false')).toBe(DEFAULT_BASELINE['sv:false']);
 
-    document.baselines.written = Array(MIN_BASELINE_SAMPLES - 1).fill(2);
-    expect(baselineFor(document, 'written')).toBe(DEFAULT_BASELINE.written);
+    document.baselines['sv:false'] = Array(MIN_BASELINE_SAMPLES - 1).fill(1);
+    expect(baselineFor(document, 'sv:false')).toBe(DEFAULT_BASELINE['sv:false']);
   });
 
-  it('tar medianen, så att ett tappat kort inte flyttar tröskeln', () => {
+  it('tar medianen när det finns nog, så ett tappat kort inte styr', () => {
     const document = emptyDocument();
-    document.baselines.recall = [2, 2.2, 2.1, 30];
-    expect(baselineFor(document, 'recall')).toBeLessThan(3);
+    document.baselines['en:true'] = [1, 1.1, 1.2, 30];
+    expect(baselineFor(document, 'en:true')).toBeCloseTo(1.15);
   });
 
-  it('håller stegen isär — en kvot betyder samma sak i alla fyra', () => {
-    const document = emptyDocument();
-    expect(DEFAULT_BASELINE.trueFalse).toBeLessThan(DEFAULT_BASELINE.written);
-    document.baselines.trueFalse = [1.5, 1.4, 1.6];
-    expect(baselineFor(document, 'trueFalse')).not.toBe(baselineFor(document, 'written'));
+  /**
+   * Att förkasta antas ta längre tid än att bekräfta, och svenskan som fråga
+   * längre tid än engelskan. Talen är gissningar — ordningen mellan dem är det
+   * inte.
+   */
+  it('antar att förkasta tar längre tid än att bekräfta', () => {
+    expect(DEFAULT_BASELINE['en:false']).toBeGreaterThan(DEFAULT_BASELINE['en:true']);
+    expect(DEFAULT_BASELINE['sv:false']).toBeGreaterThan(DEFAULT_BASELINE['sv:true']);
+  });
+
+  it('antar att den svårare riktningen tar längre tid', () => {
+    expect(DEFAULT_BASELINE['sv:true']).toBeGreaterThan(DEFAULT_BASELINE['en:true']);
   });
 });
 
 describe('hasContent', () => {
-  it('ser ett ord som faktiskt övats', () => {
-    const document = emptyDocument();
-    const record = emptyRecord();
-    record.match = recordAttempt(record.match, { correct: true, pace: 1, at: 1 });
-    document.words['en:dog=hund'] = record;
-    expect(hasContent(document)).toBe(true);
-  });
+  it('ser skillnad på tomt och övat', () => {
+    expect(hasContent(emptyDocument())).toBe(false);
 
-  it('ser en mätt baslinje även utan ord', () => {
-    const document = emptyDocument();
-    document.baselines.match = [2];
-    expect(hasContent(document)).toBe(true);
+    expect(hasContent(normalize({ words: { 'en:dog=hund': {} } }))).toBe(true);
+
+    const withBaseline = emptyDocument();
+    withBaseline.baselines['en:true'] = [1];
+    expect(hasContent(withBaseline)).toBe(true);
   });
 });

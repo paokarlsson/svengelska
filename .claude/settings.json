@@ -16,11 +16,15 @@
       "Bash(git checkout *)",
       "Bash(git add *)",
       "Bash(git commit *)",
+      "Bash(git push -u origin claude/*)",
+      "Bash(git push origin claude/*)",
       "Bash(git stash *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4200/)"
     ],
     "deny": [
-      "Bash(git push *)",
+      "Bash(git push * main*)",
+      "Bash(git push *--force*)",
+      "Bash(git push *-f *)",
       "Read(.env)",
       "Read(.env.*)",
       "Read(**/*.pem)",

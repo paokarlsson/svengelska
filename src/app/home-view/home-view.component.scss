@@ -1,6 +1,6 @@
 /* Ett stort kort för veckan som är framme, och de andra hopfällda bakom en
-   knapp. Kortet är inte längre självt knappen: det var rätt när det inte fanns
-   något val i det, men nu finns fyra ingångar att trycka på. */
+   knapp. Kortet är inte självt knappen: under det ligger en start, och under
+   den en inställning som ändrar hur fort det går framåt. */
 .home {
     display: flex;
     flex-direction: column;
@@ -142,4 +142,61 @@
     justify-content: center;
     gap: var(--space-2);
     margin-top: var(--space-3);
+}
+
+/* Starten tar hela kortets bredd: det finns ett sätt att börja, och en knapp
+   som är ensam ska se ensam ut. */
+.start {
+    width: 100%;
+}
+
+.week-note {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* --- Inställningarna ------------------------------------------------------
+   Hopfällda bakom en tyst knapp. Det finns exakt en inställning, och den är
+   den enda i appen som ändrar hur fort det går framåt — allt annat är mätt.
+   Panelen ska därför vara lätt att hitta och svår att råka öppna. */
+.settings {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: stretch;
+}
+
+.panel {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.field {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.field-name {
+    font-family: var(--font-display);
+}
+
+.field-value {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--accent-highlight);
+    font-variant-numeric: tabular-nums;
+}
+
+.slider {
+    width: 100%;
+    accent-color: var(--accent-green);
+    /* Reglaget dras med tummen, och ett tunt spår är svårt att träffa. */
+    min-height: 2.5rem;
+}
+
+.field-note {
+    font-size: 0.85rem;
+    color: var(--text-muted);
 }
