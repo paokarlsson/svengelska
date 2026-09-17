@@ -129,3 +129,10 @@
 .legend strong {
     color: var(--text-primary);
 }
+
+/* «Inte lärt»: hållet har mötts med «vet ej» oftare än med ett fel. Egen ton,
+   eftersom åtgärden är en annan — introducera, inte rätta. */
+.cell.is-taught {
+    border-color: var(--accent-highlight);
+    color: var(--text-muted);
+}

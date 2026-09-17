@@ -36,6 +36,26 @@ export interface WordPair {
   distractorsSv?: readonly string[];
 }
 
+/**
+ * Vilket språk som frågar.
+ *
+ * `en` är `dog → hund`, `sv` är `hund → dog`. Att det är två riktningar och
+ * inte ett ordpar med två sidor är avgjort sedan tidigare: `hund → dog` är en
+ * annan och svårare färdighet, och att träna båda i samma mått hade gjort
+ * måttet till ett medelvärde av två saker. Riktningen bor därför i nyckeln, och
+ * ett ord åt två håll är två poster med var sin dom och var sin fart.
+ */
+export type Direction = 'en' | 'sv';
+
+/** Båda hållen, i den ordning de presenteras när båda visas. */
+export const DIRECTIONS = ['en', 'sv'] as const;
+
+/** Ett ordpar sett från ett håll. Det som faktiskt hamnar på ett kort. */
+export interface DirectedWord {
+  pair: WordPair;
+  direction: Direction;
+}
+
 /** En omgång ord som följs åt genom alla fyra steg. */
 export interface WordBlock {
   id: string;
@@ -71,13 +91,53 @@ export function normalize(word: string): string {
  * både Mat och Vardagsord, och det är samma glosa. Framstegen följer ordet, inte
  * listan det råkade stå i.
  */
-export function wordKey(pair: WordPair): string {
-  return `en:${normalize(pair.en)}=${normalize(pair.sv)}`;
+export function wordKey(pair: WordPair, direction: Direction = 'en'): string {
+  return `${direction}:${normalize(promptOf(pair, direction))}=${normalize(
+    answerOf(pair, direction),
+  )}`;
 }
 
-/** Alla svar som ska godtas för en glosa, i jämförbar form. */
-export function acceptedAnswers(pair: WordPair): string[] {
-  return [pair.sv, ...(pair.also ?? [])].map(normalize);
+/** Nyckeln som identifierar *ordet*, oavsett håll. Planen schemaläggs på den. */
+export function pairKey(pair: WordPair): string {
+  return wordKey(pair, 'en');
+}
+
+/** Ordet som frågas efter åt det hållet. */
+export function promptOf(pair: WordPair, direction: Direction): string {
+  return direction === 'en' ? pair.en : pair.sv;
+}
+
+/** Facit åt det hållet. */
+export function answerOf(pair: WordPair, direction: Direction): string {
+  return direction === 'en' ? pair.sv : pair.en;
+}
+
+/**
+ * Alla svar som ska godtas för en glosa, i jämförbar form.
+ *
+ * `also` gäller bara åt `en`-hållet: de står i listan som svenska former —
+ * `hunden` för `hund` — och har ingen motsvarighet när svenskan är frågan.
+ */
+export function acceptedAnswers(pair: WordPair, direction: Direction = 'en'): string[] {
+  const extra = direction === 'en' ? (pair.also ?? []) : [];
+  return [answerOf(pair, direction), ...extra].map(normalize);
+}
+
+/**
+ * Felsvaren som hör till hållet.
+ *
+ * Skrivna felsvar är på samma språk som facit, så `en`-hållet — där svenskan
+ * svarar — hämtar ur `distractorsSv`, och `sv`-hållet ur `distractorsEn`. Att
+ * de senare legat oanvända i listorna sedan de skrevs är hela förberedelsen som
+ * behövdes.
+ */
+export function distractorsFor(pair: WordPair, direction: Direction): readonly string[] {
+  return (direction === 'en' ? pair.distractorsSv : pair.distractorsEn) ?? [];
+}
+
+/** Varje ord i listan åt båda hållen. */
+export function bothDirections(words: readonly WordPair[]): DirectedWord[] {
+  return words.flatMap((pair) => DIRECTIONS.map((direction) => ({ pair, direction })));
 }
 
 /**
@@ -89,6 +149,29 @@ export function acceptedAnswers(pair: WordPair): string[] {
  * att någon rör appen. Se steg 6 i docs/plan.md.
  */
 export const WORD_BLOCKS: readonly WordBlock[] = parseBlocks(lists);
+
+/**
+ * Alla glosor appen känner till, en gång var.
+ *
+ * Repetitionsplanen behöver hela katalogen och inte en vecka: ett ord som
+ * fastnat i vecka 3 ska kunna komma tillbaka samma dag som vecka 5 är ny.
+ * Dubbletter faller bort på nyckeln — `water = vatten` står i både Mat och
+ * Vardagsord, och det är samma glosa.
+ */
+export const ALL_WORDS: readonly WordPair[] = dedupe(WORD_BLOCKS.flatMap((block) => block.words));
+
+function dedupe(words: readonly WordPair[]): WordPair[] {
+  const seen = new Set<string>();
+  const unique: WordPair[] = [];
+  for (const pair of words) {
+    const key = pairKey(pair);
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(pair);
+    }
+  }
+  return unique;
+}
 
 export function blockById(id: string | null): WordBlock | null {
   return WORD_BLOCKS.find((block) => block.id === id) ?? null;

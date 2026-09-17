@@ -4,22 +4,24 @@
         <h2 class="ui-title ui-title--sm">{{block.name}}</h2>
     </header>
 
-    <p class="lead">{{automatic}} av {{rows.length}} ord sitter hela vägen.</p>
+    <p class="lead">{{settled}} av {{groups.length}} ord sitter åt båda hållen.</p>
 
     <ul class="rows">
-        @for (row of rows; track row.pair.en) {
-        <li class="row" [class.is-automatic]="row.automatic">
+        @for (group of groups; track group.pair.en) {
+        <li class="row" [class.is-automatic]="group.settled">
             <p class="pair">
-                <span class="en">{{row.pair.en}}</span>
-                <span class="arrow" aria-hidden="true">→</span>
-                <span class="sv">{{row.pair.sv}}</span>
-                <span class="ui-visually-hidden">, {{stateOf(row.pair)}}</span>
+                <span class="en">{{group.pair.en}}</span>
+                <span class="arrow" aria-hidden="true">↔</span>
+                <span class="sv">{{group.pair.sv}}</span>
             </p>
             <ul class="cells">
-                @for (cell of row.cells; track cell.step) {
-                <li class="cell" [class]="'is-' + cell.tone">
-                    <span class="cell-step">{{stepLabel(cell.step)}}</span>
-                    <span class="cell-label">{{cell.label}}</span>
+                @for (row of group.rows; track row.word.direction) {
+                <li class="cell" [class]="'is-' + row.tone">
+                    <span class="cell-step">{{row.asked}} → {{row.answer}}</span>
+                    <span class="cell-label">
+                        {{row.label}}
+                        <span class="ui-visually-hidden">, {{directionLabel(row.word.direction)}}</span>
+                    </span>
                 </li>
                 }
             </ul>
@@ -28,9 +30,10 @@
     </ul>
 
     <p class="legend">
-        Fälten fylls när steget mätts. Ett steg som aldrig övats räknas ändå som
-        <strong>räcker</strong> när ett svårare sitter — den som kan skriva ordet känner igen det.
-        Ett ord räknas som helt först när <strong>Skriva</strong> sitter: att känna igen ett ord är
-        inte samma sak som att kunna det.
+        Varje glosa mäts åt båda hållen, och de är två färdigheter: att känna igen
+        <strong>dog</strong> är inte samma sak som att komma på att <strong>hund</strong> heter
+        <em>dog</em>. Ett ord räknas som helt först när båda hållen sitter — och
+        <strong>inte lärt</strong> betyder att hållet oftare mötts med «vet ej» än med ett fel,
+        alltså att det behöver introduceras snarare än rättas.
     </p>
 </section>

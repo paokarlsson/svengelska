@@ -20,15 +20,37 @@
  * `hund` är inte ett felsvar, det är ett rätt svar i annan form.
  */
 import { Random, pick } from './shuffle';
-import { WordPair, acceptedAnswers, normalize } from './word-catalog';
+import {
+  Direction,
+  DirectedWord,
+  WordPair,
+  acceptedAnswers,
+  answerOf,
+  distractorsFor,
+  normalize,
+  promptOf,
+} from './word-catalog';
 
-/** Ett påstående i sant/falskt-steget: `dog = hund`, sant eller falskt. */
+/**
+ * Ett påstående i sant/falskt-steget: `dog = hund`, sant eller falskt.
+ *
+ * Bär sin riktning, eftersom `hund = dog` och `dog = hund` är två påståenden om
+ * två olika färdigheter och inte samma kort läst baklänges.
+ */
 export interface Statement {
   pair: WordPair;
+  direction: Direction;
+  /** Ordet som frågas efter, åt det hållet. */
+  asked: string;
   /** Översättningen som visas — facit eller ett felsvar. */
   shown: string;
   /** Om det som visas är rätt. Det är detta den som övar ska avgöra. */
   truthy: boolean;
+}
+
+/** Ordet påståendet handlar om, som planen och motorn känner igen det. */
+export function wordOf(statement: Statement): DirectedWord {
+  return { pair: statement.pair, direction: statement.direction };
 }
 
 /**
@@ -48,34 +70,66 @@ export const TRUE_SHARE = 0.5;
  */
 export function wrongAnswerFor(
   pair: WordPair,
+  direction: Direction,
   block: readonly WordPair[],
   random: Random = Math.random,
 ): string | null {
-  const forbidden = new Set(acceptedAnswers(pair));
+  const forbidden = new Set(acceptedAnswers(pair, direction));
 
-  const written = (pair.distractorsSv ?? []).filter((word) => !forbidden.has(normalize(word)));
+  const written = distractorsFor(pair, direction).filter(
+    (word) => !forbidden.has(normalize(word)),
+  );
   if (written.length > 0) {
     return pick(written, random);
   }
 
   const fromBlock = block
-    .filter((other) => !forbidden.has(normalize(other.sv)))
-    .map((other) => other.sv);
+    .map((other) => answerOf(other, direction))
+    .filter((word) => !forbidden.has(normalize(word)));
   return pick(fromBlock, random);
 }
 
-/** Påståendet som visas i sant/falskt. Sant i ungefär hälften av fallen. */
+/**
+ * Påståendet som visas i sant/falskt. Sant i ungefär hälften av fallen.
+ *
+ * Andelen gäller *per riktning* och inte över varvet som helhet. Vore den
+ * gemensam går det att lära sig att svenska frågor oftare är sanna, och det är
+ * ett mönster i gränssnittet och inte i språket.
+ */
 export function statementFor(
   pair: WordPair,
+  direction: Direction,
   block: readonly WordPair[],
   random: Random = Math.random,
 ): Statement {
-  if (random() < TRUE_SHARE) {
-    return { pair, shown: pair.sv, truthy: true };
+  return statementWith(pair, direction, block, random() < TRUE_SHARE, random);
+}
+
+/**
+ * Ett påstående med bestämt sanningsvärde.
+ *
+ * Kalibreringen behöver det: fyra prov som råkade bli tre sanna och ett falskt
+ * mäter tre kanaler och lämnar en omätt, och då är hela uppdelningen i kanaler
+ * bortkastad. Slumpen får avgöra vilket ord, aldrig vilken kanal.
+ *
+ * Ett falskt påstående som inte gick att bygga blir sant i stället för påhittat
+ * — en lista med ett enda ord och inga skrivna felsvar har inget att erbjuda.
+ */
+export function statementWith(
+  pair: WordPair,
+  direction: Direction,
+  block: readonly WordPair[],
+  truthy: boolean,
+  random: Random = Math.random,
+): Statement {
+  const asked = promptOf(pair, direction);
+  const truth = answerOf(pair, direction);
+  if (truthy) {
+    return { pair, direction, asked, shown: truth, truthy: true };
   }
-  const wrong = wrongAnswerFor(pair, block, random);
+  const wrong = wrongAnswerFor(pair, direction, block, random);
   if (wrong === null) {
-    return { pair, shown: pair.sv, truthy: true };
+    return { pair, direction, asked, shown: truth, truthy: true };
   }
-  return { pair, shown: wrong, truthy: false };
+  return { pair, direction, asked, shown: wrong, truthy: false };
 }

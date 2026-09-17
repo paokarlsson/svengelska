@@ -1,103 +1,122 @@
 /**
- * Sessionsdirigenten: det som gör de fyra vyerna till ett pass.
+ * Varvsdirigenten: det som gör en hög kort till ett varv.
  *
- * Den håller blocket, frågar motorn vilket steg nästa ord ska visas i, och
- * lämnar ifrån sig en *uppgift* — inte en vy. Vilken komponent som ritar en
- * uppgift är vyernas sak; vad som ska övas härnäst är den här filens.
+ * Den håller varvets ordning, lämnar ifrån sig en *uppgift* — inte en vy — och
+ * tar emot vad som hände. Vad det betyder avgör motorn; vilka ord varvet består
+ * av avgör `round.ts`; vad ett svar gör med planen avgör `word-state.ts`. Det
+ * dirigenten äger är varvets eget minne: vad som står kvar, vad som missades
+ * och ska tillbaka, och när det är slut.
  *
- * Det är här appen skiljer sig mest från `ganger`, som har tre spel i en meny.
- * Här finns ingen meny utan en *ingång*: den som övar väljer var veckan börjar
- * och trycker igång, och därefter växlar stegen under fötterna på hen
- * allteftersom orden rör sig. Skillnaden är hela produktprincipen — ingången
- * gäller det första kortet, resten är mätningens.
- *
- * Dirigenten äger inga regler heller. Steget kommer från `word-state.ts`,
- * urvalet från `word-selector.ts`, felsvaren från `distractors.ts`. Det den
- * äger är passets eget minne: vad som nyss visats, vad som missades och ska
- * tillbaka, och hur långt passet har kvar.
+ * Skillnaden mot passet som fanns före grenen är att varvet är *bestämt i
+ * förväg*. Ett pass drog nästa ord ur en viktad fördelning tills tjugo svar var
+ * givna; ett varv är tio ord åt båda hållen, och de tjugo korten är kända innan
+ * det första visas. Det är vad som gör «tio ord åt båda hållen» till ett löfte
+ * i stället för en förhoppning, och det är också vad som låter en
+ * repetitionsplan ta över urvalet: en plan som drar ett ord i taget är ingen
+ * plan.
  */
-import { Statement, statementFor } from '../words/distractors';
-import { Random, shuffle } from '../words/shuffle';
-import { WordBlock, WordPair, wordKey } from '../words/word-catalog';
-import { RECENT_MEMORY, companionsFor, selectNext } from '../words/word-selector';
+import { Channel } from '../services/progress-store';
+import { Statement, statementFor, statementWith } from '../words/distractors';
+import { Random, pick } from '../words/shuffle';
+import { DirectedWord, WordPair, pairKey, wordKey } from '../words/word-catalog';
+import { CALIBRATION_CARDS, CalibrationCard, EASY_WORDS, calibrationCards } from './calibration';
+import { ROUND_WORDS, pickRoundWords, roundCards } from './round';
 import { TrainingEngine } from './training-engine';
-import { STEPS, Step, WordState, trainingStep } from './word-state';
-
-/** En uppgift på skärmen. Ett kort, utom i Match, som är en hel runda. */
-export type Task =
-  | { kind: 'match'; pairs: readonly WordPair[] }
-  | { kind: 'trueFalse'; statement: Statement }
-  | { kind: 'recall'; pair: WordPair }
-  | { kind: 'written'; pair: WordPair };
+import { Outcome, Response, isCorrect } from './word-state';
 
 /**
- * Så många svar ett pass är.
+ * En uppgift på skärmen.
  *
- * Passet ska ta några minuter och sluta medan det fortfarande är roligt. Att
- * det räknas i *svar* och inte i ord är för att ett ord kan komma flera gånger,
- * och det är meningen.
- *
- * ANTAGANDE: satt på känsla. Se docs/plan.md.
+ * `calibration` är kanalen provet mäter, och `null` för ett kort som räknas.
+ * Att de två går genom samma fält och inte genom två sorters uppgift är
+ * medvetet: för den som övar är de samma kort med samma gest, och skulle de bli
+ * två typer i koden blir de förr eller senare två kort på skärmen.
  */
-export const SESSION_LENGTH = 20;
-
-/**
- * Så många par en match-runda visar.
- *
- * Färre blir ingen övning, fler blir en vägg av ord på en telefon.
- *
- * ANTAGANDE: satt på känsla. Se docs/plan.md.
- */
-export const MATCH_ROUND = 5;
-
-/**
- * Ett besvarat kort på väg från en vy till dirigenten.
- *
- * Vyn skickar vad som hände — vilket ord, i vilket steg, rätt eller fel, och
- * hur lång tid det tog. Vad det *betyder* avgör motorn. En vy som räknade ut
- * en tröskel själv vore den första sprickan i treskiktningen.
- */
-export interface Answer {
-  pair: WordPair;
-  step: Step;
-  correct: boolean;
-  /** Sekunder, eller `null` när svaret inte gick att tajma. */
-  seconds: number | null;
+export interface Task {
+  statement: Statement;
+  calibration: Channel | null;
 }
 
-/** Vad ett pass slutade med. */
-export interface SessionSummary {
+/** Vad ett varv slutade med. */
+export interface RoundSummary {
+  /** Kort som räknades. Kalibreringen ingår inte. */
   answered: number;
-  correct: number;
-  /** Ord som tog ett steg under passet. */
-  advanced: readonly WordPair[];
-  /** Ord i blocket som sitter hela vägen ut. */
-  automatic: number;
+  hits: number;
+  slow: number;
+  misses: number;
+  unsure: number;
+  /** Ord varvet innehöll. Färre än tio betyder att det inte fanns fler. */
+  words: number;
+  /** Håll som flyttade upp en låda i planen. */
+  advanced: readonly DirectedWord[];
+  /** Ord som sitter åt båda hållen. */
+  mastered: number;
 }
+
+/**
+ * Så många gånger ett kastat kalibreringsprov får ersättas.
+ *
+ * Ett tak, eftersom den som svepar «vet ej» på allt annars aldrig kommer förbi
+ * kalibreringen. Går provet inte att mäta lämnas kanalen omätt och golvet blir
+ * grundvärdet — det är ett sämre golv, men ett varv som aldrig börjar är sämre
+ * än så.
+ */
+const MAX_REPLACEMENTS = 4;
 
 export class TrainingSession {
-  /** Nycklar på de senast visade orden, nyast sist. Spärren mot upprepning. */
-  private readonly recent: string[] = [];
-  /** Ord som missades och ska tillbaka innan passet är slut, äldst först. */
-  private readonly retry: WordPair[] = [];
-  /** Tillståndet varje ord hade när passet började, för att kunna se rörelsen. */
-  private readonly before = new Map<string, WordState>();
+  private readonly calibration: CalibrationCard[];
+  private readonly cards: DirectedWord[];
+  private readonly retry: DirectedWord[] = [];
+  /**
+   * Kort som redan fått sin andra chans.
+   *
+   * Utan taket tar varvet aldrig slut för den som svarar «vet ej» på allt: kön
+   * lägger tillbaka kortet, det besvaras likadant, och det läggs tillbaka igen.
+   * En andra chans är en andra chans — en tredje är en loop.
+   */
+  private readonly retried = new Set<string>();
+  private readonly easy: readonly WordPair[];
+  /** Lådan varje håll stod i när varvet började, för att kunna se rörelsen. */
+  private readonly before = new Map<string, number>();
+  /** Varvets kort uppslagna på nyckel. Köerna töms; den här gör det inte. */
+  private readonly lookup = new Map<string, DirectedWord>();
+
+  /** Kort varvet lovade. Ett fält och ingen längd: köerna töms medan de spelas. */
+  private readonly size: number;
 
   private answers = 0;
-  private hits = 0;
+  private replacements = 0;
+  /** Nyckeln på kortet som just besvarades, för spärren mot upprepning. */
+  private last: string | null = null;
+  private readonly tally: Record<Outcome, number> = { hit: 0, slow: 0, miss: 0, unsure: 0 };
 
   constructor(
     private readonly engine: TrainingEngine,
-    readonly block: WordBlock,
-    /**
-     * Var passet kliver in. Ett golv, inte ett läge: det gäller det första
-     * kortet, och varje kort efter det avgörs av mätningen. Se `draw()`.
-     */
-    private readonly entry: Step = STEPS[0],
+    /** Hela katalogen. Repetitionen tar allt som setts, oavsett vecka. */
+    private readonly catalog: readonly WordPair[],
+    /** Listan nya ord hämtas ur. */
+    fresh: readonly WordPair[],
     private readonly random: Random = Math.random,
+    now: number = Date.now(),
   ) {
-    for (const pair of block.words) {
-      this.before.set(wordKey(pair), engine.stateFor(pair));
+    const words = pickRoundWords(
+      catalog,
+      fresh,
+      (word) => engine.statFor(word),
+      now,
+      engine.newWordsLeft(catalog, now),
+    );
+    this.cards = roundCards(words, random);
+    this.size = this.cards.length;
+    this.easy = engine.masteredWords(catalog);
+    // Ett tomt varv kalibreras inte. Golvet är ett instrument för att mäta
+    // korten som kommer, och kommer inga kort finns ingenting att mäta.
+    this.calibration = this.size === 0 ? [] : calibrationCards(this.easy, random);
+
+    for (const card of this.cards) {
+      const key = keyOf(card);
+      this.before.set(key, engine.statFor(card).box);
+      this.lookup.set(key, card);
     }
   }
 
@@ -105,132 +124,203 @@ export class TrainingSession {
     return this.answers;
   }
 
-  get correct(): number {
-    return this.hits;
-  }
-
+  /** Så många kort varvet lovar. Missar som kommer tillbaka ingår inte. */
   get target(): number {
-    return SESSION_LENGTH;
+    return this.size;
   }
 
-  /** Om det finns något kvar att öva i blocket över huvud taget. */
-  get blockComplete(): boolean {
-    return this.block.words.every((pair) => this.engine.stepFor(pair) === null);
+  /** Ord i varvet. Noll betyder att ingenting var moget och inget nytt fanns. */
+  get words(): number {
+    return this.size / 2;
+  }
+
+  /** Om varvet blev kortare än det ska vara — då finns inte mer att öva nu. */
+  get short(): boolean {
+    return this.words < ROUND_WORDS;
   }
 
   get done(): boolean {
-    return this.answers >= SESSION_LENGTH || this.blockComplete;
-  }
-
-  /**
-   * Nästa uppgift, eller `null` när passet är slut.
-   *
-   * Ett missat ord går före urvalet, men inte omedelbart: spärren mot
-   * upprepning gäller även det, så ordet kommer tillbaka efter några andra ord.
-   * Att svara på samma glosa två gånger i rad mäter korttidsminnet och inte
-   * glosan.
-   */
-  nextTask(): Task | null {
-    if (this.done) {
-      return null;
-    }
-    const exposure = this.draw();
-    if (exposure === null) {
-      return null;
-    }
-
-    const { pair, step } = exposure;
-    if (step === 'match') {
-      const pairs = companionsFor(
-        pair,
-        this.block.words,
-        (word) => this.engine.recordFor(word),
-        MATCH_ROUND,
-        this.random,
-      );
-      return { kind: 'match', pairs: shuffle(pairs, this.random) };
-    }
-    if (step === 'trueFalse') {
-      return { kind: 'trueFalse', statement: statementFor(pair, this.block.words, this.random) };
-    }
-    return step === 'recall' ? { kind: 'recall', pair } : { kind: 'written', pair };
-  }
-
-  /**
-   * Ett besvarat kort. Går vidare till motorn, som äger vad det betyder.
-   *
-   * `seconds` är `null` när svaret inte gick att tajma — ett tappat kort, ett
-   * återupptaget pass. Motorn vet vad den ska göra med det; den här filen ska
-   * inte veta.
-   */
-  record(pair: WordPair, step: Step, correct: boolean, seconds: number | null): void {
-    this.engine.record(pair, step, correct, seconds);
-    this.answers++;
-    if (correct) {
-      this.hits++;
-    }
-    this.remember(pair);
-
-    const key = wordKey(pair);
-    const queued = this.retry.some((word) => wordKey(word) === key);
-    if (!correct && !queued) {
-      this.retry.push(pair);
-    }
-  }
-
-  summary(): SessionSummary {
-    const advanced = this.block.words.filter((pair) => {
-      const before = this.before.get(wordKey(pair)) ?? 'UNSEEN';
-      return rank(this.engine.stateFor(pair)) > rank(before);
-    });
-    return {
-      answered: this.answers,
-      correct: this.hits,
-      advanced,
-      automatic: this.block.words.filter((pair) => this.engine.stepFor(pair) === null).length,
-    };
-  }
-
-  private draw(): { pair: WordPair; step: Step } | null {
-    const blocked = new Set(this.recent.slice(-RECENT_MEMORY));
-    const waiting = this.retry.findIndex((pair) => !blocked.has(wordKey(pair)));
-    if (waiting >= 0) {
-      const pair = this.retry.splice(waiting, 1)[0];
-      const step = trainingStep(this.engine.recordFor(pair), this.entry);
-      if (step !== null) {
-        return { pair, step };
-      }
-    }
-    return selectNext(
-      this.block.words,
-      (pair) => this.engine.recordFor(pair),
-      this.recent,
-      this.random,
-      this.entry,
+    return (
+      this.calibration.length === 0 && this.cards.length === 0 && this.retry.length === 0
     );
   }
 
-  private remember(pair: WordPair): void {
-    this.recent.push(wordKey(pair));
-    if (this.recent.length > RECENT_MEMORY * 2) {
-      this.recent.splice(0, this.recent.length - RECENT_MEMORY * 2);
+  /** Nästa uppgift, eller `null` när varvet är slut. */
+  nextTask(): Task | null {
+    const probe = this.calibration[0];
+    if (probe !== undefined) {
+      return {
+        statement: statementWith(
+          probe.word.pair,
+          probe.word.direction,
+          this.pool(probe.word.pair),
+          probe.truthy,
+          this.random,
+        ),
+        calibration: probe.channel,
+      };
     }
+
+    const next = this.cards[0] ?? this.pickRetry();
+    if (next === undefined) {
+      return null;
+    }
+    return {
+      statement: statementFor(next.pair, next.direction, this.catalog, this.random),
+      calibration: null,
+    };
+  }
+
+  /**
+   * Ett besvarat kort.
+   *
+   * Kalibreringen och varvet skiljs åt här och ingen annanstans: ett prov går
+   * till kanalens golv och lämnar varken dom eller låda efter sig, medan ett
+   * kort som räknas går hela vägen genom motorn.
+   */
+  record(task: Task, response: Response, seconds: number | null): void {
+    if (task.calibration !== null) {
+      this.recordProbe(task.calibration, response, seconds);
+      return;
+    }
+
+    const outcome = this.engine.record(task.statement, response, seconds);
+    this.tally[outcome]++;
+    this.answers++;
+
+    const word: DirectedWord = {
+      pair: task.statement.pair,
+      direction: task.statement.direction,
+    };
+    this.take(word);
+    this.last = pairKey(word.pair);
+    if (!isCorrect(outcome)) {
+      this.queueRetry(word);
+    }
+  }
+
+  summary(): RoundSummary {
+    const advanced = [...this.before.entries()]
+      .filter(([key, box]) => this.boxNow(key) > box)
+      .map(([key]) => this.wordFor(key))
+      .filter((word): word is DirectedWord => word !== null);
+
+    return {
+      answered: this.answers,
+      hits: this.tally.hit,
+      slow: this.tally.slow,
+      misses: this.tally.miss,
+      unsure: this.tally.unsure,
+      words: this.words,
+      advanced,
+      mastered: this.engine.masteredCount(this.catalog),
+    };
+  }
+
+  /**
+   * Ett kalibreringsprov.
+   *
+   * Ett «vet ej» betyder att det lätta ordet inte var lätt, och då är mätningen
+   * värdelös: golvet ska vara tiden för ett ord man kan, och det här var inte
+   * ett. Provet kastas och ett nytt kort dras — utan den regeln kan ett enda
+   * glömt ord sänka golvet för hela varvet, och då bedöms varje efterföljande
+   * ord orättvist som snabbt.
+   */
+  private recordProbe(channel: Channel, response: Response, seconds: number | null): void {
+    const probe = this.calibration.shift();
+    if (probe === undefined) {
+      return;
+    }
+    if (response !== 'unsure') {
+      this.engine.calibrate(channel, seconds);
+      return;
+    }
+    if (this.replacements >= MAX_REPLACEMENTS) {
+      return;
+    }
+    this.replacements++;
+    const replacement = this.freshProbe(probe);
+    if (replacement !== null) {
+      this.calibration.unshift(replacement);
+    }
+  }
+
+  /**
+   * Ett nytt prov i samma kanal, på ett annat ord än det som kastades.
+   *
+   * Kanalen står fast och bara ordet byts: det är kanalen som ska mätas, och
+   * ett prov som bytte kanal vore ett prov som mätte fel golv.
+   */
+  private freshProbe(discarded: CalibrationCard): CalibrationCard | null {
+    const pool = this.easy.length >= CALIBRATION_CARDS ? this.easy : EASY_WORDS;
+    const candidates = pool.filter(
+      (pair) => pairKey(pair) !== pairKey(discarded.word.pair),
+    );
+    const pair = pick(candidates, this.random);
+    return pair === null ? null : { ...discarded, word: { ...discarded.word, pair } };
+  }
+
+  /** Tar kortet ur den kö det stod i. */
+  private take(word: DirectedWord): void {
+    const key = keyOf(word);
+    const index = this.cards.findIndex((card) => keyOf(card) === key);
+    if (index >= 0) {
+      this.cards.splice(index, 1);
+      return;
+    }
+    const waiting = this.retry.findIndex((card) => keyOf(card) === key);
+    if (waiting >= 0) {
+      this.retry.splice(waiting, 1);
+    }
+  }
+
+  /**
+   * Ett kort som gick fel — eller fick «vet ej» — kommer tillbaka *efter* de
+   * tjugo, inte i stället för ett av dem.
+   *
+   * Varvet ska täcka varje ord åt båda hållen minst en gång, och ett varv som
+   * kortas av sina egna misstag täcker minst där det behövs mest. Att ordet
+   * ändå kommer igen inom varvet är hela skälet till att kön finns.
+   */
+  private queueRetry(word: DirectedWord): void {
+    const key = keyOf(word);
+    if (this.retried.has(key) || this.retry.some((card) => keyOf(card) === key)) {
+      return;
+    }
+    this.retried.add(key);
+    this.retry.push(word);
+  }
+
+  /**
+   * Nästa kort ur återkomstkön, med samma spärr som varvet självt har.
+   *
+   * Ligger `dog = hund` direkt efter `hund = dog` mäts korttidsminnet och inte
+   * glosan, och det gäller lika mycket för ett kort som kommer tillbaka som för
+   * ett som kommer första gången. Finns inget annat att ta får ordet komma
+   * ändå: ett varv som vägrar avsluta är sämre än ett upprepat kort.
+   */
+  private pickRetry(): DirectedWord | undefined {
+    const fresh = this.retry.find((card) => pairKey(card.pair) !== this.last);
+    return fresh ?? this.retry[0];
+  }
+
+  /** Blocket ett kalibreringsord hämtar sina felsvar ur. */
+  private pool(pair: WordPair): readonly WordPair[] {
+    return this.catalog.some((other) => pairKey(other) === pairKey(pair))
+      ? this.catalog
+      : [pair, ...this.catalog];
+  }
+
+  private boxNow(key: string): number {
+    const word = this.wordFor(key);
+    return word === null ? 0 : this.engine.statFor(word).box;
+  }
+
+  private wordFor(key: string): DirectedWord | null {
+    return this.lookup.get(key) ?? null;
   }
 }
 
-/** Hur långt ett tillstånd ligger fram. Bara till för att se rörelse. */
-function rank(state: WordState): number {
-  if (state === 'UNSEEN') {
-    return -1;
-  }
-  if (state === 'AUTOMATIC') {
-    return STEPS.length;
-  }
-  const steps: Record<Exclude<WordState, 'UNSEEN' | 'AUTOMATIC'>, Step> = {
-    MATCH: 'match',
-    TRUE_FALSE: 'trueFalse',
-    RECALL: 'recall',
-    WRITTEN: 'written',
-  };
-  return STEPS.indexOf(steps[state]);
+function keyOf(word: DirectedWord): string {
+  return wordKey(word.pair, word.direction);
 }

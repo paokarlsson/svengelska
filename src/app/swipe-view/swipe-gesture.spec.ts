@@ -1,26 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DragSample,
   FLING_DISTANCE,
   FLING_SPEED,
   THRESHOLD_MAX,
   THRESHOLD_MIN,
+  THRESHOLD_MIN_Y,
   commitsSwipe,
+  downProgress,
   dragSpeed,
   isFling,
   swipeProgress,
   swipeThreshold,
+  swipeThresholdY,
 } from './swipe-gesture';
 
-/** En dragning på `px` pixlar utspridd över `ms` millisekunder. */
-function drag(px: number, ms: number, points = 5) {
+/** En dragning på `px` pixlar längs en axel, utspridd över `ms` ms. */
+function drag(px: number, ms: number, axis: 'x' | 'y' = 'x', points = 5): DragSample[] {
   return Array.from({ length: points }, (_, i) => ({
-    x: (px / (points - 1)) * i,
+    x: axis === 'x' ? (px / (points - 1)) * i : 0,
+    y: axis === 'y' ? (px / (points - 1)) * i : 0,
     t: (ms / (points - 1)) * i,
   }));
 }
 
 /** Stillastående finger: punkter utan rörelse. */
 const still = drag(0, 60);
+
+/** En skärm att räkna mot. 500 × 800 ger trösklarna 110 respektive 112. */
+const W = 500;
+const H = 800;
 
 describe('swipeThreshold', () => {
   it('skalar med skärmens bredd', () => {
@@ -36,101 +45,109 @@ describe('swipeThreshold', () => {
   });
 });
 
+describe('swipeThresholdY', () => {
+  it('mäts mot höjden och inte mot bredden', () => {
+    expect(swipeThresholdY(800)).toBeCloseTo(112);
+    expect(swipeThresholdY(800)).not.toBe(swipeThreshold(800));
+  });
+
+  it('har ett högre golv än sidled — en nedåtknyck är lättare att råka göra', () => {
+    expect(THRESHOLD_MIN_Y).toBeGreaterThan(THRESHOLD_MIN);
+    expect(swipeThresholdY(300)).toBe(THRESHOLD_MIN_Y);
+  });
+});
+
 describe('dragSpeed', () => {
-  it('mäter px per millisekund', () => {
-    expect(dragSpeed(drag(60, 30))).toBeCloseTo(2, 5);
+  it('mäter px per millisekund längs sin axel', () => {
+    expect(dragSpeed(drag(120, 60), 'x')).toBeCloseTo(2);
+    expect(dragSpeed(drag(120, 60, 'y'), 'y')).toBeCloseTo(2);
   });
 
-  it('är noll när det inte finns två punkter att mäta mellan', () => {
+  it('ser ingen fart alls på den andra axeln', () => {
+    expect(dragSpeed(drag(120, 60, 'y'), 'x')).toBe(0);
+  });
+
+  it('ger noll när det inte går att mäta', () => {
     expect(dragSpeed([])).toBe(0);
-    expect(dragSpeed([{ x: 40, t: 10 }])).toBe(0);
-  });
-
-  it('är noll när punkterna ligger på samma tidpunkt', () => {
-    // Annars vore farten oändlig, och varje tryckning ett svep.
-    expect(dragSpeed([{ x: 0, t: 5 }, { x: 40, t: 5 }])).toBe(0);
-  });
-
-  it('mäter över hela vägen och inte mellan de två sista punkterna', () => {
-    // Långsamt hela vägen, men de två sista ligger tätt. Mätt bara på dem
-    // hade det här sett ut som en knyck.
-    const samples = [
-      { x: 0, t: 0 },
-      { x: 10, t: 100 },
-      { x: 20, t: 200 },
-      { x: 24, t: 201 },
-    ];
-    expect(dragSpeed(samples)).toBeCloseTo(24 / 201, 5);
-    expect(isFling(samples)).toBe(false);
+    expect(dragSpeed(still)).toBe(0);
   });
 });
 
 describe('isFling', () => {
-  it('känner igen en snärt', () => {
-    expect(isFling(drag(40, 20))).toBe(true); // 2 px/ms
+  it('godtar en snärt', () => {
+    expect(isFling(drag(FLING_SPEED * 100 + 20, 100))).toBe(true);
   });
 
-  it('låter en lugn dragning vara', () => {
-    expect(isFling(drag(40, 400))).toBe(false); // 0,1 px/ms
-  });
-
-  it('kräver mer än gränsfarten, inte exakt den', () => {
-    expect(isFling(drag(FLING_SPEED * 100, 100))).toBe(false);
+  it('avvisar ett långsamt drag', () => {
+    expect(isFling(drag(20, 500))).toBe(false);
   });
 });
 
 describe('commitsSwipe', () => {
-  const width = 400; // tröskel: 88 px
-
-  it('godtar en dragning förbi tröskeln hur långsam den än är', () => {
-    expect(commitsSwipe(90, drag(90, 3000), width)).toBe(true);
+  it('svarar sant åt höger och falskt åt vänster', () => {
+    expect(commitsSwipe(200, 0, still, W, H)).toBe('affirm');
+    expect(commitsSwipe(-200, 0, still, W, H)).toBe('deny');
   });
 
-  it('avvisar en kort och långsam dragning', () => {
-    expect(commitsSwipe(50, drag(50, 600), width)).toBe(false);
+  it('svarar «vet ej» rakt nedåt', () => {
+    expect(commitsSwipe(0, 200, still, W, H)).toBe('unsure');
   });
 
-  it('godtar en kort men snabb dragning', () => {
-    expect(commitsSwipe(45, drag(45, 20), width)).toBe(true);
+  it('gör ingenting uppåt — en gest utan betydelse ska inte ha någon', () => {
+    expect(commitsSwipe(0, -300, still, W, H)).toBeNull();
   });
 
-  it('avvisar en snabb men alltför kort dragning', () => {
-    // Ett finger som lyfts lyfts sällan helt rakt; utan golvet i sträcka
-    // hade varje hastig tryckning blivit ett svar.
-    expect(commitsSwipe(FLING_DISTANCE, drag(FLING_DISTANCE, 5), width)).toBe(false);
+  it('avvisar en darrning åt alla håll', () => {
+    expect(commitsSwipe(8, 0, still, W, H)).toBeNull();
+    expect(commitsSwipe(0, 8, still, W, H)).toBeNull();
   });
 
-  it('gäller lika åt båda hållen', () => {
-    expect(commitsSwipe(-90, still, width)).toBe(true);
-    expect(commitsSwipe(-45, drag(-45, 20), width)).toBe(true);
-    expect(commitsSwipe(-50, drag(-50, 600), width)).toBe(false);
+  it('godtar en knyck fast sträckan är kort', () => {
+    const flick = drag(FLING_DISTANCE + 10, 20);
+    expect(commitsSwipe(FLING_DISTANCE + 10, 0, flick, W, H)).toBe('affirm');
   });
 
-  it('avvisar ett stillastående finger', () => {
-    expect(commitsSwipe(0, still, width)).toBe(false);
+  it('godtar inte en knyck som är för kort för att vara ett drag', () => {
+    const tap = drag(FLING_DISTANCE - 5, 5);
+    expect(commitsSwipe(FLING_DISTANCE - 5, 0, tap, W, H)).toBeNull();
   });
 
-  it('kräver längre dragning på en bred skärm än på en smal', () => {
-    // Samma sträcka, två skärmar: ett svep ska kosta lika mycket i handen.
-    const slow = drag(100, 2000);
-    expect(commitsSwipe(100, slow, 320)).toBe(true); // tröskel 70
-    expect(commitsSwipe(100, slow, 1440)).toBe(false); // tröskel 130
+  /**
+   * Diagonalen tillhör den axel som kommit längst *i förhållande till sin egen
+   * tröskel*, inte den som kommit längst i pixlar. Annars vinner den billigare
+   * axeln varje diagonal bara för att den är billigare, och då är den dyrare
+   * gesten i praktiken oåtkomlig.
+   */
+  it('låter den dominerande axeln avgöra, mätt som andel av sin tröskel', () => {
+    // Båda axlarna är förbi sin tröskel; den som kommit längst *i förhållande
+    // till vad som krävs* vinner. I pixlar är sidled längre i båda fallen.
+    const mostlyDown = commitsSwipe(swipeThreshold(W) * 1.1, swipeThresholdY(H) * 1.6, still, W, H);
+    expect(mostlyDown).toBe('unsure');
+
+    const mostlySideways = commitsSwipe(swipeThreshold(W) * 2, swipeThresholdY(H) * 1.1, still, W, H);
+    expect(mostlySideways).toBe('affirm');
+  });
+
+  it('är aldrig tvetydigt: ett drag ger ett svar eller inget', () => {
+    for (let dx = -300; dx <= 300; dx += 37) {
+      for (let dy = -300; dy <= 300; dy += 41) {
+        const answer = commitsSwipe(dx, dy, still, W, H);
+        expect(answer === null || ['affirm', 'deny', 'unsure'].includes(answer)).toBe(true);
+      }
+    }
   });
 });
 
-describe('swipeProgress', () => {
-  const width = 400; // tröskel: 88 px
-
-  it('är noll i vila', () => {
-    expect(swipeProgress(0, width)).toBe(0);
+describe('progress', () => {
+  it('går från -1 till +1 i sidled och klampar där', () => {
+    expect(swipeProgress(0, W)).toBe(0);
+    expect(swipeProgress(9999, W)).toBe(1);
+    expect(swipeProgress(-9999, W)).toBe(-1);
   });
 
-  it('är andelen av tröskeln på vägen dit', () => {
-    expect(swipeProgress(44, width)).toBeCloseTo(0.5, 5);
-  });
-
-  it('stannar vid ±1 bortom tröskeln', () => {
-    expect(swipeProgress(500, width)).toBe(1);
-    expect(swipeProgress(-500, width)).toBe(-1);
+  it('går från 0 till 1 nedåt, och räknar uppåt som noll', () => {
+    expect(downProgress(0, H)).toBe(0);
+    expect(downProgress(9999, H)).toBe(1);
+    expect(downProgress(-400, H)).toBe(0);
   });
 });

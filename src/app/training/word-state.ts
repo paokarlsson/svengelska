@@ -17,9 +17,59 @@
  *    fri produktion.
  */
 
+import { ACTIVE_STEPS } from './scope';
+
 /** De fyra stegen, i den ordning ett ord rör sig genom dem. */
 export const STEPS = ['match', 'trueFalse', 'recall', 'written'] as const;
 export type Step = (typeof STEPS)[number];
+
+/**
+ * Kontrollen `scope.ts` inte kan göra själv: att spärrens strängar är steg.
+ * Skrivs ett stavfel där faller bygget här, på raden som förklarar varför.
+ */
+const ACTIVE: readonly Step[] = ACTIVE_STEPS;
+
+/**
+ * Det lägsta steg som når skärmen.
+ *
+ * Skilt från passets golv, och skillnaden är hela ändringen spärren kräver:
+ * stödsteget får gå under *användarens* golv, eftersom missarna är en mätning
+ * och golvet ett antagande — men aldrig under det *aktiva*, eftersom det steget
+ * inte ritas av någon vy. Ett stöd som pekar på en avstängd vy är ett kort som
+ * aldrig kommer.
+ */
+export const LOWEST_ACTIVE: Step = STEPS.find((step) => ACTIVE.includes(step)) ?? STEPS[0];
+
+/**
+ * Vad ett svar var.
+ *
+ * Fyra utfall och inte två, och båda uppdelningarna är betalda av något:
+ *
+ * `hit` mot `slow` — rätt i tempo mot rätt men segt. Att kunna ett ord
+ * långsamt är inte att kunna det, och utan den skillnaden i utfallet skulle
+ * repetitionsplanen inte kunna låta ett segt rätt stå kvar i sin låda.
+ *
+ * `miss` mot `unsure` — fel mot «vet ej». Tre `miss` är ett ord som lärts in
+ * fel; tre `unsure` är ett ord som aldrig lärts in. Åtgärden skiljer sig —
+ * rätta mot introducera — och slås de ihop försvinner skillnaden i samma stund
+ * den uppstår. För domen «sitter det?» är de ändå samma svar; se `hits()`.
+ */
+export type Outcome = 'hit' | 'slow' | 'miss' | 'unsure';
+
+/**
+ * Vad den som övar svarade — gesten, inte domen.
+ *
+ * Höger är sant, vänster är falskt, ner är «vet ej». Att en vy skickar det här
+ * och inte ett `correct` är treskiktningen i en rad: om kortet var sant, om
+ * svaret var i tempo och vad det gör med planen är motorns sak, och en vy som
+ * räknade ut det själv vore den första sprickan.
+ */
+export type Response = 'affirm' | 'deny' | 'unsure';
+
+/** Om utfallet var ett rätt svar, snabbt eller långsamt. */
+export function isCorrect(outcome: Outcome): boolean {
+  return outcome === 'hit' || outcome === 'slow';
+}
 
 /** Vad ett ord kan vara. Härlett ur måtten, aldrig lagrat. */
 export type WordState = 'UNSEEN' | 'MATCH' | 'TRUE_FALSE' | 'RECALL' | 'WRITTEN' | 'AUTOMATIC';
@@ -41,12 +91,31 @@ export interface StepStat {
   correct: number;
   /** Antal rätt i följd. Nollas av ett fel. */
   streak: number;
-  /** De senaste farterna som kvot mot stegets baslinje, nyast sist. */
+  /** De senaste farterna som kvot mot kanalens baslinje, nyast sist. */
   paces: number[];
   /** De senaste utfallen, nyast sist. Fönstret domen vilar på. */
-  recent: boolean[];
+  recent: Outcome[];
   /** Tidpunkt i ms, `null` innan ordet setts i det här steget. */
   lastSeen: number | null;
+  /**
+   * Tidpunkten för det *första* svaret, satt en gång och aldrig ändrad.
+   *
+   * Finns för dagsbudgeten av nya ord. En räknare som nollas vid midnatt är ett
+   * fält som kan glida isär från verkligheten; ett fält som skrivs en gång kan
+   * det inte. «Nya ord i dag» är antalet ord vars `firstSeen` infaller i dag,
+   * och det är en fråga och inte en bokföring.
+   */
+  firstSeen: number | null;
+  /**
+   * Lådan i repetitionsplanen. Se `schedule.ts` för trappan.
+   *
+   * Det här är det enda lagrade tillstånd appen har som inte också går att
+   * härleda, och avsteget är medvetet: fönstret `recent` är fem svar långt, och
+   * en låda som bara får minnas fem svar kan aldrig växa förbi den femte. Ett
+   * ord som svarats rätt tjugo gånger ska ha ett långt intervall, och det går
+   * inte att läsa ur ett kort fönster utan att ljuga. Se `nextBox()`.
+   */
+  box: number;
 }
 
 /** Vad appen vet om en glosa. Ett fält per steg, aldrig en samlad poäng. */
@@ -94,30 +163,76 @@ export const MASTERED_PACE = 1.25;
 export const FALLBACK_MISSES = 2;
 
 export function emptyStat(): StepStat {
-  return { attempts: 0, correct: 0, streak: 0, paces: [], recent: [], lastSeen: null };
+  return {
+    attempts: 0,
+    correct: 0,
+    streak: 0,
+    paces: [],
+    recent: [],
+    lastSeen: null,
+    firstSeen: null,
+    box: 0,
+  };
 }
 
 export function emptyRecord(): WordRecord {
   return { match: emptyStat(), trueFalse: emptyStat(), recall: emptyStat(), written: emptyStat() };
 }
 
-/** Ett besvarat kort. `pace` är kvot mot stegets baslinje, `null` om otajmat. */
+/** Ett besvarat kort. `pace` är kvot mot kanalens baslinje, `null` om otajmat. */
 export interface Attempt {
-  correct: boolean;
+  outcome: Outcome;
   pace: number | null;
   at: number;
 }
 
 /** `gammalt tillstånd + händelse = nytt tillstånd`. Skriver inget, returnerar. */
 export function recordAttempt(stat: StepStat, attempt: Attempt): StepStat {
+  const correct = isCorrect(attempt.outcome);
   return {
     attempts: stat.attempts + 1,
-    correct: stat.correct + (attempt.correct ? 1 : 0),
-    streak: attempt.correct ? stat.streak + 1 : 0,
+    correct: stat.correct + (correct ? 1 : 0),
+    streak: correct ? stat.streak + 1 : 0,
     paces: attempt.pace === null ? stat.paces : [...stat.paces, attempt.pace].slice(-WINDOW),
-    recent: [...stat.recent, attempt.correct].slice(-WINDOW),
+    recent: [...stat.recent, attempt.outcome].slice(-WINDOW),
     lastSeen: attempt.at,
+    firstSeen: stat.firstSeen ?? attempt.at,
+    box: nextBox(stat.box, attempt.outcome),
   };
+}
+
+/**
+ * Så många lådor trappan har. Trappan själv — intervallen i dygn — ligger i
+ * `schedule.ts`, eftersom den är en plan och inte en regel om ett ord.
+ */
+export const MAX_BOX = 6;
+
+/**
+ * Lådan efter ett svar, och det är här priset på «vet ej» står i kod.
+ *
+ * Räkningen bakom asymmetrin: den som chansar har rätt varannan gång, så den
+ * väntade kostnaden för att gissa är halva felets. Ärlighet är därför det
+ * rationella valet först när ett «vet ej» kostar *mindre än hälften* av vad ett
+ * fel kostar — lika pris räcker inte, det gör gissandet till den bättre
+ * strategin. Botten mot ett steg ned är den billigaste formen som uppfyller det.
+ *
+ * Att felet är det hårdare av de två stämmer även utan räkningen: ett fel på
+ * ett sant/falskt-kort är antingen en falsk föreställning eller en chansning,
+ * och båda förtjänar nollställningen. En ärlig lucka gör det inte.
+ *
+ * `slow` står kvar: ett ord som svarats rätt men segt har inte förtjänat ett
+ * längre intervall, och utan den raden vandrar ord ut till trettiotvå dygn på
+ * svar som varje gång tar tre gånger så lång tid som ett ord man kan.
+ */
+export function nextBox(box: number, outcome: Outcome): number {
+  const current = Math.max(0, Math.min(MAX_BOX, Math.floor(box)));
+  if (outcome === 'hit') {
+    return Math.min(MAX_BOX, current + 1);
+  }
+  if (outcome === 'slow') {
+    return current;
+  }
+  return outcome === 'unsure' ? Math.max(0, current - 1) : 0;
 }
 
 /** Medianen av de mätta farterna, `null` innan någon mätts. */
@@ -151,8 +266,16 @@ export function masteryIn(stat: StepStat): Mastery {
   return hits(stat) >= LEARNING_HITS ? 'learning' : 'weak';
 }
 
+/**
+ * Antalet rätt i fönstret.
+ *
+ * Ett «vet ej» räknas som en miss här, och det är rätt: frågan `masteryIn()`
+ * ställer är «sitter ordet?», och på den frågan är en lucka och ett fel samma
+ * svar. Skillnaden mellan dem betyder något i planen och på kartan, inte i
+ * domen.
+ */
 function hits(stat: StepStat): number {
-  return stat.recent.filter(Boolean).length;
+  return stat.recent.filter(isCorrect).length;
 }
 
 /**
@@ -235,13 +358,19 @@ export function trainingStep(record: WordRecord, floor: Step = STEPS[0]): Step |
   // som kanske aldrig finns.
   const stat = record[STEPS[index]];
   const lately = stat.recent.slice(-FALLBACK_MISSES);
-  const struggling = lately.length === FALLBACK_MISSES && lately.every((ok) => !ok);
+  const struggling = lately.length === FALLBACK_MISSES && !lately.some(isCorrect);
 
-  // Stödet klampas medvetet *inte* om: det får gå under golvet. Golvet är
-  // användarens antagande, missarna är en mätning, och mätningen väger tyngre.
-  // Hölls stödet över golvet skulle ett ord som kämpar i ingångssteget fastna
-  // där utan väg ut — och då vore valet ett läge trots allt.
-  return struggling && index > 0 ? STEPS[index - 1] : STEPS[index];
+  // Stödet klampas medvetet *inte* mot användarens golv: det får gå under.
+  // Golvet är användarens antagande, missarna är en mätning, och mätningen
+  // väger tyngre. Hölls stödet över golvet skulle ett ord som kämpar i
+  // ingångssteget fastna där utan väg ut — och då vore valet ett läge trots
+  // allt.
+  //
+  // Mot det *aktiva* golvet klampas det däremot, och det är en annan sak: ett
+  // avstängt steg ritas inte av någon vy, så ett stöd som pekar dit är ett kort
+  // som aldrig kommer. Se `LOWEST_ACTIVE`.
+  const floorIndex = STEPS.indexOf(LOWEST_ACTIVE);
+  return struggling && index > floorIndex ? STEPS[index - 1] : STEPS[index];
 }
 
 /** Etiketten som visas. Härledd, aldrig lagrad. */

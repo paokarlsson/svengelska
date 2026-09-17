@@ -1,11 +1,12 @@
 <div class="swipe">
-    <div class="card-slot" cdkDrag cdkDragLockAxis="x"
+    <div class="card-slot" cdkDrag
         [cdkDragDisabled]="locked || thinking" [class.is-instant]="instant"
         (cdkDragMoved)="dragMoved($event)" (cdkDragEnded)="dragEnd($event)">
 
         <div class="game-card"
-            [class.game-card--leaving-right]="leaving === 1"
-            [class.game-card--leaving-left]="leaving === -1"
+            [class.game-card--leaving-right]="leaving === 'right'"
+            [class.game-card--leaving-left]="leaving === 'left'"
+            [class.game-card--leaving-down]="leaving === 'down'"
             [style.transform]="leaving ? null : 'rotate(' + rotation + 'deg)'"
             tabindex="0"
             role="group"
@@ -15,6 +16,7 @@
 
             <span class="stamp stamp--affirm" [style.opacity]="strength(1)">{{affirmStamp}}</span>
             <span class="stamp stamp--deny" [style.opacity]="strength(-1)">{{denyStamp}}</span>
+            <span class="stamp stamp--unsure" [style.opacity]="down">VET EJ</span>
 
             <p class="word">{{prompt}}</p>
 
@@ -29,11 +31,12 @@
 
     <p class="verdict" role="status" aria-live="polite">
         @if (verdict; as said) {
-        <span class="said" [class.said--wrong]="!said.correct">{{said.text}}</span>
+        <span class="said" [class.said--wrong]="said.tone === 'wrong'"
+            [class.said--taught]="said.tone === 'taught'">{{said.text}}</span>
         } @else if (thinking) {
         &nbsp;
         } @else {
-        Svep åt sidan, eller tryck
+        Svep åt sidan — eller ner om du inte vet
         }
     </p>
 
@@ -44,12 +47,16 @@
     } @else {
     <div class="choices">
         <button type="button" class="ui-btn ui-btn--secondary choice choice--deny"
-            [disabled]="locked" (click)="answer(false)">
+            [disabled]="locked" (click)="answer('deny')">
             {{denyLabel}}
         </button>
         <button type="button" class="ui-btn ui-btn--secondary choice choice--affirm"
-            [disabled]="locked" (click)="answer(true)">
+            [disabled]="locked" (click)="answer('affirm')">
             {{affirmLabel}}
+        </button>
+        <button type="button" class="ui-btn ui-btn--quiet choice choice--unsure"
+            [disabled]="locked" (click)="answer('unsure')">
+            Vet ej
         </button>
     </div>
     }

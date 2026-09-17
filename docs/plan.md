@@ -13,6 +13,11 @@ Appen är byggd på `ganger`, som tränar multiplikationstabellen med samma
 pedagogiska rörelse. Vad som lyftes därifrån, och vad som medvetet inte gjorde
 det, står under «Arvet från ganger».
 
+> **Läser du det här på en nerskalad gren** står tre av de fyra stegen avstängda,
+> och ingångsväljaren finns inte. Det som är avgjort nedan gäller ändå — det är
+> reglerna som är gömda, inte upprivna. Vad som stängts av och vad som kommit i
+> stället står i [`nerskalad.md`](nerskalad.md).
+
 ---
 
 ## Idén

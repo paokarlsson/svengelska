@@ -1,15 +1,12 @@
 /**
- * Passet: det som binder ihop de fyra vyerna till en enda upplevelse.
+ * Varvet: det som binder kortet, dirigenten och motorn till en upplevelse.
  *
  * Komponenten vet inget om pedagogik. Den frågar `TrainingSession` efter nästa
- * uppgift, ritar den vy uppgiften kräver, skickar tillbaka svaret och frågar
- * igen. Att steget kan byta mellan två kort — match, sedan skriva, sedan
- * sant/falskt — är inget den behöver hantera: det är bara nästa uppgift.
+ * uppgift, ritar kortet, skickar tillbaka gesten och frågar igen.
  *
- * Det finns med flit ingen knapp som väljer övning *här*. Ingången valdes på
- * startsidan och gäller det första kortet; varje kort efter det är motorns
- * beslut. En meny mitt i passet hade varit det första steget bort från
- * produktprincipen.
+ * Det finns med flit ingen väljare här — varken av steg eller av ordlista. Det
+ * enda som valts är var nya ord hämtas ifrån, och det valet gjordes på
+ * startsidan. Vilka ord varvet innehåller är planens sak.
  */
 import {
   ChangeDetectionStrategy,
@@ -21,31 +18,27 @@ import {
   Output,
   inject,
 } from '@angular/core';
-import { MatchViewComponent } from '../match-view/match-view.component';
-import { SwipeCard, SwipeViewComponent } from '../swipe-view/swipe-view.component';
-import { WriteViewComponent } from '../write-view/write-view.component';
-import { Answer, SessionSummary, Task, TrainingSession } from '../training/session';
-import { DEFAULT_ENTRY } from '../training/entry';
+import { SwipeAnswer, SwipeCard, SwipeViewComponent } from '../swipe-view/swipe-view.component';
+import { RoundSummary, Task, TrainingSession } from '../training/session';
+import { CALIBRATION_CARDS } from '../training/calibration';
+import { ROUND_WORDS } from '../training/round';
 import { TrainingEngine } from '../training/training-engine';
-import { Step } from '../training/word-state';
-import { WordBlock, WordPair } from '../words/word-catalog';
+import { ALL_WORDS, WordBlock } from '../words/word-catalog';
 
 @Component({
   selector: 'app-session-view',
   templateUrl: 'session-view.component.html',
   styleUrl: 'session-view.component.scss',
-  imports: [MatchViewComponent, SwipeViewComponent, WriteViewComponent],
+  imports: [SwipeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionViewComponent implements OnInit, OnDestroy {
-  @Input({ required: true }) block!: WordBlock;
-  /** Var passet kliver in. «Ett pass till» återanvänder den — den som valde
-   *  svep vill svepa igen. */
-  @Input() entry: Step = DEFAULT_ENTRY;
+  /** Listan nya ord hämtas ur. Repetitionen tar ändå hela katalogen. */
+  @Input({ required: true }) week!: WordBlock;
 
-  /** Tillbaka till listorna. */
+  /** Tillbaka till startsidan. */
   @Output() readonly exited = new EventEmitter<void>();
-  /** Visa kartan över blocket. */
+  /** Visa kartan. */
   @Output() readonly mapped = new EventEmitter<void>();
 
   private readonly engine = inject(TrainingEngine);
@@ -60,50 +53,63 @@ export class SessionViewComponent implements OnInit, OnDestroy {
    * `@Input` och nollställt kortet mitt under fingret.
    */
   card: SwipeCard | null = null;
-  summary: SessionSummary | null = null;
+  summary: RoundSummary | null = null;
+
+  readonly roundWords = ROUND_WORDS;
+  readonly calibrationCards = CALIBRATION_CARDS;
 
   ngOnInit(): void {
     this.start();
   }
 
   ngOnDestroy(): void {
-    // Passet kan lämnas mitt i. Det som redan besvarats ska ligga kvar.
+    // Varvet kan lämnas mitt i. Det som redan besvarats ska ligga kvar.
     void this.engine.flush();
   }
 
   start(): void {
-    this.session = new TrainingSession(this.engine, this.block, this.entry);
+    this.session = new TrainingSession(this.engine, ALL_WORDS, this.week.words);
     this.summary = null;
     this.advance();
   }
 
-  /** Andelen av passet som är avklarad, för mätaren i toppen. */
+  /** Om kortet på skärmen är ett kalibreringsprov och inte ett riktigt kort. */
+  get warmingUp(): boolean {
+    return this.task?.calibration !== null && this.task !== null;
+  }
+
+  /** Andelen av varvet som är avklarad, för mätaren i toppen. */
   get progress(): number {
+    if (this.session.target === 0) {
+      return 100;
+    }
     return Math.min(100, Math.round((this.session.answered / this.session.target) * 100));
   }
 
   /**
    * Svaren som räknas fram i toppen.
    *
-   * Taket är passets längd fast en match-runda kan gå över den: rundan spelas
-   * färdig, för att avbryta den mitt i vore att lämna par oparade på skärmen.
-   * Mätaren är ett framsteg och inte ett facit, och «23 / 20» säger inget för
-   * den som övar.
+   * Taket är varvets längd fast missade kort kommer tillbaka utöver den. De
+   * korten är inte extra arbete som mätaren ska växa av — de är samma arbete en
+   * gång till, och «23 / 20» säger inget för den som övar.
    */
   get tally(): number {
     return Math.min(this.session.answered, this.session.target);
   }
 
-  get matchPairs(): readonly WordPair[] {
-    return this.task?.kind === 'match' ? this.task.pairs : [];
+  /** Om varvet inte hade tio ord att erbjuda. Sägs rakt ut i stället för fylls ut. */
+  get short(): boolean {
+    return this.session.short;
   }
 
-  get writePair(): WordPair | null {
-    return this.task?.kind === 'written' ? this.task.pair : null;
+  get empty(): boolean {
+    return this.session.target === 0;
   }
 
-  onAnswer(answer: Answer): void {
-    this.session.record(answer.pair, answer.step, answer.correct, answer.seconds);
+  onAnswer(answer: SwipeAnswer): void {
+    if (this.task !== null) {
+      this.session.record(this.task, answer.response, answer.seconds);
+    }
   }
 
   onCompleted(): void {
@@ -117,20 +123,10 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   private advance(): void {
     this.task = this.session.nextTask();
-    this.card = cardFor(this.task);
+    this.card = this.task === null ? null : { kind: 'trueFalse', statement: this.task.statement };
     if (this.task === null) {
       this.summary = this.session.summary();
       void this.engine.flush();
     }
   }
-}
-
-function cardFor(task: Task | null): SwipeCard | null {
-  if (task?.kind === 'trueFalse') {
-    return { kind: 'trueFalse', statement: task.statement };
-  }
-  if (task?.kind === 'recall') {
-    return { kind: 'recall', pair: task.pair };
-  }
-  return null;
 }

@@ -161,6 +161,14 @@ sant/falskt-kort är antingen en falsk föreställning eller en chansning, och b
 förtjänar nollställningen. Ett «vet ej» är en ärlig lucka — ordet är inte lärt
 än, och att då kasta bort allt upparbetat vore att straffa den som säger sanning.
 
+**Halva priset uppnås först från låda tre.** I låda ett och två sammanfaller de
+två, eftersom det inte finns mer än ett steg att falla. Ojämlikheten är alltså
+designens mål och inte något trappan levererar i varje låda, och det är värt att
+skriva ut i stället för att runda av: just där lönar sig gissandet marginellt.
+Insatsen i de lådorna är ett dygn, och priset är betalt med att trappan går att
+förstå. Båda halvorna står som var sitt test i `word-state.spec.ts` — «aldrig
+dyrare» överallt, «mindre än hälften» från låda tre.
+
 ### Ner bär ingen fart
 
 Ett «vet ej» lagras med `pace: null`. Tiden det tar att erkänna en lucka mäter
@@ -178,19 +186,25 @@ läsa — ingenting att rätta, bara något att lära — och då är hela korte
 undervisningstid. Det är också den enda gest i appen som den som övar kan
 använda utan att först ha en åsikt.
 
-### Utfallet blir tresiffrigt
+### Utfallet blir fyrsiffrigt
 
 `recent: boolean[]` räcker inte längre. Tre «vet ej» är ett ord som **aldrig
 lärts in**; tre «fel» är ett ord som **lärts in fel**. Åtgärden skiljer sig —
 introducera mot rätta — och slås de ihop till `false` försvinner skillnaden i
 samma stund den uppstår.
 
-    type Outcome = 'hit' | 'miss' | 'unsure';
+    type Outcome = 'hit' | 'slow' | 'miss' | 'unsure';
     recent: Outcome[]
 
-`hits()` räknar `'hit'`. Hysteresen nedåt räknar `'miss'` och `'unsure'`
-tillsammans — för domen «sitter det?» är en lucka och ett fel samma svar. Det är
-bara i planen och på kartan de skiljer sig, och det är där de ska skilja sig.
+Fyra och inte tre som planen först skrev. Den andra uppdelningen — `hit` mot
+`slow`, rätt i tempo mot rätt men segt — krävs av regeln att ett segt rätt inte
+får flytta upp ordet: utan den i utfallet finns ingenstans att läsa den ifrån
+när lådan ska flyttas. Att den betalar sig på kartan också är en bonus.
+
+`isCorrect()` räknar `hit` och `slow` som rätt. Hysteresen nedåt räknar `miss`
+och `unsure` tillsammans — för domen «sitter det?» är en lucka och ett fel samma
+svar. Det är bara i planen och på kartan de skiljer sig, och det är där de ska
+skilja sig.
 
 Schema 2 är ändå på väg att skrivas, så tri-tillståndet kostar en `migrate()`-rad
 i stället för en egen version: `true → 'hit'`, `false → 'miss'`, och ingenting
@@ -270,6 +284,15 @@ Golvet ägs inte av dagen ensam: dagens mätningar går in i ett rullande fönst
 per kanal, så ett enstaka tappat kalibreringskort flyttar medianen men styr den
 inte.
 
+**Bara kalibreringen matar golvet.** Före grenen föddes baslinjen av varje rätt
+svar, och det är vad som gör den trubbig: låter man seg-men-rätt mata golvet
+glider tröskeln uppåt precis när den behöver hålla emot, och «i tempo» blir en
+kvot mot hur långsam man höll på att bli. Ett golv som bara mäts på ord man kan
+kan inte göra det. Priset är att de första varven går på grundvärdena — fyra
+prov per varv, ett per kanal, och tre krävs innan medianen tas — och det är rätt
+pris: ett grundvärde som är fel åt det stränga hållet gör bedömningen strängare
+än den behöver vara, aldrig mildare.
+
 ---
 
 ## Två snitt: sant och falskt
@@ -303,37 +326,41 @@ uppdelningen behöver ligga, inte i täljaren.
 Under ytan, och osynligt: ingen graf, inga intervall på skärmen, ingen
 «nästa repetition om 4 dagar». Den som övar ser tio ord och trycker igång.
 
-Formen är Leitner, och det viktiga är att den **härleds ur det som redan
-lagras** — samma beslut som `docs/plan.md` tog om tillståndet:
+Formen är Leitner:
 
-| Vad som behövs | Var det redan finns |
-| --- | --- |
-| Vilken låda ordet står i | `streak` — antal rätt i följd, nollas av ett fel |
-| När ordet senast sågs | `lastSeen` |
-| Om ordet svarats i tempo | Kvoten mot kanalens golv, `medianPace()` |
-
-    låda      = min(streak, INTERVALS.length - 1)
     intervall = INTERVALS[låda]            // dygn
-    moget     = lastSeen + intervall
+    moget     = dygnets början för lastSeen + intervall
 
-och `INTERVALS` är någonting i stil med `[0, 1, 2, 4, 8, 16, 32]` — en gissning
-som hör hemma i tabellen längst ned.
+Dygnsgränser och inte timmar. Ett ord som svarades rätt strax före läggdags ska
+komma tillbaka nästa dag och inte nästa kväll, och den som övar två gånger samma
+dag ska inte få samma ord igen för att det gått tjugofyra timmar och en minut.
+
+**Lådan lagras, och det är planens enda avsteg från «härled allt».** Planen
+räknade med att läsa den ur `streak` eller ur `recent`, och det går inte:
+fönstret är fem svar långt, så en härledd låda kan aldrig växa förbi den femte.
+Ett ord som svarats rätt tjugo gånger ska ha ett långt intervall, och det finns
+inget kort fönster att läsa det ur utan att ljuga. Alternativet — ett längre
+fönster — är att lagra samma sak fast dyrare.
+
+Avsteget kostar ett heltal per ord och håll, och det som skyddar mot att de två
+sanningarna glider isär är att `nextBox()` är den *enda* vägen in i fältet:
+lådan flyttas av ett besvarat kort och av ingenting annat.
+
+`INTERVALS` är `[0, 1, 1, 3, 7, 16, 32]` — en gissning som hör hemma i tabellen
+längst ned. Att trappan börjar med två ettor är ett val: ett ord som just lärts
+in ska ses två dagar i rad innan det får vila, eftersom den andra dagen är den
+som avgör om det första rätta svaret var minne eller eko.
 
 Två tillägg till den rena Leitner-trappan, båda för att grenens mätningar ska
 betyda något:
 
-**Ett rätt som var segt flyttar inte upp ordet.** Låg låda kvar, samma
+**Ett rätt som var segt flyttar inte upp ordet.** Samma låda kvar, samma
 intervall. Att kunna ett ord långsamt är inte att kunna det, och det är hela
 poängen med att golvet mäts. Annars kunde ett ord vandra ut till trettiotvå
 dygn på svar som varje gång tog tre gånger så lång tid som ett ord man kan.
 
 **Ett fel och ett «vet ej» kostar olika.** Fel går till botten, «vet ej» en låda
-ned — räkningen som ger den asymmetrin står under «Priset måste räknas». Här är
-det värt att notera vad den kostar i lagring: `streak` nollas av båda, så lådan
-går inte längre att härleda ur `streak` ensamt. Den måste läsas ur
-`recent`-fönstret, som nu vet skillnaden. Det är fortfarande en härledning och
-inget lagrat lådnummer, men den är en rad mer invecklad än trappan ovan låter
-påskina, och den raden är värd ett eget test.
+ned — räkningen som ger den asymmetrin står under «Priset måste räknas».
 
 Varvets tio ord plockas i den här ordningen:
 
@@ -402,6 +429,8 @@ hållningen gäller oförändrat.
 
 ## Arbetsordning
 
+*Byggt. Vad som blev annorlunda än planerat står under «Var planen fick ge sig».*
+
 Fem etapper, var och en grön för sig. Ingen av dem är stor, och ordningen är
 vald så att varje etapp går att spela på en telefon innan nästa börjar.
 
@@ -447,6 +476,34 @@ ett «vet ej» får aldrig flytta ett ord längre ned än ett fel gör, och ett
 «vet ej» får aldrig lämna ett spår i vare sig kanalens golv eller ordets farter.
 Den första är ojämlikheten ovan uttryckt i kod, och den är den enda rad som
 hindrar att gesten tyst blir en fälla nästa gång någon justerar trappan.
+
+---
+
+## Var planen fick ge sig
+
+Tre ställen där bygget inte blev som skrivbordet trodde. De står här och inte
+bortstrukna, eftersom skälen är värda mer än planen var.
+
+**Lådan lagras, den härleds inte.** Se «Spaced repetition under ytan». Ett
+fönster på fem svar kan inte bära ett intervall på trettiotvå dygn, och att
+förlänga fönstret är att lagra samma sak fast dyrare.
+
+**Utfallet blev fyrsiffrigt, inte tresiffrigt.** `slow` måste finnas i utfallet
+för att regeln «ett segt rätt flyttar inte upp ordet» ska ha något att läsa.
+Planen skrev tre och menade fyra.
+
+**Dirigenten skrevs om i stället för att spärras.** `session.ts` drog förut
+nästa ord ur en viktad fördelning tills tjugo svar var givna. Ett varv är tio
+ord åt båda hållen, bestämda innan det första kortet visas — det är vad som gör
+«tio ord åt båda hållen» till ett löfte i stället för en förhoppning, och en
+plan som drar ett ord i taget är ingen plan. `word-selector.ts` och dess tester
+ligger kvar orörda; det är den gamla vägen som är gömd, inte raderad.
+
+En fjärde sak fanns inte i planen alls och upptäcktes av ett test: **ett kort får
+en andra chans, inte en tredje.** Utan taket tar varvet aldrig slut för den som
+svarar «vet ej» på allt — kön lägger tillbaka kortet, det besvaras likadant, och
+läggs tillbaka igen. Det är precis den sortens hörn ett tredje svar öppnar, och
+precis därför testet finns.
 
 ---
 
@@ -512,11 +569,13 @@ känsla.
 | --- | --- | --- |
 | `ROUND_WORDS` = 10 | `training/round.ts` | Hur många ord ett varv är |
 | `CALIBRATION_CARDS` = 4 | `training/calibration.ts` | Hur många lätta ord som mäter golvet |
-| `TEMPO_FACTOR` | `training/word-state.ts` | Hur mycket långsammare än golvet som fortfarande är «i tempo» |
+| `MASTERED_PACE` | `training/word-state.ts` | Hur mycket långsammare än golvet som fortfarande är «i tempo» |
 | `INTERVALS` | `training/schedule.ts` | Trappan mellan lådorna, i dygn |
+| `MAX_BOX` | `training/word-state.ts` | Hur långt ett ord kan vandra ut i trappan |
+| `MAX_REPLACEMENTS` | `training/session.ts` | Hur många kastade kalibreringsprov ett varv tål |
 | `DEFAULT_NEW_PER_DAY` = 5 | `services/progress-store.ts` | Vad panelen står på innan någon rört den |
 | `EASY_WORDS` | `training/calibration.ts` | Mätstickan för den som inte har egna behärskade ord än |
-| `THRESHOLD_RATIO_Y` | `swipe-view/swipe-gesture.ts` | Hur långt ner kortet måste dras för «vet ej» |
+| `THRESHOLD_RATIO_Y`, `THRESHOLD_MIN_Y`, `THRESHOLD_MAX_Y` | `swipe-view/swipe-gesture.ts` | Hur långt ner kortet måste dras för «vet ej» |
 | `VERDICT_UNSURE_MS` | `swipe-view/swipe-view.component.ts` | Hur länge facit står kvar när ingen visste |
 
 `TRUE_SHARE`, `RECENT_MEMORY` och `MAX_SAMPLES` bärs över oförändrade från

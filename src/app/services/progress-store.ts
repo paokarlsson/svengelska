@@ -10,62 +10,112 @@
  * ett löfte går att uppfylla synkront, men en synkron signatur går inte att
  * göra asynkron i efterhand utan att varje anropare skrivs om.
  */
-import { STEPS, Step, StepStat, WordRecord, emptyRecord, emptyStat } from '../training/word-state';
+import {
+  Outcome,
+  STEPS,
+  Step,
+  StepStat,
+  WordRecord,
+  emptyRecord,
+  emptyStat,
+} from '../training/word-state';
+import { DIRECTIONS, Direction } from '../words/word-catalog';
 
 /**
- * Formen på det som ligger i lagret. Höjs när dokumentet ändrar form, och
- * `migrate()` får då sin första gren. Att raden finns från början är den enda
- * lärdom från `ganger` som kostar noll att ta med: där saknade version 1 ett
- * versionsnummer och måste kännas igen på formen av sina nycklar i stället.
+ * Formen på det som ligger i lagret.
+ *
+ * Höjd till 2 av den nerskalade grenen, och det är första gången raden gör
+ * nytta: baslinjerna delades upp i kanaler, utfallet blev fyrsiffrigt i stället
+ * för ett `boolean`, och dokumentet fick inställningar. `migrate()` har därför
+ * äntligen sin första gren, vilket är vad versionsnumret alltid var till för.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** Allt appen minns om den som övat, under en nyckel. */
 export const PROGRESS_KEY = 'svengelska-progress';
 
 /**
- * Så många mätningar som sparas per ord och steg, och så många som baslinjen
- * är medianen av.
- *
- * Baslinjen mäts per steg och aldrig delat. Ett svep är ett finger, ett skrivet
- * svar är ett ord på ett tangentbord, och en gemensam skala hade fått halva
- * blocket att se behärskat ut på fel grund.
+ * Så många mätningar som sparas per ord, och så många som baslinjen är
+ * medianen av.
  */
 export const MAX_SAMPLES = 5;
 export const BASELINE_WINDOW = 8;
 
 /**
  * Färre mätningar än så säger mer om slumpen än om spelaren, och då används
- * stegets grundvärde i stället.
+ * kanalens grundvärde i stället.
  */
 export const MIN_BASELINE_SAMPLES = 3;
 
 /**
- * Farten ett steg antas ha innan spelaren mätts, i sekunder.
+ * Kanalen en fart mäts i: riktning × sanningsvärde.
  *
- * ANTAGANDE: satt på känsla, och det är hela poängen med att den mäts om. Se
- * docs/plan.md.
+ * Fyra golv och inte ett, och skälet är att de fyra ligger på olika tidsskalor
+ * av skäl som inte har med kunnandet att göra. Att svara «rätt» på `dog = hund`
+ * är igenkänning; att svara «fel» på `dog = katt` är igenkänning *plus ett
+ * aktivt förkastande*, och det tar längre tid för alla — även för den som kan
+ * ordet perfekt. Mäts båda mot samma snitt får varje falskt påstående en
+ * straffavgift, och eftersom ungefär hälften av korten är falska blir hälften
+ * av alla farter systematiskt för höga.
+ *
+ * Samma sak åt andra hållet: `hund → dog` är den svårare riktningen, och att
+ * jämföra den med `dog → hund`:s golv vore att mäta färdigheten mot fel måttband.
  */
-export const DEFAULT_BASELINE: Record<Step, number> = {
-  match: 3.0,
-  trueFalse: 1.6,
-  recall: 2.5,
-  written: 6.0,
+export type Channel = `${Direction}:${'true' | 'false'}`;
+
+export const CHANNELS: readonly Channel[] = DIRECTIONS.flatMap(
+  (direction): Channel[] => [`${direction}:true`, `${direction}:false`],
+);
+
+/** Kanalen ett påstående hör hemma i. */
+export function channelFor(direction: Direction, truthy: boolean): Channel {
+  return `${direction}:${truthy ? 'true' : 'false'}`;
+}
+
+/**
+ * Farten en kanal antas ha innan spelaren mätts, i sekunder.
+ *
+ * Att förkasta antas ta längre tid än att bekräfta, och svenskan som fråga
+ * längre tid än engelskan. Trappan är resonerad men inte mätt — och det är hela
+ * poängen med att kalibreringen mäter om den varje varv.
+ *
+ * ANTAGANDE: satt på känsla. Se docs/nerskalad.md.
+ */
+export const DEFAULT_BASELINE: Record<Channel, number> = {
+  'en:true': 1.6,
+  'en:false': 2.0,
+  'sv:true': 2.0,
+  'sv:false': 2.4,
 };
+
+/**
+ * Hur många nya ord ett dygn får introducera innan panelen rörts.
+ *
+ * ANTAGANDE: satt på känsla. Se docs/nerskalad.md.
+ */
+export const DEFAULT_NEW_PER_DAY = 5;
+
+/** Taket panelen erbjuder. Fler nya ord på en dag är inte en inställning. */
+export const MAX_NEW_PER_DAY = 20;
+
+/** Det den som övar har ställt in. Egenskap hos personen, inte hos enheten. */
+export interface Settings {
+  newWordsPerDay: number;
+}
 
 export interface ProgressDocument {
   schemaVersion: number;
   /**
-   * Nyckeln är maskinläsbar och stabil: `en:dog=hund`. Prefixet lämnar plats
-   * för andra språkriktningar — `sv:hund=dog` — utan att dokumentet behöver
-   * göras om, och båda sidorna ingår för att `can = kan` och `can = burk` ska
-   * vara två glosor och inte en.
+   * Nyckeln är maskinläsbar och stabil: `en:dog=hund` och `sv:hund=dog`.
+   * Prefixet bär riktningen, och båda sidorna ingår för att `can = kan` och
+   * `can = burk` ska vara två glosor och inte en.
    */
   words: Record<string, WordRecord>;
-  /** Rullande fönster av sekunder per steg. Medianen är stegets baslinje. */
-  baselines: Record<Step, number[]>;
-  /** Blocket som övas just nu, `null` innan något valts. */
+  /** Rullande fönster av sekunder per kanal. Medianen är kanalens baslinje. */
+  baselines: Record<Channel, number[]>;
+  /** Listan nya ord hämtas ur, `null` innan något valts. */
   activeBlockId: string | null;
+  settings: Settings;
 }
 
 /** Läser och skriver. Ingen pedagogik, inga trösklar, inga beslut. */
@@ -75,8 +125,12 @@ export interface ProgressRepository {
   clear(): Promise<void>;
 }
 
-export function emptyBaselines(): Record<Step, number[]> {
-  return { match: [], trueFalse: [], recall: [], written: [] };
+export function emptyBaselines(): Record<Channel, number[]> {
+  return { 'en:true': [], 'en:false': [], 'sv:true': [], 'sv:false': [] };
+}
+
+export function defaultSettings(): Settings {
+  return { newWordsPerDay: DEFAULT_NEW_PER_DAY };
 }
 
 export function emptyDocument(): ProgressDocument {
@@ -85,6 +139,7 @@ export function emptyDocument(): ProgressDocument {
     words: {},
     baselines: emptyBaselines(),
     activeBlockId: null,
+    settings: defaultSettings(),
   };
 }
 
@@ -92,17 +147,21 @@ export function emptyDocument(): ProgressDocument {
 export function hasContent(document: ProgressDocument): boolean {
   return (
     Object.keys(document.words).length > 0 ||
-    STEPS.some((step) => document.baselines[step].length > 0)
+    CHANNELS.some((channel) => document.baselines[channel].length > 0)
   );
 }
 
-/** Stegets baslinje i sekunder: medianen av fönstret, eller grundvärdet. */
-export function baselineFor(document: ProgressDocument, step: Step): number {
-  const samples = document.baselines[step];
+/** Kanalens baslinje i sekunder: medianen av fönstret, eller grundvärdet. */
+export function baselineFor(document: ProgressDocument, channel: Channel): number {
+  const samples = document.baselines[channel];
   if (samples.length < MIN_BASELINE_SAMPLES) {
-    return DEFAULT_BASELINE[step];
+    return DEFAULT_BASELINE[channel];
   }
-  const sorted = [...samples].sort((a, b) => a - b);
+  return median(samples);
+}
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
@@ -162,14 +221,45 @@ export function normalize(stored: unknown): ProgressDocument {
       document.words[key] = normalizeRecord(value);
     }
   }
-  if (isRecord(stored['baselines'])) {
-    for (const step of STEPS) {
-      document.baselines[step] = numberList(stored['baselines'][step]).slice(-BASELINE_WINDOW);
-    }
-  }
+  readBaselines(document, stored);
+
   const block = stored['activeBlockId'];
   document.activeBlockId = typeof block === 'string' ? block : null;
+  document.settings = normalizeSettings(stored['settings']);
   return document;
+}
+
+/**
+ * Baslinjerna, och migreringen från version 1.
+ *
+ * Version 1 höll ett fönster per *steg*. Det som fanns i `trueFalse` är mätt på
+ * samma gest som kanalerna mäter, men utan att skilja på riktning eller
+ * sanningsvärde — alltså ett medelvärde av fyra saker. Att så det i alla fyra
+ * kanalerna är ändå bättre än att börja från grundvärdena: det är spelarens
+ * egen tumme, och kalibreringen skriver över det inom ett varv ändå.
+ */
+function readBaselines(document: ProgressDocument, stored: Record<string, unknown>): void {
+  const raw = stored['baselines'];
+  if (!isRecord(raw)) {
+    return;
+  }
+
+  const legacy = numberList(raw['trueFalse']);
+  for (const channel of CHANNELS) {
+    const own = numberList(raw[channel]);
+    document.baselines[channel] = (own.length > 0 ? own : legacy).slice(-BASELINE_WINDOW);
+  }
+}
+
+function normalizeSettings(value: unknown): Settings {
+  if (!isRecord(value)) {
+    return defaultSettings();
+  }
+  const perDay = parseNumber(value['newWordsPerDay']);
+  if (perDay === null) {
+    return defaultSettings();
+  }
+  return { newWordsPerDay: clampWhole(perDay, 0, MAX_NEW_PER_DAY) };
 }
 
 function normalizeRecord(value: unknown): WordRecord {
@@ -192,9 +282,40 @@ function normalizeStat(value: unknown): StepStat {
     correct: wholeNumber(value['correct']),
     streak: wholeNumber(value['streak']),
     paces: numberList(value['paces']).slice(-MAX_SAMPLES),
-    recent: boolList(value['recent']).slice(-MAX_SAMPLES),
+    recent: outcomeList(value['recent']).slice(-MAX_SAMPLES),
     lastSeen: parseNumber(value['lastSeen']),
+    firstSeen: parseNumber(value['firstSeen']),
+    box: wholeNumber(value['box']),
   };
+}
+
+/**
+ * Utfallen, och migreringen från version 1.
+ *
+ * Version 1 skrev `boolean[]`. `true` blir `hit` och `false` blir `miss`:
+ * ingenting som lagrats före grenen kan vara en lucka, eftersom gesten inte
+ * fanns, och ingenting kan vara `slow`, eftersom kanalgolven som avgör det inte
+ * heller fanns. Att gissa något annat vore att hitta på data.
+ */
+function outcomeList(value: unknown): Outcome[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const outcomes: Outcome[] = [];
+  for (const item of value) {
+    if (item === true) {
+      outcomes.push('hit');
+    } else if (item === false) {
+      outcomes.push('miss');
+    } else if (isOutcome(item)) {
+      outcomes.push(item);
+    }
+  }
+  return outcomes;
+}
+
+function isOutcome(value: unknown): value is Outcome {
+  return value === 'hit' || value === 'slow' || value === 'miss' || value === 'unsure';
 }
 
 function numberList(value: unknown): number[] {
@@ -204,16 +325,13 @@ function numberList(value: unknown): number[] {
   return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
 }
 
-function boolList(value: unknown): boolean[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((item): item is boolean => typeof item === 'boolean');
-}
-
 function wholeNumber(value: unknown): number {
   const parsed = parseNumber(value);
   return parsed === null || parsed < 0 ? 0 : Math.floor(parsed);
+}
+
+function clampWhole(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
 }
 
 function parseNumber(value: unknown): number | null {
@@ -230,3 +348,6 @@ function parseNumber(value: unknown): number | null {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
+/** Återexporterad för vyerna, som inte ska behöva känna till stegen. */
+export type { Step };
