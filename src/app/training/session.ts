@@ -92,7 +92,7 @@ export class TrainingSession {
 
   constructor(
     private readonly engine: TrainingEngine,
-    /** Hela katalogen. Repetitionen tar allt som setts, oavsett vecka. */
+    /** Hela katalogen. Repetitionen tar allt som setts, oavsett lista. */
     private readonly catalog: readonly WordPair[],
     /** Listan nya ord hämtas ur. */
     fresh: readonly WordPair[],

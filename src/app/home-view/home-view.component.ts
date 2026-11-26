@@ -1,23 +1,26 @@
 /**
- * Startsidan: en lista, en knapp, en inställning — och vägen till en ny lista.
+ * Startsidan: en lista, en start, en inställning — och vägen till en ny lista.
  *
- * Vad som väljs här är sådant som *den som övar vet bättre än appen*. Vilken
- * lista veckans glosor står i vet ett barn eller en förälder. Hur fort det ska
- * gå framåt vet de också — ett barn som ligger efter en vecka behöver kunna
- * sätta noll nya ord och bara repetera, och ett barn som har förhör på fredag
- * behöver kunna sätta tio utan att någon rör i koden.
+ * Vad som väljs här är sådant som *den som övar vet bättre än appen*: vilken
+ * lista nya ord ska hämtas ur, och hur fort det ska gå framåt. Den som ligger
+ * efter behöver kunna sätta noll nya ord och bara repetera, och den som har
+ * förhör på fredag behöver kunna sätta tio utan att någon rör i koden.
  *
  * Vad som inte finns är en ingångsväljare. Grenen spelar ett enda steg, och en
  * dörr är inget val. Vilka ord varvet innehåller är planens sak och ingen
  * människas.
  *
- * Veckan är källan till *nya* ord och ingen avgränsning av övningen:
- * repetitionen tar allt som setts, oavsett vilken vecka det står i.
+ * Listan är källan till *nya* ord och ingen avgränsning av övningen:
+ * repetitionen tar allt som setts, oavsett vilken lista det står i.
  *
  * Listorna kommer från två håll. Några följde med bygget; resten skriver appen
- * själv, efter ett önskemål — ett tema, eller veckans läxa inklistrad. Det
- * kräver en Anthropic-nyckel, och den lägger den som övar in här, eftersom
- * appen inte har någon server som kunde hålla en åt alla.
+ * själv, efter ett önskemål eller efter det startrundan sa. Det kräver en
+ * Anthropic-nyckel, och den lägger den som övar in här, eftersom appen inte har
+ * någon server som kunde hålla en åt alla.
+ *
+ * Här fanns förut veckor. Listorna hette «Vecka 3 – Djur» och sidan öppnade i
+ * den sista, eftersom appen var byggd kring en glosläxa i taget. Nu är en lista
+ * ett tema och ingenting mer, och sidan öppnar där man var.
  */
 import {
   ChangeDetectionStrategy,
@@ -38,7 +41,7 @@ import { TrainingEngine } from '../training/training-engine';
 import { WordBlock } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
 
-/** Ett block som det ser ut i veckoutfällningen. */
+/** En lista som den ser ut på startsidan. */
 interface BlockCard {
   block: WordBlock;
   mastered: number;
@@ -92,7 +95,7 @@ export class HomeViewComponent implements OnInit {
   private readonly changes = inject(ChangeDetectorRef);
 
   askingReset = false;
-  /** Om veckoutfällningen är öppen. */
+  /** Om utfällningen med de andra listorna är öppen. */
   switching = false;
   /** Om inställningspanelen är öppen. */
   settingsOpen = false;
@@ -112,7 +115,7 @@ export class HomeViewComponent implements OnInit {
 
   readonly maxNewPerDay = MAX_NEW_PER_DAY;
 
-  /** Veckan användaren bläddrat fram till, om någon. */
+  /** Listan användaren bläddrat fram till, om någon. */
   private pickedId: string | null = null;
 
   ngOnInit(): void {
@@ -120,16 +123,18 @@ export class HomeViewComponent implements OnInit {
   }
 
   /**
-   * Veckan sidan öppnar i: alltid den sista i listan, alltså den nyaste i
-   * CSV:n.
+   * Listan sidan öppnar i: den man övade sist.
    *
-   * Medvetet *inte* `activeBlockId`. Den som lägger in vecka 7 ska få vecka 7
-   * nästa gång appen öppnas, utan att först behöva leta upp den. Detsamma
-   * gäller en lista appen skrivit: egna listor ligger sist, så den nyaste är
-   * den som öppnas.
+   * Finns den inte — första besöket, eller en lista som tagits bort — blir det
+   * den sista, alltså den som senast kom till.
    */
-  get week(): WordBlock | null {
-    return this.library.byId(this.pickedId) ?? this.library.blocks.at(-1) ?? null;
+  get list(): WordBlock | null {
+    return (
+      this.library.byId(this.pickedId) ??
+      this.library.byId(this.engine.activeBlockId) ??
+      this.library.blocks.at(-1) ??
+      null
+    );
   }
 
   /** Listorna med sitt läge. Räknas om vid varje ändringsdetektering. */
@@ -147,8 +152,8 @@ export class HomeViewComponent implements OnInit {
   }
 
   get card(): BlockCard | null {
-    const week = this.week;
-    return week === null ? null : (this.cards.find((item) => item.block.id === week.id) ?? null);
+    const list = this.list;
+    return list === null ? null : (this.cards.find((item) => item.block.id === list.id) ?? null);
   }
 
   get newWordsPerDay(): number {
@@ -176,16 +181,16 @@ export class HomeViewComponent implements OnInit {
     this.engine.setNewWordsPerDay(Number.parseInt(value, 10));
   }
 
-  /** Väljer en vecka ur utfällningen — startar den inte. En startväg räcker. */
+  /** Väljer en lista ur utfällningen — startar den inte. En startväg räcker. */
   pick(block: WordBlock): void {
     this.pickedId = block.id;
     this.switching = false;
   }
 
   start(): void {
-    const week = this.week;
-    if (week !== null) {
-      this.chosen.emit(week);
+    const list = this.list;
+    if (list !== null) {
+      this.chosen.emit(list);
     }
   }
 

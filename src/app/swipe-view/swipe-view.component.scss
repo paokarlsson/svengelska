@@ -164,7 +164,7 @@
 
 /* --- Domen ----------------------------------------------------------------
    Raden har alltid höjd, även när den är tom: hoppar den fram och tillbaka
-   flyttar den knapparna under fingret mellan två kort. */
+   flyttar den raden under fingret mellan två kort. */
 .verdict {
     display: flex;
     align-items: center;
@@ -191,41 +191,40 @@
     font-weight: 600;
 }
 
-/* --- Knapparna ------------------------------------------------------------
-   Kvar under kortet, och inte gömda som i `ganger`: «vet ej» är ett påstående
-   man ska kunna trycka på, och den som inte vill svepa ska kunna svara ändå.
-
-   Rätt och fel ligger bredvid varandra i samma vänster–höger-ordning som
-   svepet, och «vet ej» på egen rad under — nedåt ligger nedanför. Knappraden är
-   alltså en karta över fingret och ingen rangordning, och gesten har en etikett
-   redan innan den börjat. */
-.choices {
+/* --- Hållen -----------------------------------------------------------------
+   Inga knappar under kortet: svepet är svaret, och ett svar som går att trycka
+   fram är ett svar som inte kostar en tanke. Kvar står en karta över fingret —
+   vänster, ner, höger, i den ordningen — som säger vad varje håll heter innan
+   draget börjat. Stämpeln på kortet säger det en gång till under draget. */
+.legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
     gap: var(--space-2);
     width: var(--card-size);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--text-muted);
 }
 
-.choice--unsure {
-    grid-column: 1 / -1;
+.legend-deny::before { content: '← '; }
+.legend-affirm { text-align: right; }
+.legend-affirm::after { content: ' →'; }
+.legend-unsure { text-align: center; }
+.legend-unsure::after { content: ' ↓'; }
+
+/* Återkallas «Visa facit» står kvar, gömd med steget. */
+.choices {
+    display: grid;
+    width: var(--card-size);
 }
 
 .choices--single {
     grid-template-columns: 1fr;
     justify-items: center;
-}
-
-.choice--deny:hover {
-    border-color: var(--accent-red);
-}
-
-.choice--affirm:hover {
-    border-color: var(--accent-green);
-}
-
-.choice:disabled {
-    opacity: 0.5;
-    cursor: default;
 }
 
 /* Startrundans kort bär en mening och inte ett ord. Den ska rymmas på samma

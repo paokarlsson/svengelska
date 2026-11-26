@@ -3,34 +3,34 @@
         <h1 class="ui-title ui-title--lg">Svengelska</h1>
     </header>
 
-    @if (card; as week) {
-    <div class="ui-card ui-card--roomy week">
-        <div class="week-head">
-            <h2 class="ui-title week-name">{{week.block.name}}</h2>
-            <p class="week-count">
-                @if (week.started) {
-                {{week.mastered}} av {{week.block.words.length}} ord sitter åt båda hållen
+    @if (card; as current) {
+    <div class="ui-card ui-card--roomy current">
+        <div class="current-head">
+            <h2 class="ui-title current-name">{{current.block.name}}</h2>
+            <p class="current-count">
+                @if (current.started) {
+                {{current.mastered}} av {{current.block.words.length}} ord sitter åt båda hållen
                 } @else {
-                {{week.block.words.length}} ord — inte påbörjad
+                {{current.block.words.length}} ord — inte påbörjad
                 }
             </p>
             <span class="bar" aria-hidden="true">
-                <span class="bar-fill" [style.width.%]="percent(week)"></span>
+                <span class="bar-fill" [style.width.%]="percent(current)"></span>
             </span>
         </div>
 
-        <div class="week-entry">
+        <div class="current-entry">
             <button type="button" class="ui-btn ui-btn--primary start" (click)="start()">
                 Kör igång
             </button>
-            <p class="week-note">
+            <p class="current-note">
                 Tio ord åt båda hållen. {{newWordsLeft}} nya ord kvar i dag.
             </p>
         </div>
 
-        @if (week.started) {
-        <div class="week-actions">
-            <button type="button" class="ui-btn ui-btn--quiet" (click)="mapped.emit(week.block)">
+        @if (current.started) {
+        <div class="current-actions">
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="mapped.emit(current.block)">
                 Kartan
             </button>
         </div>
@@ -49,7 +49,7 @@
         @if (switching) {
         <ul class="blocks">
             @for (other of cards; track other.block.id) {
-            <li class="block" [class.is-current]="other.block.id === week.block.id">
+            <li class="block" [class.is-current]="other.block.id === current.block.id">
                 <button type="button" class="block-open" (click)="pick(other.block)">
                     <span class="block-name">{{other.block.name}}</span>
                     <span class="block-count">
@@ -111,7 +111,7 @@
                 id="wish"
                 class="text"
                 rows="3"
-                placeholder="Ett tema — rymden, på restaurang — eller klistra in veckans glosor"
+                placeholder="Ett tema — rymden, på restaurang — eller klistra in dina glosor"
                 [disabled]="writing"></textarea>
             <div class="panel-actions">
                 <button

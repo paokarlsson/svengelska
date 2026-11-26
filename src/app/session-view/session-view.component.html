@@ -1,7 +1,7 @@
 <section class="session">
     <header class="bar">
         <button type="button" class="ui-btn ui-btn--quiet" (click)="leave()">Avsluta</button>
-        <p class="block-name">{{week.name}}</p>
+        <p class="block-name">{{list.name}}</p>
         <p class="tally" aria-hidden="true">
             @if (warmingUp) { Uppvärmning } @else { {{tally}} / {{session.target}} }
         </p>

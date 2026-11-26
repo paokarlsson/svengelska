@@ -96,10 +96,10 @@ describe('pickRoundWords', () => {
   });
 
   /**
-   * Veckan är källan till *nya* ord, inte en avgränsning av övningen: ett ord
-   * som fastnat i vecka 3 ska kunna komma tillbaka samma dag som vecka 5 är ny.
+   * Listan är källan till *nya* ord, inte en avgränsning av övningen: ett ord
+   * som fastnat i en lista ska kunna komma tillbaka samma dag som en annan är ny.
    */
-  it('repeterar ur hela katalogen men hämtar nya ord bara ur veckan', () => {
+  it('repeterar ur hela katalogen men hämtar nya ord bara ur listan', () => {
     const catalog = words(6);
     const week = catalog.slice(4);
     const table: Record<string, StepStat> = {};
@@ -110,7 +110,7 @@ describe('pickRoundWords', () => {
     const picked = pickRoundWords(catalog, week, statsOf(table), NOON, 5).map(pairKey);
     expect(picked).toContain(pairKey(catalog[0]));
     expect(picked).toContain(pairKey(catalog[4]));
-    // Ord 2 och 3 är varken mogna eller veckans, så de kommer bara som utfyllnad.
+    // Ord 2 och 3 är varken mogna eller listans, så de kommer bara som utfyllnad.
     expect(picked).not.toContain(pairKey(catalog[2]));
   });
 

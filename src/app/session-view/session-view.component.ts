@@ -35,7 +35,7 @@ import { WordLibrary } from '../words/word-library';
 })
 export class SessionViewComponent implements OnInit, OnDestroy {
   /** Listan nya ord hämtas ur. Repetitionen tar ändå hela katalogen. */
-  @Input({ required: true }) week!: WordBlock;
+  @Input({ required: true }) list!: WordBlock;
 
   /** Tillbaka till startsidan. */
   @Output() readonly exited = new EventEmitter<void>();
@@ -70,7 +70,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   start(): void {
-    this.session = new TrainingSession(this.engine, this.library.words, this.week.words);
+    this.session = new TrainingSession(this.engine, this.library.words, this.list.words);
     this.summary = null;
     this.advance();
   }

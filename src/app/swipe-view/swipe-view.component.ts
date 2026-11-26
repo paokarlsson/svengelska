@@ -63,10 +63,10 @@ export interface SwipeAnswer {
   seconds: number | null;
 }
 
-/** Vad ett svar heter: på knappen, och som stämpel på kortet. */
+/** Vad ett svar heter: i raden under kortet, och som stämpel på det. */
 interface Naming {
   label: string;
-  /** Knappens ord i kortformat — det ska rymmas på kortet. */
+  /** Samma ord i kortformat — det ska rymmas på kortet. */
   stamp: string;
 }
 
@@ -230,7 +230,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
       : answerOf(this.card.word.pair, this.card.word.direction);
   }
 
-  /** Vad knapparna heter. I återkalla är det den som övar som dömer sig själv. */
+  /** Vad hållen heter. I återkalla är det den som övar som dömer sig själv. */
   get affirmLabel(): string {
     return NAMES[this.card.kind].affirm.label;
   }
@@ -255,13 +255,6 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
   get unsureStamp(): string {
     return NAMES[this.card.kind].unsure.stamp;
-  }
-
-  /** Raden under kortet när ingen dom står där. */
-  get nudge(): string {
-    return this.card.kind === 'ask'
-      ? 'Höger om det stämmer, vänster om det inte gör det'
-      : 'Svep åt sidan — eller ner om du inte vet';
   }
 
   /** Om facit ska stå på kortet just nu. Ett påstående om en själv har inget. */
@@ -324,7 +317,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
     // ArrowUp lämnas obunden av samma skäl som gesten uppåt gör ingenting.
   }
 
-  /** Svaret, oavsett om det kom som ett svep, en tangent eller en knapp. */
+  /** Svaret, oavsett om det kom som ett svep eller en piltangent. */
   answer(response: Response): void {
     if (this.locked) {
       return;
@@ -353,7 +346,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
     }, LEAVE_MS);
   }
 
-  /** Knappen för den som hellre trycker än rör kortet. */
+  /** Visar facit i återkalla. Den enda knappen kortet har kvar, och den är gömd. */
   showAnswer(): void {
     this.reveal();
   }

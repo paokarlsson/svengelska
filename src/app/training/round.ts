@@ -76,10 +76,10 @@ function directionsOf(pair: WordPair): DirectedWord[] {
  * Tre källor, i tur och ordning:
  *
  * 1. **Försenade** ord ur hela katalogen, mest försenat först. Repetitionen tar
- *    allt som setts, oavsett vilken vecka det står i — ett ord som fastnat i
- *    vecka 3 ska kunna komma tillbaka samma dag som vecka 5 är ny.
- * 2. **Nya** ord ur `fresh`, upp till dagens budget. Veckan är alltså källan
- *    till nya ord och inte en avgränsning av övningen: den som väljer vecka 5
+ *    allt som setts, oavsett vilken lista det står i — ett ord som fastnat i
+ *    en lista ska kunna komma tillbaka samma dag som en annan är ny.
+ * 2. **Nya** ord ur `fresh`, upp till dagens budget. Listan är alltså källan
+ *    till nya ord och inte en avgränsning av övningen: den som väljer en lista
  *    säger «hämta nya ord härifrån», inte «öva bara det här».
  * 3. **Närmast mogna** ord som utfyllnad, om de två första inte gav tio.
  *

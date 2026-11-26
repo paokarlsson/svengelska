@@ -1,4 +1,4 @@
-/* Ett stort kort för veckan som är framme, och de andra hopfällda bakom en
+/* Ett stort kort för listan som är framme, och de andra hopfällda bakom en
    knapp. Kortet är inte självt knappen: under det ligger en start, och under
    den en inställning som ändrar hur fort det går framåt. */
 .home {
@@ -16,27 +16,27 @@
     color: var(--text-muted);
 }
 
-.week {
+.current {
     display: grid;
     gap: var(--space-4);
 }
 
-.week-head {
+.current-head {
     display: grid;
     gap: var(--space-1);
 }
 
-.week-name {
+.current-name {
     color: var(--accent-highlight);
 }
 
-.week-count {
+.current-count {
     font-size: 0.9rem;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
 
-.week-entry {
+.current-entry {
     display: grid;
     gap: var(--space-2);
 }
@@ -45,7 +45,7 @@
     color: var(--text-muted);
 }
 
-.week-actions {
+.current-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -95,7 +95,7 @@
     outline-offset: 3px;
 }
 
-/* Veckan som redan ligger uppe i kortet får en kant, så att utfällningen visar
+/* Listan som redan ligger uppe i kortet får en kant, så att utfällningen visar
    var man är och inte bara vart man kan gå. */
 .block.is-current .block-open {
     border-color: var(--line-highlight);
@@ -150,7 +150,7 @@
     width: 100%;
 }
 
-.week-note {
+.current-note {
     font-size: 0.85rem;
     color: var(--text-muted);
     text-align: center;

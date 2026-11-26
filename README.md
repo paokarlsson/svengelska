@@ -37,7 +37,7 @@ varvet är slut.
 
 | Path | Vad det är |
 | --- | --- |
-| `data/glosor.csv` | Ordlistorna som de skrivs — en rad per glosa, en kolumn per vecka |
+| `data/glosor.csv` | Listorna som följer med bygget — en rad per glosa, första kolumnen är listans namn |
 | `src/app/words/word-lists.json` | Samma listor som appen läser dem. Genererad; rätta i CSV:n |
 | `src/app/words/word-catalog.ts` | Vad en glosa är, hur den identifieras, och hur en lista läses |
 | `src/app/words/word-library.ts` | Alla listor: byggets och de som appen skrivit. Det vyerna frågar |
@@ -59,7 +59,7 @@ varvet är slut.
 | `src/app/services/progress-store.ts` | Det lagrade dokumentet, dess version och dess normalisering |
 | `src/app/match-view/`, `src/app/write-view/` | Steg 1 och 4. Avstängda av `scope.ts`, kvar i koden |
 | `src/app/entry-picker/`, `src/app/training/entry.ts` | Ingångsvalet. Avstängt av samma skäl — en dörr är inget val |
-| `src/app/swipe-view/` | Kortet: tre riktningar, och reglerna för när ett drag är ett svar |
+| `src/app/swipe-view/` | Kortet: tre riktningar, inga knappar, och reglerna för när ett drag är ett svar |
 | `src/app/session-view/` | Varvets ram: mätare och avslutning |
 | `src/app/home-view/`, `src/app/map-view/` | Välj vecka och antal nya ord; se vad varje ord kan, åt båda hållen |
 | `src/styles/` | Delad stilmall: `_tokens.scss`, `_base.scss`, `_ui.scss` |
@@ -68,11 +68,14 @@ varvet är slut.
 
 ## Orden
 
-Listorna kommer från [`data/glosor.csv`](data/glosor.csv), som är formatet en
-lärare faktiskt lämnar ifrån sig:
+Listorna som följer med bygget kommer från [`data/glosor.csv`](data/glosor.csv):
 
-    Vecka;Engelska;Svenska;Felsvar_engelska;Felsvar_svenska
-    1 - Familj;mother;mamma;father, sister, grandmother;pappa, syster, mormor
+    Lista;Engelska;Svenska;Felsvar_engelska;Felsvar_svenska
+    Familj;mother;mamma;father, sister, grandmother;pappa, syster, mormor
+
+Första kolumnen är listans namn. Här stod förut en vecka — `1 - Familj` — från
+tiden då appen var byggd kring en glosläxa i taget. En lista är nu ett tema och
+ingenting mer, och de flesta listor kommer inte härifrån utan skrivs av appen.
 
 En sjätte kolumn, `Alternativ_svenska`, är frivillig och blir de former som
 godtas i skrivsteget utöver facit — `hunden` för `hund` är inte ett stavfel
