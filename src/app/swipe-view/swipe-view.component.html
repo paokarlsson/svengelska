@@ -1,33 +1,46 @@
 <div class="swipe">
-    <div class="card-slot" cdkDrag
-        [cdkDragDisabled]="locked || thinking" [class.is-instant]="instant"
-        (cdkDragMoved)="dragMoved($event)" (cdkDragEnded)="dragEnd($event)">
+    <!-- Bunten: kortet man håller i, och kanten av nästa som sticker fram
+         under det. Underkortet står still medan det övre dras. -->
+    <div class="deck" [class.deck--mint]="mint">
+        <span class="under" aria-hidden="true"></span>
 
-        <div class="game-card"
-            [class.game-card--leaving-right]="leaving === 'right'"
-            [class.game-card--leaving-left]="leaving === 'left'"
-            [class.game-card--leaving-down]="leaving === 'down'"
-            [style.transform]="leaving ? null : 'rotate(' + rotation + 'deg)'"
-            tabindex="0"
-            role="group"
-            [attr.aria-label]="asking ? prompt : thinking ? 'Vad betyder ' + prompt + '?' : 'Stämmer ' + prompt + ' = ' + shown + '?'"
-            (pointerdown)="onPointerDown()"
-            (keydown)="onKey($event)">
+        <div class="card-slot" cdkDrag
+            [cdkDragDisabled]="locked || thinking" [class.is-instant]="instant"
+            (cdkDragMoved)="dragMoved($event)" (cdkDragEnded)="dragEnd($event)">
 
-            <span class="stamp stamp--affirm" [style.opacity]="strength(1)">{{affirmStamp}}</span>
-            <span class="stamp stamp--deny" [style.opacity]="strength(-1)">{{denyStamp}}</span>
-            <span class="stamp stamp--unsure" [style.opacity]="down">{{unsureStamp}}</span>
+            <div class="game-card"
+                [class.game-card--mint]="mint"
+                [class.game-card--face]="choosing"
+                [class.game-card--leaving-right]="leaving === 'right'"
+                [class.game-card--leaving-left]="leaving === 'left'"
+                [class.game-card--leaving-down]="leaving === 'down'"
+                [style.transform]="leaving ? null : 'rotate(' + rotation + 'deg)'"
+                tabindex="0"
+                role="group"
+                [attr.aria-label]="ariaLabel"
+                (pointerdown)="onPointerDown()"
+                (keydown)="onKey($event)">
 
-            <p class="word" [class.word--sentence]="asking">{{prompt}}</p>
+                <span class="stamp stamp--affirm" [style.opacity]="strength(1)">{{affirmStamp}}</span>
+                <span class="stamp stamp--deny" [style.opacity]="strength(-1)">{{denyStamp}}</span>
+                <span class="stamp stamp--unsure" [style.opacity]="down">{{unsureStamp}}</span>
 
-            @if (asking) {
-            <!-- Ett påstående om en själv: ingen översättning, inget facit. -->
-            } @else if (showsAnswer) {
-            <p class="equals" aria-hidden="true">=</p>
-            <p class="translation">{{shown}}</p>
-            } @else {
-            <p class="hint">Tänk på översättningen — tryck sedan på kortet</p>
-            }
+                @if (choosing) {
+                <!-- Ett vägval: innehållet äger den som lade fram kortet. -->
+                <ng-content />
+                } @else {
+                <p class="word" [class.word--sentence]="asking">{{prompt}}</p>
+
+                @if (asking) {
+                <!-- Ett påstående om en själv: ingen översättning, inget facit. -->
+                } @else if (showsAnswer) {
+                <p class="equals" aria-hidden="true">=</p>
+                <p class="translation">{{shown}}</p>
+                } @else {
+                <p class="hint">Tänk på översättningen — tryck sedan på kortet</p>
+                }
+                }
+            </div>
         </div>
     </div>
 
@@ -41,20 +54,38 @@
     </p>
 
     @if (thinking) {
-    <div class="choices choices--single">
+    <div class="choices">
         <button type="button" class="ui-btn ui-btn--primary" (click)="showAnswer()">Visa facit</button>
     </div>
     } @else {
     <!-- Inga knappar: svepet är svaret. Raden är en karta över fingret, i
-         samma vänster–ner–höger som gesterna, och säger vad varje håll heter. -->
-    <ul class="legend" aria-hidden="true">
-        <li class="legend-deny">{{denyLabel}}</li>
-        <li class="legend-unsure">{{unsureLabel}}</li>
-        <li class="legend-affirm">{{affirmLabel}}</li>
+         samma vänster–ner–höger som gesterna, och säger vad varje håll heter.
+         Ett håll som inte finns på kortet lämnar sin plats tom. -->
+    <ul class="legend" [class.legend--paths]="choosing" aria-hidden="true">
+        <li class="legend-deny">
+            @if (denyLabel) {
+            <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+            <span>{{denyLabel}}</span>
+            }
+        </li>
+        <li class="legend-unsure">
+            @if (unsureLabel) {
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+            <span>{{unsureLabel}}</span>
+            }
+        </li>
+        <li class="legend-affirm">
+            @if (affirmLabel) {
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            <span>{{affirmLabel}}</span>
+            }
+        </li>
     </ul>
     <p class="ui-visually-hidden">
-        Svara med piltangenterna: höger för {{affirmLabel}}, vänster för {{denyLabel}}, ner för
-        {{unsureLabel}}.
+        Svara med piltangenterna.
+        @if (affirmLabel) { Höger: {{affirmLabel}}. }
+        @if (denyLabel) { Vänster: {{denyLabel}}. }
+        @if (unsureLabel) { Ner: {{unsureLabel}}. }
     </p>
     }
 </div>

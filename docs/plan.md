@@ -535,6 +535,11 @@ det hållet. Tröskeln skalar med skärmens bredd och en knyck godtas även när
 är kort. Måtten är mätta lika i båda apparna: samma kortstorlek, samma
 rotationsmatris, samma stämpelopacitet vid samma drag.
 
+*Sedan dess har appen fått ett eget utseende, Arkad, och knapparna under
+kortet är borta — det som står nedan om att de står kvar gäller inte längre.
+Gestens regler och trösklar är fortfarande `ganger`:s; det är formen som bytts.
+Se «Svep gör allt» i README.*
+
 Vad som *inte* följde med är vad kortet säger. `dog = hund` har inget gemensamt
 med `7 × 8 = 54` utom att det svepas, och Återkalla — där facit visas först och
 den som övar dömer sig själv — finns inte i `ganger` alls. Knapparna under

@@ -55,6 +55,11 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/@fontsource/unbounded/latin-600.css",
+              "node_modules/@fontsource/unbounded/latin-800.css",
+              "node_modules/@fontsource/inter/latin-400.css",
+              "node_modules/@fontsource/inter/latin-600.css",
+              "node_modules/@fontsource/inter/latin-700.css",
               "src/styles.scss"
             ],
             "scripts": [],

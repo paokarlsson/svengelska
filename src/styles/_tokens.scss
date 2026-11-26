@@ -1,163 +1,84 @@
 /* Appens formspråk i token-form. Allt som mer än en yta behöver ska stå här,
-   så att en ändring slår igenom i alla tre spelen och på startsidan.
+   så att en ändring slår igenom på alla ytor.
 
-   Färgerna skrivs i oklch och inte i hex, eftersom det första talet — L — är
-   den ljushet ögat faktiskt ser, lika över alla nyanser. Det är vad som gör
-   en palett till ett system i stället för en samling påhitt: accenterna
-   ligger på samma L och väger därför lika mycket. Skrivna i hex gjorde de
-   inte det. Guldet #ffd700 låg på L 0.89 och det röda #ea6253 på L 0.67, och
-   guldet skrek därför över allt annat på skärmen oavsett vad det försökte
-   säga.
+   Formspråket heter Arkad, och det är ett spel och ingen läxbok: en mörk
+   botten, tjocka kort som klistermärken, och fyra färger som var och en
+   betyder en sak.
 
-   Trappan är hela regelverket, och avvikelser från den ska ha ett skäl:
+   - Gult är kortet. Det är föremålet man håller i, och det enda som är gult.
+   - Mint är framåt: rätt svar, kör igång, sviten som växer.
+   - Korall är fel. Bara fel — aldrig «vet ej», som är grått med flit.
+   - Violett är det som ligger under och bakom: nästa kort i bunten, och
+     vägen till något nytt.
 
-   - Underlagen: L 0.15 / 0.21 / 0.25 / 0.31 i mörkt läge, med kroma nära noll
-     och en och samma nyans hela vägen. Ett underlag ska bära färg, inte vara
-     färg.
-   - Accenterna: L 0.84 för det som lyfter, 0.80 för grönt och orange, 0.72
-     för rött, som inte når högre utan att bli rosa. I ljust läge ligger de
-     alla på L 0.505 — samma färg bär inte text mot båda underlagen.
-   - Knappens trappa: grönt 0.80, --green-deep 0.72, --green-shadow 0.60. Ett
-     jämnt steg i L ger en jämn toning; i hex blev stegen olika stora.
+   Kanten under ett kort eller en knapp är dess tjocklek: en hård skugga rakt
+   ned, utan oskärpa. Det är vad som gör ytan till ett föremål, och det är
+   därför ingenting i appen har en mjuk skugga.
 
-   Tre token gör att ett och samma regelverk tjänar båda lägena:
+   Här fanns förut två paletter, en mörk och en ljus som följde systemets
+   inställning. Arkad är mörk, och bara mörk: ett ljust arkadspel är ett annat
+   spel, och två utseenden att hålla i takt är ett för mycket. */
 
-   - --tone är "motsatsen till underlaget", nästan vitt i mörkt läge och bläck
-     i ljust. Ramar, svaga fyllningar och mönstret på startsidan räknas ur den
-     med color-mix, så en yta som lyfte sig ur en mörk botten lyfter sig ur en
-     ljus också.
-   - --on-highlight och --on-green är texten ovanpå de två färgerna som
-     används som fyllning. Förr stod --bg-floor där, vilket bara stämmer så
-     länge botten är mörk.
-   - --card-ink är texten på Sveps kort, som är ett ljust kort i båda lägena.
-
-   Lägena väljs så här: utan val följer appen systemets inställning, och
-   data-mode="light" eller "dark" på <html> vinner över den. */
-
-/* --- Mörk palett ---------------------------------------------------------- */
+/* --- Paletten -------------------------------------------------------------- */
 @mixin dark-palette {
     color-scheme: dark;
 
-    --bg-base: oklch(0.205 0.024 272);
-    --bg-floor: oklch(0.15 0.019 272);
-    --bg-card: oklch(0.248 0.024 272);
-    --bg-card-raised: oklch(0.31 0.028 272);
+    --bg-base: #0e1020;
+    --bg-floor: #0e1020;
+    /* Paneler: inställningar, ny lista, kartan. Ett steg upp ur botten. */
+    --bg-card: #1a1d36;
+    --bg-card-raised: #262a4a;
 
-    /* Bärnsten, inte guld. Samma roll som förr, men på accenternas ljushet i
-       stället för tjugo punkter över dem. */
-    --accent-highlight: oklch(0.84 0.155 82);
-    --on-highlight: oklch(0.18 0.024 272);
+    --accent-highlight: #ffe14a;
+    --on-highlight: #14121f;
 
-    --accent-green: oklch(0.8 0.155 155);
-    /* Primärknappens gradient och den skugga den trycks ned mot. */
-    --green-deep: oklch(0.72 0.165 155);
-    --green-shadow: oklch(0.6 0.149 155);
-    /* Texten är mörk, inte vit: vitt mot ett grönt så här ljust ger 2:1. */
-    --on-green: oklch(0.18 0.024 272);
+    --accent-green: #19e3a1;
+    /* Nedtryckt, och kanten knappen trycks ned mot. */
+    --green-deep: #12c389;
+    --green-shadow: #0e9c6e;
+    --on-green: #0e1020;
 
-    /* Rött stannar på L 0.72 — högre upp blir det rosa, lägre ned faller det
-       under 4.5:1 mot --bg-card-raised, som är det ljusaste underlaget. */
-    --accent-red: oklch(0.72 0.165 25);
-    --accent-orange: oklch(0.8 0.133 55);
+    --accent-red: #ff6b7d;
+    --accent-orange: #ffb86b;
+    --accent-violet: #6a45f5;
+    /* Violett som text mot botten. Fyllningens violett är för mörk för det. */
+    --violet-soft: #b9a6ff;
 
-    /* Sveps kort är medvetet ljusare än --accent-highlight — det ska läsas
-       som ett spelkort på bordet, inte som en rubrik. Kortet är ett föremål
-       och behåller därför sin färg i båda lägena. */
-    --card-face: oklch(0.9 0.12 90);
-    --card-ink: oklch(0.21 0.03 90);
+    /* Kortet, dess text och dess tjocklek. */
+    --card-face: #ffe14a;
+    --card-ink: #14121f;
+    --card-edge: #b89600;
+    /* Det mintgröna kortet — varvets slut — och dess kant. */
+    --card-mint: #19e3a1;
+    --card-mint-edge: #0e9c6e;
 
-    --text-primary: oklch(0.965 0.006 272);
-    --text-muted: oklch(0.72 0.018 272);
+    --text-primary: #ffffff;
+    --text-muted: #a7abc7;
 
-    /* Det som ska lyfta sig ur en mörk botten. Inte rent vitt: en gnutta av
-       underlagets nyans gör att en ram ser ut att höra till ytan. */
-    --tone: oklch(0.99 0.004 272);
-    /* Sjoket bakom en modal. Mörkt i båda lägena — det är riktningen som gör
-       att dialogen läser som ovanpå — men det tar underlagets nyans i stället
-       för att vara rent svart. */
-    --scrim: oklch(0.15 0.019 272 / 0.7);
-    /* Se --line-strong nedan. Mot en mörk botten räcker det här. */
+    /* Det som ska lyfta sig ur botten: ramar, svaga fyllningar. */
+    --tone: #ffffff;
+    --scrim: rgb(14 16 32 / 0.8);
     --line-strong-alpha: 45%;
-    /* Ett steg i ljushet bort från underlaget, för en yta som hovras. Mot en
-       mörk botten går det uppåt. */
+    /* Ett steg i ljushet bort från underlaget, för en yta som hovras. */
     --lift: 0.04;
 
-    --shadow-card: 0 3px 1px -2px oklch(0 0 0 / 0.2),
-        0 2px 2px 0 oklch(0 0 0 / 0.14),
-        0 1px 5px 0 oklch(0 0 0 / 0.12);
-    /* Rubrikerna står mot en mörk botten och tål en skugga under sig. */
-    --title-shadow: 0 2px 6px oklch(0 0 0 / 0.4);
-    --title-shadow-lg: 0 3px 12px oklch(0 0 0 / 0.5);
-}
-
-/* --- Ljus palett -----------------------------------------------------------
-   Inte den mörka spegelvänd. Två saker skiljer:
-
-   Underlaget är varmt och inte blågrått. Ett papper som lutar åt gult (nyans
-   85) läser som papper; det blågrå #f7f8fc som stod här läser som en
-   inaktiverad kontroll. Bläcket är däremot kvar på den mörka palettens
-   nyans, och det är den kontrasten mellan varmt underlag och svalt bläck som
-   bär läget.
-
-   Accenterna ligger allihop på L 0.505, vilket är så ljusa de kan vara och
-   ändå klara 4.5:1 mot --bg-floor. Där de i stället är fyllning — den aktiva
-   växeln, primärknappen — är texten ovanpå ljus, och det är vad
-   --on-highlight och --on-green byter ut. Bärnstenen vrids samtidigt mot
-   nyans 68: gult som mörknas blir oliv, medan gult som samtidigt vrids mot
-   orange blir brons. */
-@mixin light-palette {
-    color-scheme: light;
-
-    --bg-base: oklch(0.98 0.006 85);
-    --bg-floor: oklch(0.945 0.012 85);
-    --bg-card: oklch(0.999 0.002 85);
-    --bg-card-raised: oklch(0.962 0.008 85);
-
-    --accent-highlight: oklch(0.505 0.111 68);
-    --on-highlight: oklch(0.995 0.006 68);
-
-    --accent-green: oklch(0.505 0.125 155);
-    --green-deep: oklch(0.45 0.112 155);
-    --green-shadow: oklch(0.38 0.095 155);
-    --on-green: oklch(0.995 0.006 155);
-
-    --accent-red: oklch(0.505 0.165 25);
-    --accent-orange: oklch(0.505 0.135 42);
-
-    --card-face: oklch(0.9 0.12 90);
-    --card-ink: oklch(0.21 0.03 90);
-
-    --text-primary: oklch(0.28 0.032 272);
-    --text-muted: oklch(0.5 0.026 272);
-
-    /* Bläck: samma roll som det nästan vita har i den mörka paletten. */
-    --tone: oklch(0.235 0.032 272);
-    /* Svagare än i mörkt läge: mot ett ljust underlag räcker mindre för att
-       skilja på framför och bakom, och 70 % svart blir en lucka i sidan. */
-    --scrim: oklch(0.235 0.032 272 / 0.45);
-    /* Högre än i mörkt läge: bläck mot ett vitt kort tar sig inte över 3:1
-       förrän här, medan det ljusa mot en mörk botten är där redan vid 45 %. */
-    --line-strong-alpha: 58%;
-    /* Nedåt mot en ljus botten: samma steg bort från underlaget som i mörkt
-       läge, åt andra hållet. */
-    --lift: -0.04;
-
-    --shadow-card: 0 1px 2px oklch(0.235 0.032 272 / 0.06),
-        0 4px 12px oklch(0.235 0.032 272 / 0.08);
-    /* Mot en ljus botten blir en skugga bakom texten smuts, inte djup. */
+    /* Ingen mjuk skugga någonstans — se överst. Kvar som token för att inget
+       som redan pekar på dem ska behöva veta det. */
+    --shadow-card: none;
     --title-shadow: none;
     --title-shadow-lg: none;
 }
 
 :root {
-    /* Originalet hämtade Fredoka och Nunito från Google Fonts. Appen ska
-       fungera utan nätet, så den använder systemtypsnitt i stället. */
-    --font-display: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
-    --font-body: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    /* Typsnitten ligger i bygget och hämtas inte från nätet: appen ska gå att
+       öva i på en buss. Unbounded bär rubriker, ord och siffror — brett och
+       runt, och det som gör att kortet ser ut som ett spelkort. Inter bär
+       allt som ska läsas i mer än en rad. */
+    --font-display: 'Unbounded', 'Trebuchet MS', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-    /* Alla fyra ytor ligger på samma botten. Toningen räknas i oklab, så att
-       den inte blir grå på mitten som en toning i sRGB gör. */
-    --surface: linear-gradient(135deg in oklab, var(--bg-base) 0%, var(--bg-floor) 100%);
+    /* Botten är en färg och ingen toning. */
+    --surface: var(--bg-floor);
 
     /* Toningar för rätt- och felmarkerade ytor, uträknade ur accenten i
        stället för skrivna som en egen färg — annars måste varje palett hålla
@@ -181,7 +102,10 @@
        Måttet står här och inte i svepvyn för att passets scen måste kunna
        räkna med det: den reserverar kortets höjd även i de steg som inte har
        ett kort, så att sidan inte hoppar när ett steg avlöser ett annat. */
-    --card-size: min(440px, 88vw, 52vh);
+    --card-size: min(420px, 84vw, 44vh);
+    /* Kortet är högre än det är brett, som ett spelkort. Scenerna som
+       reserverar plats åt det räknar med höjden och inte med sidan. */
+    --card-height: calc(var(--card-size) * 1.16);
 
     /* Enbart för avdelare och annat som inte är en kontroll. */
     --line-soft: color-mix(in oklab, var(--tone) 12%, transparent);
@@ -198,8 +122,10 @@
     --line-strong: color-mix(in oklab, var(--tone) var(--line-strong-alpha), transparent);
 
     /* Tre radier räcker för hela appen: liten yta, panel och piller. */
-    --radius-sm: 10px;
-    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-md: 24px;
+    /* Kortets hörn. Större än panelens: kortet är det runda föremålet. */
+    --radius-card: 32px;
     --radius-pill: 999px;
 
     --space-1: 0.35rem;
@@ -212,17 +138,4 @@
     --motion-fast: 0.2s ease;
 
     @include dark-palette;
-}
-
-/* Utan eget val i appen är det systemet som bestämmer. */
-@media (prefers-color-scheme: light) {
-    :root:not([data-mode='dark']) {
-        @include light-palette;
-    }
-}
-
-/* Ett val i appen väger tyngre än systemets. Samma specificitet som regeln
-   ovan, men den står senare och vinner därför. */
-:root[data-mode='light'] {
-    @include light-palette;
 }

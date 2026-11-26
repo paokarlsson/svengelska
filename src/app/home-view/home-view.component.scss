@@ -1,174 +1,123 @@
-/* Ett stort kort för listan som är framme, och de andra hopfällda bakom en
-   knapp. Kortet är inte självt knappen: under det ligger en start, och under
-   den en inställning som ändrar hur fort det går framåt. */
+/* Startsidan är en bunt kort och inte en meny. Överst en rad som säger var man
+   är, sedan kortet, sedan — bara när de behövs — fälten som inte går att svepa. */
 .home {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
 }
 
-.intro {
-    display: grid;
+.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--space-2);
 }
 
-.lead {
-    color: var(--text-muted);
+.wordmark {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
-.current {
-    display: grid;
-    gap: var(--space-4);
-}
-
-.current-head {
-    display: grid;
-    gap: var(--space-1);
-}
-
-.current-name {
-    color: var(--accent-highlight);
-}
-
-.current-count {
-    font-size: 0.9rem;
+.today {
+    font-size: 0.82rem;
+    font-weight: 600;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
 
-.current-entry {
+/* --- Kortets framsida -----------------------------------------------------
+   Innehållet ligger här och inte i svepvyn: kortet bär gesten, sidan äger vad
+   som står på det. Måtten räknas ur kortets sida, så att rubriken krymper med
+   kortet och inte med skärmen. */
+.face-label {
+    font-family: var(--font-body);
+    font-size: calc(var(--card-size) * 0.036);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.face-title {
+    font-family: var(--font-display);
+    font-size: calc(var(--card-size) * 0.135);
+    font-weight: 800;
+    line-height: 1.04;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.face-foot {
     display: grid;
+    gap: calc(var(--card-size) * 0.03);
+    font-family: var(--font-body);
+}
+
+.face-stats {
+    display: flex;
+    justify-content: space-between;
     gap: var(--space-2);
+    font-size: calc(var(--card-size) * 0.044);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
-.entry-heading {
+/* Ett spår i kortets bläck, och fyllningen i kortets egen färg: det som sitter
+   lyser igenom. */
+.face-bar {
+    display: block;
+    height: 10px;
+    padding: 2px;
+    border-radius: var(--radius-pill);
+    background: var(--card-ink);
+}
+
+.face-bar-fill {
+    display: block;
+    height: 100%;
+    min-width: 0;
+    border-radius: var(--radius-pill);
+    background: var(--card-face);
+    transition: width var(--motion-fast);
+}
+
+.tagline {
+    font-size: 0.88rem;
+    line-height: 1.45;
     color: var(--text-muted);
+    text-align: center;
+    text-wrap: balance;
 }
 
-.current-actions {
+/* --- Panelerna -------------------------------------------------------------
+   Ny lista och inställningar. Det som står här är det som inte går att svepa:
+   ett fält att skriva i, ett reglage att dra i. */
+.panel {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.panel-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
 }
 
-.switcher {
-    display: grid;
-    gap: var(--space-2);
-    justify-items: stretch;
+.panel-actions--end {
+    justify-content: flex-end;
 }
 
-.blocks {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-2);
-}
-
-.block {
-    display: flex;
-    align-items: stretch;
-    gap: var(--space-2);
-}
-
-.block-open {
-    flex: 1;
-    display: grid;
-    gap: var(--space-1);
-    text-align: left;
-    padding: var(--space-3);
-    border: 2px solid transparent;
-    border-radius: var(--radius-md);
-    background: var(--bg-card);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: border-color var(--motion-fast), background var(--motion-fast);
-}
-
-.block-open:hover {
-    border-color: var(--accent-highlight);
-}
-
-.block-open:focus-visible {
-    outline: var(--focus-ring);
-    outline-offset: 3px;
-}
-
-/* Listan som redan ligger uppe i kortet får en kant, så att utfällningen visar
-   var man är och inte bara vart man kan gå. */
-.block.is-current .block-open {
-    border-color: var(--line-highlight);
-}
-
-.block-name {
-    font-family: var(--font-display);
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--accent-highlight);
-}
-
-.block-count {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-}
-
-.bar {
-    display: block;
-    height: 6px;
-    margin-top: var(--space-1);
-    border-radius: var(--radius-pill);
-    background: var(--fill-quiet);
-    overflow: hidden;
-}
-
-.bar-fill {
-    display: block;
-    height: 100%;
-    background: var(--accent-green);
-    transition: width var(--motion-fast);
-}
-
-.foot {
-    display: flex;
-    justify-content: center;
-    padding-top: var(--space-2);
-}
-
-.modal-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-}
-
-/* Starten tar hela kortets bredd: det finns ett sätt att börja, och en knapp
-   som är ensam ska se ensam ut. */
-.start {
-    width: 100%;
-}
-
-.current-note {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    text-align: center;
-}
-
-/* --- Inställningarna ------------------------------------------------------
-   Hopfällda bakom en tyst knapp. Det finns exakt en inställning, och den är
-   den enda i appen som ändrar hur fort det går framåt — allt annat är mätt.
-   Panelen ska därför vara lätt att hitta och svår att råka öppna. */
 .settings {
     display: grid;
     gap: var(--space-2);
-    justify-items: stretch;
+    justify-items: center;
 }
 
-.panel {
-    display: grid;
-    gap: var(--space-2);
+.settings .panel {
+    justify-self: stretch;
 }
 
 .field {
@@ -180,12 +129,15 @@
 
 .field-name {
     font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .field-value {
     font-family: var(--font-display);
     font-size: 1.4rem;
-    color: var(--accent-highlight);
+    font-weight: 800;
+    color: var(--accent-green);
     font-variant-numeric: tabular-nums;
 }
 
@@ -197,40 +149,26 @@
 }
 
 .field-note {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
     color: var(--text-muted);
-}
-
-/* --- Ny lista ------------------------------------------------------------
-   Samma hopfällda form som inställningarna, men en vanlig knapp och ingen
-   tyst: att få en ny lista är något man kommer hit för att göra. */
-.maker {
-    display: grid;
-    gap: var(--space-2);
-    justify-items: stretch;
 }
 
 .text {
     width: 100%;
     padding: var(--space-3);
-    border: 2px solid var(--fill-quiet);
-    border-radius: var(--radius-md);
+    border: 2px solid var(--line-strong);
+    border-radius: var(--radius-sm);
     /* Panelen är redan ett kort, så fältet behöver en egen botten att synas mot. */
-    background: var(--bg-card-raised);
+    background: var(--bg-floor);
     color: var(--text-primary);
     font: inherit;
     resize: vertical;
 }
 
 .text:focus-visible {
-    outline: var(--focus-ring);
-    outline-offset: 3px;
-}
-
-.panel-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
+    outline: 3px solid var(--accent-green);
+    outline-offset: 2px;
 }
 
 /* Utkastet: två spalter, engelskan och svenskan, så att den som ska godkänna
@@ -240,24 +178,38 @@
     margin: 0;
     padding: 0;
     display: grid;
-    gap: var(--space-1);
 }
 
 .draft li {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-3);
-    padding: var(--space-1) 0;
-    border-bottom: 1px solid var(--fill-quiet);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--line-soft);
 }
 
 .draft li span:last-child {
     color: var(--text-muted);
 }
 
+.own {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+}
+
+.own li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
 .problem {
-    font-size: 0.9rem;
-    color: var(--accent-red, var(--text-primary));
+    font-size: 0.88rem;
+    color: var(--accent-red);
 }
 
 .key-hint {
@@ -265,6 +217,10 @@
     color: var(--text-muted);
 }
 
-.block-remove {
-    align-self: center;
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
 }

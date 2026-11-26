@@ -1,175 +1,120 @@
 <section class="home">
-    <header class="intro">
-        <h1 class="ui-title ui-title--lg">Svengelska</h1>
+    <header class="top">
+        <h1 class="wordmark">Svengelska</h1>
+        <p class="today">{{newWordsLeft}} nya ord i dag</p>
     </header>
 
     @if (card; as current) {
-    <div class="ui-card ui-card--roomy current">
-        <div class="current-head">
-            <h2 class="ui-title current-name">{{current.block.name}}</h2>
-            <p class="current-count">
-                @if (current.started) {
-                {{current.mastered}} av {{current.block.words.length}} ord sitter åt båda hållen
-                } @else {
-                {{current.block.words.length}} ord — inte påbörjad
-                }
-            </p>
-            <span class="bar" aria-hidden="true">
-                <span class="bar-fill" [style.width.%]="percent(current)"></span>
+    <app-swipe-view [card]="deck" (answered)="onSwipe($event)" (completed)="onLanded()">
+        <span class="face-label">Lista {{position}} av {{count}}</span>
+        <h2 class="face-title">{{current.block.name}}</h2>
+        <div class="face-foot">
+            <div class="face-stats">
+                <span>{{current.block.words.length}} ord</span>
+                <span>
+                    @if (current.started) { {{current.mastered}} sitter } @else { inte påbörjad }
+                </span>
+            </div>
+            <span class="face-bar" aria-hidden="true">
+                <span class="face-bar-fill" [style.width.%]="percent(current)"></span>
             </span>
         </div>
+    </app-swipe-view>
 
-        <div class="current-entry">
-            <button type="button" class="ui-btn ui-btn--primary start" (click)="start()">
-                Kör igång
-            </button>
-            <p class="current-note">
-                Tio ord åt båda hållen. {{newWordsLeft}} nya ord kvar i dag.
-            </p>
-        </div>
+    <p class="tagline">
+        Svep kortet. Höger startar ett varv, vänster bläddrar, och ner låter appen skriva en ny
+        lista åt dig.
+    </p>
+    } @else {
+    <p class="tagline">Här finns ingen lista än.</p>
+    }
 
-        @if (current.started) {
-        <div class="current-actions">
-            <button type="button" class="ui-btn ui-btn--quiet" (click)="mapped.emit(current.block)">
-                Kartan
-            </button>
-        </div>
-        }
-    </div>
-
-    <div class="switcher">
-        <button
-            type="button"
-            class="ui-btn ui-btn--secondary"
-            [attr.aria-expanded]="switching"
-            (click)="switching = !switching">
-            Byt lista
-        </button>
-
-        @if (switching) {
-        <ul class="blocks">
-            @for (other of cards; track other.block.id) {
-            <li class="block" [class.is-current]="other.block.id === current.block.id">
-                <button type="button" class="block-open" (click)="pick(other.block)">
-                    <span class="block-name">{{other.block.name}}</span>
-                    <span class="block-count">
-                        @if (other.started) {
-                        {{other.mastered}} av {{other.block.words.length}} ord sitter
-                        } @else {
-                        {{other.block.words.length}} ord — inte påbörjad
-                        }
-                    </span>
-                    <span class="bar" aria-hidden="true">
-                        <span class="bar-fill" [style.width.%]="percent(other)"></span>
-                    </span>
-                </button>
-                @if (other.own) {
-                <button
-                    type="button"
-                    class="ui-btn ui-btn--quiet block-remove"
-                    [attr.aria-label]="'Ta bort ' + other.block.name"
-                    (click)="remove(other.block)">
-                    Ta bort
-                </button>
-                }
-            </li>
+    @if (makerOpen) {
+    <div class="ui-card panel">
+        @if (draft; as list) {
+        <h3 class="ui-title">{{list.name}}</h3>
+        <ul class="draft">
+            @for (pair of list.words; track pair.en + pair.sv) {
+            <li><span>{{pair.en}}</span><span>{{pair.sv}}</span></li>
             }
         </ul>
-        }
-    </div>
-
-    <div class="maker">
-        <button
-            type="button"
-            class="ui-btn ui-btn--secondary"
-            [attr.aria-expanded]="makerOpen"
-            (click)="makerOpen = !makerOpen">
-            Ny lista
-        </button>
-
-        @if (makerOpen) {
-        <div class="ui-card panel">
-            @if (draft; as list) {
-            <h3 class="ui-title ui-title--sm">{{list.name}}</h3>
-            <ul class="draft">
-                @for (pair of list.words; track pair.en + pair.sv) {
-                <li><span>{{pair.en}}</span><span>{{pair.sv}}</span></li>
-                }
-            </ul>
-            <div class="panel-actions">
-                <button type="button" class="ui-btn ui-btn--primary" (click)="keepDraft()">
-                    Behåll listan
-                </button>
-                <button type="button" class="ui-btn ui-btn--quiet" (click)="dropDraft()">
-                    Kasta
-                </button>
-            </div>
-            } @else if (hasKey) {
-            <label class="field-name" for="wish">Vad vill du öva på?</label>
-            <textarea
-                #wish
-                id="wish"
-                class="text"
-                rows="3"
-                placeholder="Ett tema — rymden, på restaurang — eller klistra in dina glosor"
-                [disabled]="writing"></textarea>
-            <div class="panel-actions">
-                <button
-                    type="button"
-                    class="ui-btn ui-btn--primary"
-                    [disabled]="writing"
-                    (click)="write(wish.value)">
-                    @if (writing) { Skriver listan … } @else { Skriv listan }
-                </button>
-                @if (hasProfile) {
-                <button
-                    type="button"
-                    class="ui-btn ui-btn--secondary"
-                    [disabled]="writing"
-                    (click)="surprise()">
-                    Välj åt mig
-                </button>
-                }
-            </div>
-            <p class="field-note">
-                Appen skriver glosorna och felsvaren med Claude. Du får se listan innan den sparas.
-                @if (hasProfile) { «Välj åt mig» tar ett tema ur det du sa att du gillar. }
-            </p>
-            @if (!hasProfile) {
-            <div class="panel-actions">
-                <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
-                    Låt appen lära känna dig
-                </button>
-            </div>
-            }
-            } @else {
-            <label class="field-name" for="api-key">Anthropic-nyckel</label>
-            <input
-                #key
-                id="api-key"
-                class="text"
-                type="password"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="sk-ant-…" />
-            <div class="panel-actions">
-                <button type="button" class="ui-btn ui-btn--primary" (click)="saveKey(key.value)">
-                    Spara nyckeln
-                </button>
-            </div>
-            <p class="field-note">
-                Appen skriver listor med Claude och behöver din egen nyckel för det. Den sparas
-                bara i den här webbläsaren och skickas bara till Anthropic. Varje lista dras från
-                ditt Anthropic-konto.
-            </p>
-            }
-
-            @if (writeError; as problem) {
-            <p class="problem" role="alert">{{problem}}</p>
+        <div class="panel-actions">
+            <button type="button" class="ui-btn ui-btn--primary" (click)="keepDraft()">
+                Behåll listan
+            </button>
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="dropDraft()">Kasta</button>
+        </div>
+        } @else if (hasKey) {
+        <label class="field-name" for="wish">Vad vill du öva på?</label>
+        <textarea
+            #wish
+            id="wish"
+            class="text"
+            rows="3"
+            placeholder="Ett tema — rymden, på restaurang — eller klistra in dina glosor"
+            [disabled]="writing"></textarea>
+        <div class="panel-actions">
+            <button
+                type="button"
+                class="ui-btn ui-btn--primary"
+                [disabled]="writing"
+                (click)="write(wish.value)">
+                @if (writing) { Skriver … } @else { Skriv listan }
+            </button>
+            @if (hasProfile) {
+            <button
+                type="button"
+                class="ui-btn ui-btn--secondary"
+                [disabled]="writing"
+                (click)="surprise()">
+                Välj åt mig
+            </button>
             }
         </div>
+        <p class="field-note">
+            Appen skriver glosorna och felsvaren med Claude. Du får se listan innan den sparas.
+            @if (hasProfile) { «Välj åt mig» tar ett tema ur det du sa att du gillar. }
+        </p>
+        @if (!hasProfile) {
+        <div class="panel-actions">
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
+                Låt appen lära känna dig
+            </button>
+        </div>
         }
+        } @else {
+        <label class="field-name" for="api-key">Anthropic-nyckel</label>
+        <input
+            #key
+            id="api-key"
+            class="text"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="sk-ant-…" />
+        <div class="panel-actions">
+            <button type="button" class="ui-btn ui-btn--primary" (click)="saveKey(key.value)">
+                Spara nyckeln
+            </button>
+        </div>
+        <p class="field-note">
+            Appen skriver listor med Claude och behöver din egen nyckel för det. Den sparas bara i
+            den här webbläsaren och skickas bara till Anthropic. Varje lista dras från ditt
+            Anthropic-konto.
+        </p>
+        }
+
+        @if (writeError; as problem) {
+        <p class="problem" role="alert">{{problem}}</p>
+        }
+
+        <div class="panel-actions panel-actions--end">
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="makerOpen = false">
+                Stäng
+            </button>
+        </div>
     </div>
+    }
 
     <div class="settings">
         <button
@@ -200,6 +145,37 @@
                 sett påverkas inte — sätt noll för att bara repetera.
             </p>
 
+            @if (card; as current) {
+            @if (current.started) {
+            <div class="panel-actions">
+                <button
+                    type="button"
+                    class="ui-btn ui-btn--secondary"
+                    (click)="mapped.emit(current.block)">
+                    Kartan för {{current.block.name}}
+                </button>
+            </div>
+            }
+            }
+
+            @if (ownLists.length > 0) {
+            <span class="field-name">Dina listor</span>
+            <ul class="own">
+                @for (own of ownLists; track own.id) {
+                <li>
+                    <span>{{own.name}}</span>
+                    <button
+                        type="button"
+                        class="ui-btn ui-btn--quiet"
+                        [attr.aria-label]="'Ta bort ' + own.name"
+                        (click)="remove(own)">
+                        Ta bort
+                    </button>
+                </li>
+                }
+            </ul>
+            }
+
             @if (hasKey) {
             <div class="field">
                 <span class="field-name">Anthropic-nyckel</span>
@@ -210,39 +186,28 @@
                     Ta bort nyckeln
                 </button>
             </div>
-            <p class="field-note">
-                Sparad i den här webbläsaren. Listor du redan gjort ligger kvar om du tar bort den.
-            </p>
             }
 
             <div class="panel-actions">
                 <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
                     @if (hasProfile) { Gör om startfrågorna } @else { Svara på startfrågorna }
                 </button>
+                @if (hasPractice) {
+                <button type="button" class="ui-btn ui-btn--danger" (click)="askingReset = true">
+                    Nollställ framstegen
+                </button>
+                }
             </div>
         </div>
         }
     </div>
-    }
-
-    @if (!hasBlocks) {
-    <p class="lead">Här finns ingen lista än.</p>
-    }
-
-    @if (hasPractice) {
-    <footer class="foot">
-        <button type="button" class="ui-btn ui-btn--danger" (click)="askingReset = true">
-            Nollställ framstegen
-        </button>
-    </footer>
-    }
 </section>
 
 @if (askingReset) {
 <div class="ui-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reset-title">
     <div class="ui-modal">
-        <h2 class="ui-title ui-title--sm" id="reset-title">Nollställa allt?</h2>
-        <p class="lead">Alla mätningar för alla listor försvinner. Det går inte att ångra.</p>
+        <h2 class="ui-title" id="reset-title">Nollställa allt?</h2>
+        <p class="tagline">Alla mätningar för alla listor försvinner. Det går inte att ångra.</p>
         <div class="modal-actions">
             <button type="button" class="ui-btn ui-btn--danger" (click)="reset()">Nollställ</button>
             <button type="button" class="ui-btn ui-btn--secondary" (click)="askingReset = false">

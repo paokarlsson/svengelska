@@ -54,7 +54,31 @@ import { Response } from '../training/word-state';
 export type SwipeCard =
   | { kind: 'trueFalse'; statement: Statement }
   | { kind: 'recall'; word: DirectedWord }
-  | { kind: 'ask'; text: string };
+  | { kind: 'ask'; text: string }
+  | ChoiceCard;
+
+/**
+ * Ett kort som är ett vägval och ingen fråga: startsidans lista, varvets slut.
+ *
+ * Det är så «svep gör allt» hålls. Appen har inga knappar för att börja,
+ * bläddra eller gå hem — den har ett kort, och hållen heter olika saker
+ * beroende på var man står. Höger är alltid framåt, vänster alltid tillbaka
+ * eller nästa, ner alltid något annat.
+ *
+ * Vad som står *på* kortet äger den som lägger fram det: innehållet skickas in
+ * som mallinnehåll, och kortet bär bara gesten. Ett håll som är `null` finns
+ * inte, och ett drag åt det fjädrar tillbaka.
+ */
+export interface ChoiceCard {
+  kind: 'choice';
+  /** Vad kortet handlar om, för den som inte ser det. */
+  label: string;
+  affirm: string | null;
+  deny: string | null;
+  unsure: string | null;
+  /** Kortets färg. Gult är en lista, mint är ett avslutat varv. */
+  face?: 'sun' | 'mint';
+}
 
 /** Vad vyn skickar ifrån sig: gesten och tiden, aldrig en dom. */
 export interface SwipeAnswer {
@@ -76,7 +100,10 @@ interface Naming {
  * En tabell och inte tre villkor per getter, så att ett fjärde kort är en rad
  * och inte sex ändringar.
  */
-const NAMES: Record<SwipeCard['kind'], { affirm: Naming; deny: Naming; unsure: Naming }> = {
+const NAMES: Record<
+  Exclude<SwipeCard['kind'], 'choice'>,
+  { affirm: Naming; deny: Naming; unsure: Naming }
+> = {
   trueFalse: {
     affirm: { label: 'Rätt', stamp: 'RÄTT' },
     deny: { label: 'Fel', stamp: 'FEL' },
@@ -94,6 +121,9 @@ const NAMES: Record<SwipeCard['kind'], { affirm: Naming; deny: Naming; unsure: N
     unsure: { label: 'Hoppa över', stamp: 'HOPPA ÖVER' },
   },
 };
+
+/** Hur snett kortet ligger i vila, i grader. */
+const REST_TILT = -1.5;
 
 /** Hur länge kortet flyger ut innan nästa läggs fram. */
 const LEAVE_MS = 260;
@@ -195,9 +225,15 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
     return this.card.kind === 'recall' && this.phase === 'asking';
   }
 
-  /** Kortet lutar bara med sidledsdraget. Ett «vet ej» läggs undan rakt. */
+  /**
+   * Kortets lutning.
+   *
+   * I vila ligger det lite snett, som ett kort någon lagt ifrån sig — ett
+   * spikrakt kort är en ruta. Därifrån lutar det bara med sidledsdraget; ett
+   * «vet ej» läggs undan utan att vridas.
+   */
   get rotation(): number {
-    return this.progress * 12;
+    return REST_TILT + this.progress * 12;
   }
 
   /** 0 när kortet ligger stilla, 1 när det dragits hela vägen åt `dir`. */
@@ -207,6 +243,9 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
   /** Ordet som frågas efter, åt det håll kortet gäller. */
   get prompt(): string {
+    if (this.card.kind === 'choice') {
+      return '';
+    }
     if (this.card.kind === 'ask') {
       return this.card.text;
     }
@@ -222,7 +261,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
   /** Det som står under ordet: påståendets översättning, eller facit. */
   get shown(): string {
-    if (this.card.kind === 'ask') {
+    if (this.card.kind === 'ask' || this.card.kind === 'choice') {
       return '';
     }
     return this.card.kind === 'trueFalse'
@@ -230,36 +269,72 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
       : answerOf(this.card.word.pair, this.card.word.direction);
   }
 
+  /**
+   * Vad ett håll heter på det här kortet. Tom text = hållet finns inte.
+   *
+   * Ett vägval bär sina egna namn; alla andra kort slår upp dem i tabellen.
+   */
+  private naming(response: Response): Naming {
+    if (this.card.kind !== 'choice') {
+      return NAMES[this.card.kind][response];
+    }
+    const label = this.card[response] ?? '';
+    return { label, stamp: label.toUpperCase() };
+  }
+
+  /** Om kortet är ett vägval, med innehållet inskickat utifrån. */
+  get choosing(): boolean {
+    return this.card.kind === 'choice';
+  }
+
+  /** Om kortet är mintgrönt och inte gult. */
+  get mint(): boolean {
+    return this.card.kind === 'choice' && this.card.face === 'mint';
+  }
+
+  /** Vad kortet heter för den som inte ser det. */
+  get ariaLabel(): string {
+    if (this.card.kind === 'choice') {
+      return this.card.label;
+    }
+    if (this.card.kind === 'ask') {
+      return this.card.text;
+    }
+    return this.thinking
+      ? `Vad betyder ${this.prompt}?`
+      : `Stämmer ${this.prompt} = ${this.shown}?`;
+  }
+
   /** Vad hållen heter. I återkalla är det den som övar som dömer sig själv. */
   get affirmLabel(): string {
-    return NAMES[this.card.kind].affirm.label;
+    return this.naming('affirm').label;
   }
 
   get denyLabel(): string {
-    return NAMES[this.card.kind].deny.label;
+    return this.naming('deny').label;
   }
 
   /** Det tredje svaret. Om en själv är det «hoppa över», inte «vet ej». */
   get unsureLabel(): string {
-    return NAMES[this.card.kind].unsure.label;
+    return this.naming('unsure').label;
   }
 
   /** Stämplarna är knapparnas ord i kortformat — de ska rymmas på kortet. */
   get affirmStamp(): string {
-    return NAMES[this.card.kind].affirm.stamp;
+    return this.naming('affirm').stamp;
   }
 
   get denyStamp(): string {
-    return NAMES[this.card.kind].deny.stamp;
+    return this.naming('deny').stamp;
   }
 
   get unsureStamp(): string {
-    return NAMES[this.card.kind].unsure.stamp;
+    return this.naming('unsure').stamp;
   }
 
   /** Om facit ska stå på kortet just nu. Ett påstående om en själv har inget. */
   get showsAnswer(): boolean {
-    if (this.card.kind === 'ask') {
+    if (this.card.kind === 'ask' || this.card.kind === 'choice') {
       return false;
     }
     return this.card.kind === 'trueFalse' || this.phase !== 'asking';
@@ -322,6 +397,14 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
     if (this.locked) {
       return;
     }
+    if (this.naming(response).label === '') {
+      // Hållet finns inte på det här kortet. En gest som inte betyder något
+      // ska inte göra något — kortet fjädrar tillbaka.
+      this.progress = 0;
+      this.down = 0;
+      this.drag?.reset();
+      return;
+    }
     if (this.thinking) {
       // Ett svar innan facit visats är ändå ett svar: tiden är den som gått.
       this.reveal();
@@ -381,7 +464,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
    * hela kortets tid är undervisningstid.
    */
   private showVerdict(response: Response, correct: boolean | null): void {
-    if (this.card.kind === 'ask') {
+    if (this.card.kind === 'ask' || this.card.kind === 'choice') {
       // Inget att döma och inget att lära ut: svaret var sant för att den som
       // svarade sa det. En kvardröjande dom från kortet innan ska ändå bort.
       this.clear(this.verdictTimer);
@@ -438,6 +521,10 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   private secondsFor(): number | null {
     if (this.card.kind === 'recall') {
       return this.recallSeconds;
+    }
+    if (this.card.kind === 'choice') {
+      // Ett vägval tar den tid det tar. Den tiden mäter ingenting.
+      return null;
     }
     return (Date.now() - this.startedAt) / 1000;
   }

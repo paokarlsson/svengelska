@@ -1,26 +1,23 @@
 /**
- * Startsidan: en lista, en start, en inställning — och vägen till en ny lista.
+ * Startsidan: en lista som ett kort, och tre håll att svepa det åt.
  *
- * Vad som väljs här är sådant som *den som övar vet bättre än appen*: vilken
- * lista nya ord ska hämtas ur, och hur fort det ska gå framåt. Den som ligger
- * efter behöver kunna sätta noll nya ord och bara repetera, och den som har
- * förhör på fredag behöver kunna sätta tio utan att någon rör i koden.
+ * Höger kör ett varv. Vänster bläddrar till nästa lista. Ner låter appen skriva
+ * en ny. Det finns ingen startknapp och ingen lista att fälla ut — sidan är
+ * samma föremål som resten av appen, och den som kan svara på ett kort kan
+ * hitta hit och härifrån.
  *
- * Vad som inte finns är en ingångsväljare. Grenen spelar ett enda steg, och en
- * dörr är inget val. Vilka ord varvet innehåller är planens sak och ingen
- * människas.
+ * Två saker går inte att svepa, och de ligger därför under kortet i stället
+ * för på det: fälten där man skriver ett önskemål eller klistrar in en nyckel,
+ * och inställningarna. Ett textfält är ingen gest.
  *
  * Listan är källan till *nya* ord och ingen avgränsning av övningen:
- * repetitionen tar allt som setts, oavsett vilken lista det står i.
+ * repetitionen tar allt som setts, oavsett vilken lista det står i. Vilka ord
+ * varvet innehåller är planens sak och ingen människas.
  *
  * Listorna kommer från två håll. Några följde med bygget; resten skriver appen
  * själv, efter ett önskemål eller efter det startrundan sa. Det kräver en
  * Anthropic-nyckel, och den lägger den som övar in här, eftersom appen inte har
  * någon server som kunde hålla en åt alla.
- *
- * Här fanns förut veckor. Listorna hette «Vecka 3 – Djur» och sidan öppnade i
- * den sista, eftersom appen var byggd kring en glosläxa i taget. Nu är en lista
- * ett tema och ingenting mer, och sidan öppnar där man var.
  */
 import {
   ChangeDetectionStrategy,
@@ -37,7 +34,13 @@ import { ListWriteError, WriteFailure } from '../services/list-write-error';
 import { ListWriter } from '../services/list-writer';
 import { ProfileStore } from '../services/profile-store';
 import { MAX_NEW_PER_DAY } from '../services/progress-store';
+import {
+  ChoiceCard,
+  SwipeAnswer,
+  SwipeViewComponent,
+} from '../swipe-view/swipe-view.component';
 import { TrainingEngine } from '../training/training-engine';
+import { Response } from '../training/word-state';
 import { WordBlock } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
 
@@ -71,6 +74,7 @@ const FAILURE_TEXT: Record<WriteFailure, string> = {
   selector: 'app-home-view',
   templateUrl: 'home-view.component.html',
   styleUrl: 'home-view.component.scss',
+  imports: [SwipeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeViewComponent implements OnInit {
@@ -95,8 +99,6 @@ export class HomeViewComponent implements OnInit {
   private readonly changes = inject(ChangeDetectorRef);
 
   askingReset = false;
-  /** Om utfällningen med de andra listorna är öppen. */
-  switching = false;
   /** Om inställningspanelen är öppen. */
   settingsOpen = false;
   /** Om panelen för en ny lista är öppen. */
@@ -118,8 +120,81 @@ export class HomeViewComponent implements OnInit {
   /** Listan användaren bläddrat fram till, om någon. */
   private pickedId: string | null = null;
 
+  /**
+   * Kortet som ligger framme.
+   *
+   * Ett fält och ingen getter: ett nytt objekt vid varje ändringsdetektering
+   * räknas som ett nytt kort och nollställer det under fingret. Ett nytt läggs
+   * fram med `deal()`, och bara då.
+   */
+  deck: ChoiceCard = this.cardFor(null);
+  /** Hållet kortet sveptes åt. Verkställs när kortet lämnat bordet. */
+  private swiped: Response | null = null;
+
   ngOnInit(): void {
     this.makerOpen = this.offerList;
+    this.deal();
+  }
+
+  /** Lägger fram kortet för listan som är aktuell nu. */
+  private deal(): void {
+    this.deck = this.cardFor(this.list);
+  }
+
+  private cardFor(list: WordBlock | null): ChoiceCard {
+    return {
+      kind: 'choice',
+      label: list === null ? 'Ingen lista' : `Listan ${list.name}`,
+      affirm: list === null ? null : 'Kör',
+      // Med en enda lista finns inget att bläddra till.
+      deny: this.library.blocks.length > 1 ? 'Nästa lista' : null,
+      unsure: 'Ny lista',
+    };
+  }
+
+  onSwipe(answer: SwipeAnswer): void {
+    this.swiped = answer.response;
+  }
+
+  /**
+   * Kortet har lämnat bordet: nu händer det hållet betydde.
+   *
+   * Här och inte i `onSwipe()`, så att kortet hinner fara iväg innan sidan
+   * byts under det.
+   */
+  onLanded(): void {
+    const swiped = this.swiped;
+    this.swiped = null;
+    if (swiped === 'affirm') {
+      this.start();
+    } else if (swiped === 'deny') {
+      this.next();
+    } else if (swiped === 'unsure') {
+      this.makerOpen = true;
+      this.deal();
+    }
+  }
+
+  /** Bläddrar till nästa lista, runt till den första efter den sista. */
+  private next(): void {
+    const blocks = this.library.blocks;
+    const at = blocks.findIndex((block) => block.id === this.list?.id);
+    this.pickedId = blocks[(at + 1) % blocks.length]?.id ?? null;
+    this.deal();
+  }
+
+  /** Var i bunten listan ligger, räknat från ett. */
+  get position(): number {
+    return this.library.blocks.findIndex((block) => block.id === this.list?.id) + 1;
+  }
+
+  get count(): number {
+    return this.library.blocks.length;
+  }
+
+  /** De egna listorna, för den som vill ta bort en. */
+  get ownLists(): readonly WordBlock[] {
+    return this.library.blocks.filter((block) => this.library.isOwn(block.id));
   }
 
   /**
@@ -179,12 +254,6 @@ export class HomeViewComponent implements OnInit {
 
   setNewWordsPerDay(value: string): void {
     this.engine.setNewWordsPerDay(Number.parseInt(value, 10));
-  }
-
-  /** Väljer en lista ur utfällningen — startar den inte. En startväg räcker. */
-  pick(block: WordBlock): void {
-    this.pickedId = block.id;
-    this.switching = false;
   }
 
   start(): void {
@@ -254,6 +323,7 @@ export class HomeViewComponent implements OnInit {
     this.pickedId = this.draft.id;
     this.draft = null;
     this.makerOpen = false;
+    this.deal();
   }
 
   dropDraft(): void {
@@ -266,6 +336,7 @@ export class HomeViewComponent implements OnInit {
     if (this.pickedId === block.id) {
       this.pickedId = null;
     }
+    this.deal();
   }
 
   async reset(): Promise<void> {

@@ -20,7 +20,13 @@ import {
 import { IntroCard, IntroPhase, IntroRun } from '../intro/intro-run';
 import { Profile, TOP_LEVEL } from '../intro/profile';
 import { ProfileStore } from '../services/profile-store';
-import { SwipeAnswer, SwipeCard, SwipeViewComponent } from '../swipe-view/swipe-view.component';
+import {
+  ChoiceCard,
+  SwipeAnswer,
+  SwipeCard,
+  SwipeViewComponent,
+} from '../swipe-view/swipe-view.component';
+import { Response } from '../training/word-state';
 
 /** Rubriken över kortet. Säger vad korten handlar om, inte hur många som är kvar. */
 const PHASE_TITLE: Record<IntroPhase, string> = {
@@ -57,6 +63,16 @@ export class IntroViewComponent implements OnInit {
   card: SwipeCard | null = null;
   /** Vad rundan kom fram till. `null` medan den pågår. */
   result: Profile | null = null;
+  /** Slutkortet: höger går vidare, vänster gör om. */
+  readonly ending: ChoiceCard = {
+    kind: 'choice',
+    label: 'Då vet jag lite mer',
+    affirm: 'Vidare',
+    deny: 'Gör om',
+    unsure: null,
+  };
+  /** Hållet slutkortet sveptes åt. Verkställs när kortet lämnat bordet. */
+  private swiped: Response | null = null;
 
   ngOnInit(): void {
     this.advance();
@@ -99,6 +115,20 @@ export class IntroViewComponent implements OnInit {
 
   onCompleted(): void {
     this.advance();
+  }
+
+  onEndSwipe(answer: SwipeAnswer): void {
+    this.swiped = answer.response;
+  }
+
+  onEndLanded(): void {
+    const swiped = this.swiped;
+    this.swiped = null;
+    if (swiped === 'affirm') {
+      this.finish();
+    } else if (swiped === 'deny') {
+      this.restart();
+    }
   }
 
   /** Sparar profilen och går vidare. */

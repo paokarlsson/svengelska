@@ -1,77 +1,88 @@
 <section class="session">
     <header class="bar">
+        <!-- Bara medan varvet pågår. På slutkortet heter vägen ut «Hem», och den
+             är ett håll att svepa åt. -->
+        @if (ending === null) {
         <button type="button" class="ui-btn ui-btn--quiet" (click)="leave()">Avsluta</button>
-        <p class="block-name">{{list.name}}</p>
-        <p class="tally" aria-hidden="true">
-            @if (warmingUp) { Uppvärmning } @else { {{tally}} / {{session.target}} }
+        } @else {
+        <span aria-hidden="true"></span>
+        }
+        <p class="block-name">
+            @if (summary !== null) { Varvet klart } @else if (warmingUp) { Uppvärmning } @else {
+            {{list.name}} }
+        </p>
+        <p class="streak" [class.streak--live]="streak > 0">
+            <span class="ui-visually-hidden">Svit i tempo:</span>
+            {{streak}} i rad
         </p>
     </header>
 
     <div class="meter" role="progressbar" [attr.aria-valuenow]="tally" aria-valuemin="0"
         [attr.aria-valuemax]="session.target" aria-label="Varvets framsteg">
-        <span class="meter-fill" [style.width.%]="progress"></span>
+        @for (slot of slots; track slot) {
+        <span class="meter-slot" [class.is-done]="slot < tally"></span>
+        }
     </div>
 
-    @if (summary === null) {
     <div class="stage">
-        @if (empty) {
-        <div class="ui-card ui-card--roomy done">
-            <h2 class="ui-title">Inget är moget just nu</h2>
-            <p class="lead">
-                Allt som setts har fått sin vila, och dagens nya ord är slut. Höj antalet nya ord
-                per dag på startsidan om du vill vidare i dag.
+        @if (ending; as end) {
+        <app-swipe-view [card]="end" (answered)="onEndSwipe($event)" (completed)="onEndLanded()">
+            @if (summary; as round) {
+            <span class="face-label">Längsta svit i tempo</span>
+            <p class="face-hero">
+                <span class="face-number">{{round.longest}}</span>
+                @if (record) {
+                <span class="face-record">nytt rekord</span>
+                }
             </p>
-            <div class="actions">
-                <button type="button" class="ui-btn ui-btn--secondary" (click)="exited.emit()">
-                    Tillbaka
-                </button>
-            </div>
-        </div>
+            <dl class="face-split">
+                <div>
+                    <dt>rätt av {{round.answered}}</dt>
+                    <dd>{{round.hits + round.slow}}</dd>
+                </div>
+                <div>
+                    <dt>vet ej</dt>
+                    <dd>{{round.unsure}}</dd>
+                </div>
+                <div>
+                    <dt>fel</dt>
+                    <dd>{{round.misses}}</dd>
+                </div>
+            </dl>
+            } @else {
+            <span class="face-label">Vila</span>
+            <h2 class="face-title">Inget är moget just nu</h2>
+            <p class="face-text">
+                Allt du sett har fått sin vila, och dagens nya ord är slut. Höj antalet nya ord
+                per dag under Inställningar om du vill vidare i dag.
+            </p>
+            }
+        </app-swipe-view>
         } @else if (card; as swipe) {
         <app-swipe-view [card]="swipe" (answered)="onAnswer($event)" (completed)="onCompleted()" />
         }
     </div>
-    } @else {
-    <div class="ui-card ui-card--roomy done">
-        <h2 class="ui-title">Varvet är klart</h2>
 
-        <p class="score">{{summary.hits + summary.slow}} rätt av {{summary.answered}}</p>
-
-        <ul class="split">
-            <li><strong>{{summary.hits}}</strong> i tempo</li>
-            <li><strong>{{summary.slow}}</strong> rätt men segt</li>
-            <li><strong>{{summary.misses}}</strong> fel</li>
-            <li><strong>{{summary.unsure}}</strong> vet ej</li>
-        </ul>
-
-        @if (summary.advanced.length > 0) {
-        <p class="lead">Håll som kommer tillbaka mer sällan nu:</p>
-        <ul class="moved">
-            @for (word of summary.advanced; track word.pair.en + word.direction) {
-            <li>
-                @if (word.direction === 'en') { {{word.pair.en}} → {{word.pair.sv}} }
-                @else { {{word.pair.sv}} → {{word.pair.en}} }
-            </li>
-            }
-        </ul>
+    @if (summary; as round) {
+    <div class="after">
+        @if (advancedText; as moved) {
+        <p class="note">Kommer tillbaka mer sällan nu: {{moved}}.</p>
         } @else {
-        <p class="lead">Inget håll flyttade fram den här gången — det kommer.</p>
+        <p class="note">Inget håll flyttade fram den här gången — det kommer.</p>
+        }
+
+        @if (round.slow > 0) {
+        <p class="note">{{round.slow}} av de rätta var sega, och räknas inte i sviten.</p>
         }
 
         @if (short) {
-        <p class="lead lead--quiet">
-            Varvet blev {{summary.words}} ord i stället för {{roundWords}}: fler var inte mogna, och
+        <p class="note">
+            Varvet blev {{round.words}} ord i stället för {{roundWords}}: fler var inte mogna, och
             dagens nya ord är slut.
         </p>
         }
 
-        <p class="lead lead--quiet">{{summary.mastered}} ord sitter åt båda hållen.</p>
-
-        <div class="actions">
-            <button type="button" class="ui-btn ui-btn--primary" (click)="start()">Ett varv till</button>
-            <button type="button" class="ui-btn ui-btn--secondary" (click)="mapped.emit()">Kartan</button>
-            <button type="button" class="ui-btn ui-btn--quiet" (click)="exited.emit()">Tillbaka</button>
-        </div>
+        <p class="note">{{round.mastered}} ord sitter åt båda hållen.</p>
     </div>
     }
 </section>

@@ -193,6 +193,82 @@ describe('TrainingSession', () => {
     expect(summary.misses).toBe(0);
   });
 
+  describe('sviten', () => {
+    /** Svarar på de räknade korten med `answer`, och rätt på kalibreringen. */
+    function playWith(session: TrainingSession, answer: (task: Task, index: number) => Response) {
+      let index = 0;
+      return play(session, (task) => {
+        if (task.calibration !== null) {
+          return task.statement.truthy ? 'affirm' : 'deny';
+        }
+        return answer(task, index++);
+      });
+    }
+    const right = (task: Task): Response => (task.statement.truthy ? 'affirm' : 'deny');
+    const wrong = (task: Task): Response => (task.statement.truthy ? 'deny' : 'affirm');
+
+    it('växer med varje rätt svar i tempo', () => {
+      const session = round();
+      playWith(session, right);
+
+      expect(session.streak).toBe(ROUND_WORDS * 2);
+      expect(session.summary().longest).toBe(ROUND_WORDS * 2);
+    });
+
+    it('räknar inte kalibreringen', () => {
+      const session = round();
+      for (let i = 0; i < CALIBRATION_CARDS; i++) {
+        const probe = session.nextTask()!;
+        session.record(probe, right(probe), 1);
+      }
+      expect(session.streak).toBe(0);
+    });
+
+    it('nollas av ett fel', () => {
+      const session = round();
+      playWith(session, (task, index) => (index === 5 ? wrong(task) : right(task)));
+
+      // Fem före felet; efter det resten av varvet plus kortet som kom tillbaka.
+      expect(session.summary().longest).toBe(ROUND_WORDS * 2 - 6 + 1);
+    });
+
+    // Hela poängen med regeln: den som inte vet behåller sin svit genom att
+    // säga det, och riskerar den genom att chansa.
+    it('nollas aldrig av ett «vet ej»', () => {
+      const honest = round(3);
+      playWith(honest, (task, index) => (index === 5 ? 'unsure' : right(task)));
+
+      const guessing = round(3);
+      playWith(guessing, (task, index) => (index === 5 ? wrong(task) : right(task)));
+
+      expect(honest.summary().longest).toBeGreaterThan(guessing.summary().longest);
+      expect(honest.summary().longest).toBe(ROUND_WORDS * 2);
+    });
+
+    it('växer inte av ett «vet ej»', () => {
+      const session = round();
+      playWith(session, () => 'unsure');
+      expect(session.summary().longest).toBe(0);
+    });
+
+    it('växer inte av ett rätt som var segt, men nollas inte heller av det', () => {
+      const session = round();
+      let index = 0;
+      for (let guard = 0; guard < 200; guard++) {
+        const task = session.nextTask();
+        if (task === null) {
+          break;
+        }
+        // Tio sekunder är långt över varje golv: rätt, men segt.
+        const slow = task.calibration === null && index++ === 5;
+        session.record(task, right(task), slow ? 10 : 1);
+      }
+
+      expect(session.summary().slow).toBe(1);
+      expect(session.summary().longest).toBe(ROUND_WORDS * 2 - 1);
+    });
+  });
+
   it('blir hellre kort än fyller ut: tom budget och inget moget ger inget varv', () => {
     engine.setNewWordsPerDay(0);
     const session = round();

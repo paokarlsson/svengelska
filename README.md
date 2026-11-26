@@ -6,8 +6,8 @@
 > [`docs/nerskalad.md`](docs/nerskalad.md). Appen som helhet beskrivs
 > fortfarande av [`docs/plan.md`](docs/plan.md).
 
-Glosträning där veckans glosor svepas rätt eller fel — `dog = hund`, stämmer
-det? — åt båda hållen, mot ett tempo som mäts om varje varv.
+Glosträning där orden svepas rätt eller fel — `dog = hund`, stämmer det? — åt
+båda hållen, mot ett tempo som mäts om varje varv.
 
     höger = sant      vänster = falskt      ner = vet ej
 
@@ -127,6 +127,43 @@ Nivån skickas till modellen som *ord* och inte som en siffra — «klarade
 `kitchen` men inte `although`» — eftersom det betyder samma sak för alla som kan
 engelska. Åldern skickas som ett spann, aldrig som ett tal, och inget namn
 frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
+
+## Svep gör allt
+
+Appen har ett kort och tre håll, och det är hela gränssnittet.
+
+    höger = framåt      vänster = tillbaka eller nästa      ner = något annat
+
+På ett gloskort heter hållen rätt, fel och vet ej. På startsidan — som också är
+ett kort, med listans namn på — heter de kör, nästa lista och ny lista. När
+varvet är slut heter de en gång till, hem och kartan. Under kortet står alltid
+en rad som säger vad hållen heter just nu, så ingen behöver minnas det.
+
+Det som inte går att svepa ligger under kortet och inte på det: fältet där man
+skriver ett önskemål eller klistrar in en nyckel, och inställningarna. Ett
+textfält är ingen gest. Kvar som knappar är också «Avsluta» mitt i ett varv och
+«Hoppa över» i startrundan — vägar ut som måste finnas när alla tre hållen är
+upptagna av svaret.
+
+### Sviten
+
+Överst i varvet står en svit: rätta svar i tempo sedan det senaste felet. Den
+växer av ett rätt i tempo, nollas av ett **fel**, och rörs inte av ett «vet ej»
+eller av ett rätt som var segt.
+
+Det är samma räkning som gav kortet sitt tredje svar, fast nu på skärmen. Priset
+på en gissning låg förut bara i repetitionsplanen, som ingen ser. Med sviten
+behåller den som inte vet sitt tal genom att säga det, och riskerar det genom
+att chansa. Den längsta sviten står stort på slutkortet, och är det enda rekord
+appen håller.
+
+### Utseendet
+
+Formspråket heter Arkad: mörk botten, tjocka kort som klistermärken, och fyra
+färger som var och en betyder en sak — gult är kortet, mint är framåt, korall är
+fel, violett är det som ligger under och bakom. Reglerna står överst i
+`src/styles/_tokens.scss`. Typsnitten, Unbounded och Inter, ligger i bygget och
+hämtas inte från nätet.
 
 ## Tre lager
 
