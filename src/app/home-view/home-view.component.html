@@ -43,7 +43,7 @@
             class="ui-btn ui-btn--secondary"
             [attr.aria-expanded]="switching"
             (click)="switching = !switching">
-            Byt vecka
+            Byt lista
         </button>
 
         @if (switching) {
@@ -63,9 +63,94 @@
                         <span class="bar-fill" [style.width.%]="percent(other)"></span>
                     </span>
                 </button>
+                @if (other.own) {
+                <button
+                    type="button"
+                    class="ui-btn ui-btn--quiet block-remove"
+                    [attr.aria-label]="'Ta bort ' + other.block.name"
+                    (click)="remove(other.block)">
+                    Ta bort
+                </button>
+                }
             </li>
             }
         </ul>
+        }
+    </div>
+
+    <div class="maker">
+        <button
+            type="button"
+            class="ui-btn ui-btn--secondary"
+            [attr.aria-expanded]="makerOpen"
+            (click)="makerOpen = !makerOpen">
+            Ny lista
+        </button>
+
+        @if (makerOpen) {
+        <div class="ui-card panel">
+            @if (draft; as list) {
+            <h3 class="ui-title ui-title--sm">{{list.name}}</h3>
+            <ul class="draft">
+                @for (pair of list.words; track pair.en + pair.sv) {
+                <li><span>{{pair.en}}</span><span>{{pair.sv}}</span></li>
+                }
+            </ul>
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--primary" (click)="keepDraft()">
+                    Behåll listan
+                </button>
+                <button type="button" class="ui-btn ui-btn--quiet" (click)="dropDraft()">
+                    Kasta
+                </button>
+            </div>
+            } @else if (hasKey) {
+            <label class="field-name" for="wish">Vad vill du öva på?</label>
+            <textarea
+                #wish
+                id="wish"
+                class="text"
+                rows="3"
+                placeholder="Ett tema — rymden, på restaurang — eller klistra in veckans glosor"
+                [disabled]="writing"></textarea>
+            <div class="panel-actions">
+                <button
+                    type="button"
+                    class="ui-btn ui-btn--primary"
+                    [disabled]="writing"
+                    (click)="write(wish.value)">
+                    @if (writing) { Skriver listan … } @else { Skriv listan }
+                </button>
+            </div>
+            <p class="field-note">
+                Appen skriver glosorna och felsvaren med Claude. Du får se listan innan den sparas.
+            </p>
+            } @else {
+            <label class="field-name" for="api-key">Anthropic-nyckel</label>
+            <input
+                #key
+                id="api-key"
+                class="text"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="sk-ant-…" />
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--primary" (click)="saveKey(key.value)">
+                    Spara nyckeln
+                </button>
+            </div>
+            <p class="field-note">
+                Appen skriver listor med Claude och behöver din egen nyckel för det. Den sparas
+                bara i den här webbläsaren och skickas bara till Anthropic. Varje lista dras från
+                ditt Anthropic-konto.
+            </p>
+            }
+
+            @if (writeError; as problem) {
+            <p class="problem" role="alert">{{problem}}</p>
+            }
+        </div>
         }
     </div>
 
@@ -97,16 +182,28 @@
                 Hur många glosor som får introduceras på ett dygn. Repetitionen av det du redan
                 sett påverkas inte — sätt noll för att bara repetera.
             </p>
+
+            @if (hasKey) {
+            <div class="field">
+                <span class="field-name">Anthropic-nyckel</span>
+                <span class="key-hint">{{keyHint}}</span>
+            </div>
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--quiet" (click)="forgetKey()">
+                    Ta bort nyckeln
+                </button>
+            </div>
+            <p class="field-note">
+                Sparad i den här webbläsaren. Listor du redan gjort ligger kvar om du tar bort den.
+            </p>
+            }
         </div>
         }
     </div>
     }
 
     @if (!hasBlocks) {
-    <p class="lead">
-        Ingen ordlista hittades. Listorna byggs ur <code>data/glosor.csv</code> med
-        <code>npm run words</code>.
-    </p>
+    <p class="lead">Här finns ingen lista än.</p>
     }
 
     @if (hasPractice) {

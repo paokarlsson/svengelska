@@ -200,3 +200,71 @@
     font-size: 0.85rem;
     color: var(--text-muted);
 }
+
+/* --- Ny lista ------------------------------------------------------------
+   Samma hopfällda form som inställningarna, men en vanlig knapp och ingen
+   tyst: att få en ny lista är något man kommer hit för att göra. */
+.maker {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: stretch;
+}
+
+.text {
+    width: 100%;
+    padding: var(--space-3);
+    border: 2px solid var(--fill-quiet);
+    border-radius: var(--radius-md);
+    /* Panelen är redan ett kort, så fältet behöver en egen botten att synas mot. */
+    background: var(--bg-card-raised);
+    color: var(--text-primary);
+    font: inherit;
+    resize: vertical;
+}
+
+.text:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+}
+
+.panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* Utkastet: två spalter, engelskan och svenskan, så att den som ska godkänna
+   listan kan läsa den som en glosläxa. */
+.draft {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-1);
+}
+
+.draft li {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid var(--fill-quiet);
+}
+
+.draft li span:last-child {
+    color: var(--text-muted);
+}
+
+.problem {
+    font-size: 0.9rem;
+    color: var(--accent-red, var(--text-primary));
+}
+
+.key-hint {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.block-remove {
+    align-self: center;
+}

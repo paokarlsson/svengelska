@@ -40,6 +40,10 @@ varvet är slut.
 | `data/glosor.csv` | Ordlistorna som de skrivs — en rad per glosa, en kolumn per vecka |
 | `src/app/words/word-lists.json` | Samma listor som appen läser dem. Genererad; rätta i CSV:n |
 | `src/app/words/word-catalog.ts` | Vad en glosa är, hur den identifieras, och hur en lista läses |
+| `src/app/words/word-library.ts` | Alla listor: byggets och de som appen skrivit. Det vyerna frågar |
+| `src/app/words/generated-list.ts` | En lista som appen skriver själv: uppdraget till modellen, och vad som godtas av svaret |
+| `src/app/services/list-writer.ts`, `claude-call.ts` | Önskemål in, lista ut — och det enda anropet till Anthropic |
+| `src/app/services/api-key-store.ts`, `list-store.ts` | Var nyckeln och de egna listorna ligger |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
 | `src/app/training/scope.ts` | Vilka steg som når skärmen. Den enda filen att röra för att ta tillbaka de tre |
@@ -83,6 +87,23 @@ det att svara rätt på `dog = katt` genom att veta att `katt` hör till `cat`,
 utan att veta vad `dog` betyder. Ett skrivet felsvar får komma från veckans
 tema i stort. Saknas felsvar faller appen tillbaka på blocket, så att en lista
 med bara två kolumner ändå går att öva på.
+
+### Listor som appen skriver
+
+Den som inte har repot behöver ingen CSV. Under «Ny lista» på startsidan ger man
+ett önskemål — `rymden, årskurs 4`, eller veckans läxa inklistrad — och appen
+skriver glosorna och felsvaren med Claude. Listan visas som utkast och sparas
+först när någon sagt ja till den.
+
+Det kräver en egen Anthropic-nyckel, som läggs in på samma ställe. Appen har
+ingen server: nyckeln ligger i webbläsarens `localStorage`, skild från
+framstegen, och skickas bara till Anthropic. Den som delar dator med andra bör
+veta att den ligger där i klartext, och det är klokt att ge nyckeln en egen
+utgiftsgräns i Anthropics konsol.
+
+Regeln om felsvaren ovan gäller de skrivna listorna hårdare än de handskrivna:
+ett felsvar som står som glosa i samma lista tas bort av koden, vad modellen än
+svarade.
 
 ## Tre lager
 

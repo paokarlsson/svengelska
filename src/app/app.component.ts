@@ -3,7 +3,8 @@ import { HomeViewComponent } from './home-view/home-view.component';
 import { MapViewComponent } from './map-view/map-view.component';
 import { SessionViewComponent } from './session-view/session-view.component';
 import { TrainingEngine } from './training/training-engine';
-import { WordBlock, blockById } from './words/word-catalog';
+import { WordBlock } from './words/word-catalog';
+import { WordLibrary } from './words/word-library';
 
 /** De tre ytorna. Inget av dem är ett *läge* — se kommentaren nedan. */
 type Screen = 'home' | 'session' | 'map';
@@ -29,10 +30,11 @@ type Screen = 'home' | 'session' | 'map';
 })
 export class AppComponent {
   private readonly engine = inject(TrainingEngine);
+  private readonly library = inject(WordLibrary);
 
   screen: Screen = 'home';
   /** Listan som visas. Vid uppstart den som övades sist, om den finns kvar. */
-  block: WordBlock | null = blockById(this.engine.activeBlockId);
+  block: WordBlock | null = this.library.byId(this.engine.activeBlockId);
 
   open(block: WordBlock): void {
     this.block = block;

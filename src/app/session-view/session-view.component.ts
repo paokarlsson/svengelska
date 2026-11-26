@@ -23,7 +23,8 @@ import { RoundSummary, Task, TrainingSession } from '../training/session';
 import { CALIBRATION_CARDS } from '../training/calibration';
 import { ROUND_WORDS } from '../training/round';
 import { TrainingEngine } from '../training/training-engine';
-import { ALL_WORDS, WordBlock } from '../words/word-catalog';
+import { WordBlock } from '../words/word-catalog';
+import { WordLibrary } from '../words/word-library';
 
 @Component({
   selector: 'app-session-view',
@@ -42,6 +43,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   @Output() readonly mapped = new EventEmitter<void>();
 
   private readonly engine = inject(TrainingEngine);
+  private readonly library = inject(WordLibrary);
 
   session!: TrainingSession;
   task: Task | null = null;
@@ -68,7 +70,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   start(): void {
-    this.session = new TrainingSession(this.engine, ALL_WORDS, this.week.words);
+    this.session = new TrainingSession(this.engine, this.library.words, this.week.words);
     this.summary = null;
     this.advance();
   }

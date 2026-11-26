@@ -398,15 +398,41 @@ mäter. Planen gissade det, och gissningen höll.
 
 ### Steg 6 — ordlistor in, utan terminal
 
-`data/glosor.csv` plus `npm run words` löser innehållet för den som har repot.
-Det löser det inte för den som bara har appen. Vad som saknas är en väg in i
-webbläsaren: klistra in en lista, eller läsa en CSV-fil.
+*Byggt, åt ett annat håll än planen tänkte.* Planen såg framför sig en yta att
+klistra in en färdig lista i. Det som byggdes är att **appen skriver listan
+själv**: den som övar ger ett önskemål — ett tema, eller veckans läxa inklistrad
+— och appen frågar Claude efter glosorna *och* felsvaren.
 
-Formen är redan förberedd — `parseBlocks()` tar emot vad som helst och gör det
-den kan av det, precis som `normalize()` i `progress-store.ts` gör med ett
-redigerat dokument. Det som fattas är en yta och ett beslut om var en inklistrad
-lista *bor*: i framstegsdokumentet, eller under en egen nyckel med en egen
-version.
+Tre beslut ligger i det, och de står här för att de är lätta att riva upp av
+misstag:
+
+**En lista bor under en egen nyckel, inte i framstegsdokumentet.**
+`svengelska-lists`, med egen version (`services/list-store.ts`). En lista är
+innehåll och framstegen är mätningar, och «Nollställ framstegen» ska ta det ena
+utan att röra det andra. `words/word-library.ts` lägger byggets listor och de
+egna i en katalog, och det är biblioteket vyerna frågar — aldrig `WORD_BLOCKS`
+direkt.
+
+**Nyckeln är användarens egen, och den bor för sig.** Appen har ingen server, så
+den som vill ha listor skrivna lägger in sin Anthropic-nyckel på startsidan. Den
+ligger under `svengelska-anthropic-key`, aldrig i framstegsdokumentet, och
+lämnar webbläsaren på ett enda ställe: `services/claude-call.ts`. Den filen är
+också den enda som drar in Anthropics SDK, och den laddas först när någon ber om
+en lista — SDK:n är större än resten av appen.
+
+**Regeln om felsvaren hålls av kod, inte av uppdraget.** Uppdraget till modellen
+förklarar varför ett felsvar inte får stå som glosa i samma lista, men
+`withoutLeaks()` i `words/generated-list.ts` tar bort dem ändå. Det är samma
+regel som «Felsvaren står i listan, inte i koden» vilar på, och för en skriven
+lista är den äntligen en invariant med ett test och inte en uppmaning till den
+som skriver CSV:n.
+
+En skriven lista visas som utkast innan den sparas. Orden kommer från en modell
+och ska övas av ett barn; den som bad om dem ska hinna läsa dem först.
+
+Vad som *inte* är byggt: att klistra in en lista och få den använd ordagrant
+utan en modell emellan, och att språkparet är något annat än engelska och
+svenska. `en` och `sv` står fortfarande i typerna.
 
 ### Steg 7 — den andra riktningen
 
