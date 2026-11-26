@@ -1,0 +1,53 @@
+<section class="intro">
+    <header class="bar">
+        <!-- Bara medan korten pågår. På sista sidan vore «Hoppa över» ett sätt
+             att kasta det man just svarat på, och det heter «Gör om». -->
+        @if (result === null) {
+        <button type="button" class="ui-btn ui-btn--quiet" (click)="skipped.emit()">
+            Hoppa över
+        </button>
+        } @else {
+        <span class="spacer" aria-hidden="true"></span>
+        }
+        <p class="phase">{{title}}</p>
+        <span class="spacer" aria-hidden="true"></span>
+    </header>
+
+    <div class="meter" role="progressbar" [attr.aria-valuenow]="progress" aria-valuemin="0"
+        aria-valuemax="100" aria-label="Hur långt du kommit">
+        <span class="meter-fill" [style.width.%]="progress"></span>
+    </div>
+
+    @if (result; as profile) {
+    <div class="ui-card ui-card--roomy done">
+        <h2 class="ui-title">Då vet jag lite mer</h2>
+
+        @if (profile.interests.length > 0) {
+        <ul class="likes">
+            @for (interest of profile.interests; track interest) {
+            <li>{{interest}}</li>
+            }
+        </ul>
+        } @else {
+        <p class="lead">Du sa inte ja till något — då får du välja tema själv.</p>
+        }
+
+        @if (levelText; as level) {
+        <p class="lead">{{level}}</p>
+        }
+
+        <div class="actions">
+            <button type="button" class="ui-btn ui-btn--primary" (click)="finish()">Vidare</button>
+            <button type="button" class="ui-btn ui-btn--quiet" (click)="restart()">Gör om</button>
+        </div>
+
+        <p class="lead lead--quiet">
+            Det här sparas bara i den här webbläsaren, och används när appen skriver listor åt dig.
+        </p>
+    </div>
+    } @else if (card; as swipe) {
+    <div class="stage">
+        <app-swipe-view [card]="swipe" (answered)="onAnswer($event)" (completed)="onCompleted()" />
+    </div>
+    }
+</section>

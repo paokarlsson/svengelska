@@ -121,10 +121,27 @@
                     (click)="write(wish.value)">
                     @if (writing) { Skriver listan … } @else { Skriv listan }
                 </button>
+                @if (hasProfile) {
+                <button
+                    type="button"
+                    class="ui-btn ui-btn--secondary"
+                    [disabled]="writing"
+                    (click)="surprise()">
+                    Välj åt mig
+                </button>
+                }
             </div>
             <p class="field-note">
                 Appen skriver glosorna och felsvaren med Claude. Du får se listan innan den sparas.
+                @if (hasProfile) { «Välj åt mig» tar ett tema ur det du sa att du gillar. }
             </p>
+            @if (!hasProfile) {
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
+                    Låt appen lära känna dig
+                </button>
+            </div>
+            }
             } @else {
             <label class="field-name" for="api-key">Anthropic-nyckel</label>
             <input
@@ -197,6 +214,12 @@
                 Sparad i den här webbläsaren. Listor du redan gjort ligger kvar om du tar bort den.
             </p>
             }
+
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
+                    @if (hasProfile) { Gör om startfrågorna } @else { Svara på startfrågorna }
+                </button>
+            </div>
         </div>
         }
     </div>

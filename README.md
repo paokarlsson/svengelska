@@ -43,7 +43,9 @@ varvet är slut.
 | `src/app/words/word-library.ts` | Alla listor: byggets och de som appen skrivit. Det vyerna frågar |
 | `src/app/words/generated-list.ts` | En lista som appen skriver själv: uppdraget till modellen, och vad som godtas av svaret |
 | `src/app/services/list-writer.ts`, `claude-call.ts` | Önskemål in, lista ut — och det enda anropet till Anthropic |
-| `src/app/services/api-key-store.ts`, `list-store.ts` | Var nyckeln och de egna listorna ligger |
+| `src/app/services/api-key-store.ts`, `list-store.ts`, `profile-store.ts` | Var nyckeln, de egna listorna och profilen ligger |
+| `src/app/intro/` | Startrundan: korten som lär känna den som övar, och profilen de blir |
+| `src/app/intro-view/` | Startrundan på skärmen — appens vanliga kort, med frågor i stället för glosor |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
 | `src/app/training/scope.ts` | Vilka steg som når skärmen. Den enda filen att röra för att ta tillbaka de tre |
@@ -104,6 +106,24 @@ utgiftsgräns i Anthropics konsol.
 Regeln om felsvaren ovan gäller de skrivna listorna hårdare än de handskrivna:
 ett felsvar som står som glosa i samma lista tas bort av koden, vad modellen än
 svarade.
+
+### Startrundan
+
+Den som öppnar appen första gången möts inte av en lista utan av några kort om
+sig själv, svepta med samma tre gester som resten: `Jag gillar djur`, `Jag har
+sett samma film fler än tre gånger`. Sedan två kort om ålder, ett om varför man
+övar, och sist en kort trappa av riktiga ord — från `cat` till ord en vuxen får
+tänka efter på — som stannar vid första steget som inte höll.
+
+Svaren blir en profil: intressen, ett åldersspann, om man övar frivilligt, och
+var det är lagom att börja. Med den kan appen välja tema själv («Välj åt mig»
+under «Ny lista»), och det är så samma app kan skriva om stallet åt en tioåring
+och om jobbresor åt en fyrtiofemåring utan att någon ställer in en nivå.
+
+Nivån skickas till modellen som *ord* och inte som en siffra — «klarade
+`kitchen` men inte `although`» — eftersom det betyder samma sak för alla som kan
+engelska. Åldern skickas som ett spann, aldrig som ett tal, och inget namn
+frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
 
 ## Tre lager
 

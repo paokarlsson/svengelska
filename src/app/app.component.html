@@ -10,8 +10,15 @@
     <app-map-view [block]="chosen" (back)="showHome()" />
     }
     }
+    @case ('intro') {
+    <app-intro-view (finished)="introDone()" (skipped)="showHome()" />
+    }
     @default {
-    <app-home-view (chosen)="open($event)" (mapped)="showMap($event)" />
+    <app-home-view
+        [offerList]="offerList"
+        (chosen)="open($event)"
+        (mapped)="showMap($event)"
+        (intro)="showIntro()" />
     }
     }
 </main>

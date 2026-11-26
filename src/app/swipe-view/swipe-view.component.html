@@ -10,17 +10,19 @@
             [style.transform]="leaving ? null : 'rotate(' + rotation + 'deg)'"
             tabindex="0"
             role="group"
-            [attr.aria-label]="thinking ? 'Vad betyder ' + prompt + '?' : 'Stämmer ' + prompt + ' = ' + shown + '?'"
+            [attr.aria-label]="asking ? prompt : thinking ? 'Vad betyder ' + prompt + '?' : 'Stämmer ' + prompt + ' = ' + shown + '?'"
             (pointerdown)="onPointerDown()"
             (keydown)="onKey($event)">
 
             <span class="stamp stamp--affirm" [style.opacity]="strength(1)">{{affirmStamp}}</span>
             <span class="stamp stamp--deny" [style.opacity]="strength(-1)">{{denyStamp}}</span>
-            <span class="stamp stamp--unsure" [style.opacity]="down">VET EJ</span>
+            <span class="stamp stamp--unsure" [style.opacity]="down">{{unsureStamp}}</span>
 
-            <p class="word">{{prompt}}</p>
+            <p class="word" [class.word--sentence]="asking">{{prompt}}</p>
 
-            @if (showsAnswer) {
+            @if (asking) {
+            <!-- Ett påstående om en själv: ingen översättning, inget facit. -->
+            } @else if (showsAnswer) {
             <p class="equals" aria-hidden="true">=</p>
             <p class="translation">{{shown}}</p>
             } @else {
@@ -36,7 +38,7 @@
         } @else if (thinking) {
         &nbsp;
         } @else {
-        Svep åt sidan — eller ner om du inte vet
+        {{nudge}}
         }
     </p>
 
@@ -56,7 +58,7 @@
         </button>
         <button type="button" class="ui-btn ui-btn--quiet choice choice--unsure"
             [disabled]="locked" (click)="answer('unsure')">
-            Vet ej
+            {{unsureLabel}}
         </button>
     </div>
     }

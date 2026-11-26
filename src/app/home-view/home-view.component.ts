@@ -24,12 +24,15 @@ import {
   ChangeDetectorRef,
   Component,
   EventEmitter,
+  Input,
+  OnInit,
   Output,
   inject,
 } from '@angular/core';
 import { ApiKeyStore } from '../services/api-key-store';
 import { ListWriteError, WriteFailure } from '../services/list-write-error';
 import { ListWriter } from '../services/list-writer';
+import { ProfileStore } from '../services/profile-store';
 import { MAX_NEW_PER_DAY } from '../services/progress-store';
 import { TrainingEngine } from '../training/training-engine';
 import { WordBlock } from '../words/word-catalog';
@@ -52,6 +55,7 @@ interface BlockCard {
  */
 const FAILURE_TEXT: Record<WriteFailure, string> = {
   'no-key': 'Lägg in en Anthropic-nyckel först.',
+  'no-wish': 'Skriv vad du vill öva på.',
   'bad-key': 'Anthropic godtog inte nyckeln. Kontrollera att hela nyckeln kom med.',
   busy: 'Anthropic är upptaget just nu. Försök igen om en stund.',
   offline: 'Det gick inte att nå Anthropic. Kontrollera uppkopplingen.',
@@ -66,14 +70,25 @@ const FAILURE_TEXT: Record<WriteFailure, string> = {
   styleUrl: 'home-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomeViewComponent {
+export class HomeViewComponent implements OnInit {
+  /**
+   * Om «Ny lista» ska stå utfälld från början.
+   *
+   * Sant för den som just gjort startrundan: appen vet nu vad hen tycker om,
+   * och nästa steg är att göra något av det.
+   */
+  @Input() offerList = false;
+
   @Output() readonly chosen = new EventEmitter<WordBlock>();
   @Output() readonly mapped = new EventEmitter<WordBlock>();
+  /** Gör startrundan — första gången, eller om igen. */
+  @Output() readonly intro = new EventEmitter<void>();
 
   private readonly engine = inject(TrainingEngine);
   private readonly library = inject(WordLibrary);
   private readonly keys = inject(ApiKeyStore);
   private readonly writer = inject(ListWriter);
+  private readonly profiles = inject(ProfileStore);
   private readonly changes = inject(ChangeDetectorRef);
 
   askingReset = false;
@@ -99,6 +114,10 @@ export class HomeViewComponent {
 
   /** Veckan användaren bläddrat fram till, om någon. */
   private pickedId: string | null = null;
+
+  ngOnInit(): void {
+    this.makerOpen = this.offerList;
+  }
 
   /**
    * Veckan sidan öppnar i: alltid den sista i listan, alltså den nyaste i
@@ -187,9 +206,24 @@ export class HomeViewComponent {
     this.keys.clear();
   }
 
-  /** Ber appen skriva en lista. Resultatet läggs fram som utkast, inte sparat. */
+  /** Om startrundan är gjord. Då kan appen välja tema själv. */
+  get hasProfile(): boolean {
+    return this.profiles.hasProfile;
+  }
+
+  /** Låter appen välja temat, efter det startrundan sa. */
+  surprise(): Promise<void> {
+    return this.write('');
+  }
+
+  /**
+   * Ber appen skriva en lista. Resultatet läggs fram som utkast, inte sparat.
+   *
+   * Ett tomt önskemål är tillåtet: för den som gjort startrundan betyder det
+   * «välj åt mig», och för den som inte gjort det säger motorn ifrån.
+   */
   async write(wish: string): Promise<void> {
-    if (this.writing || wish.trim().length === 0) {
+    if (this.writing) {
       return;
     }
     this.writing = true;

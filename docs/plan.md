@@ -430,6 +430,25 @@ som skriver CSV:n.
 En skriven lista visas som utkast innan den sparas. Orden kommer från en modell
 och ska övas av ett barn; den som bad om dem ska hinna läsa dem först.
 
+**Appen frågar vem man är innan den frågar vad man kan.** Startrundan
+(`intro/intro-run.ts`) är ett dussin kort om en själv, två om ålder, ett om
+varför man övar och en trappa av riktiga ord. Tre saker i den är beslut:
+
+- *Samma kort som resten.* En startrunda med egna knappar hade lärt ut ett
+  gränssnitt som aldrig används igen. Den som svarat på «Jag gillar djur» kan
+  gesten innan första glosan kommer.
+- *Intressena först, provet sist.* Det första en ny användare möter ska inte gå
+  att svara fel på.
+- *Två kort per trappsteg, ett sant och ett falskt.* Ett ensamt sant/falskt-kort
+  är ett myntkast; med två går det inte att svepa sig uppåt genom att svara
+  samma sak på allt. Det är samma räkning som gav kortet sitt tredje svar.
+
+Profilen bor under `svengelska-profile`, för sig, och följer med frågan till
+modellen som några rader text. Den ersätter *inte* mätningen: trappan säger var
+det är lagom att börja, och därefter är det framstegen som vet. Att låta de
+uppmätta orden — inte bara startprovet — styra nästa lista är nästa steg, och
+inte byggt.
+
 Vad som *inte* är byggt: att klistra in en lista och få den använd ordagrant
 utan en modell emellan, och att språkparet är något annat än engelska och
 svenska. `en` och `sv` står fortfarande i typerna.

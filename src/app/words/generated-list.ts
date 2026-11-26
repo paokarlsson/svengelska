@@ -10,6 +10,8 @@
  * igen behålls och resten faller bort. Ovanpå det ligger en regel som inte får
  * hänga på att modellen lydde — se `withoutLeaks()`.
  */
+import { wordsOnStep } from '../intro/intro-run';
+import { AgeBand, Profile, TOP_LEVEL, saysSomething } from '../intro/profile';
 import { WordBlock, WordPair, normalize, parseBlocks } from './word-catalog';
 
 /**
@@ -63,9 +65,13 @@ export const LIST_INSTRUCTIONS = `Du skriver glosor till en app där en svensk e
 
 Appen visar ett kort i taget med ett påstående, till exempel «dog = hund», och eleven svarar sant, falskt eller vet ej. Varje glosa övas åt båda hållen: ibland är engelskan frågan, ibland svenskan. Hälften av korten är falska, och då står ett av dina felsvar i stället för den rätta översättningen.
 
-Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan har.
+Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan har. Ibland får du i stället, eller dessutom, veta något om eleven: ungefärlig ålder, vad hen tycker om, om hen övar frivilligt, och vilka ord hen klarade i ett kort prov.
 
-Är det ett tema väljer du ${LIST_SIZE} glosor som hör till det. Säger önskemålet något om ålder eller nivå följer du det; annars siktar du på mellanstadiet. Välj ord eleven har nytta av och hoppa över dem som stavas likadant på båda språken, för «arm = arm» går inte att öva.
+Är det ett tema väljer du ${LIST_SIZE} glosor som hör till det. Säger önskemålet något om ålder eller nivå följer du det; annars går du efter det du vet om eleven, och vet du inget siktar du på mellanstadiet. Välj ord eleven har nytta av och hoppa över dem som stavas likadant på båda språken, för «arm = arm» går inte att öva.
+
+Saknas önskemål väljer du temat själv, ur det eleven tycker om. Välj ett smalt och konkret tema hellre än ett brett: «på stallet» säger mer än «djur», och en lista man känner igen sig i är en lista man övar på. Ta inte ett tema eleven redan har en lista om.
+
+Provet säger var det är lagom att börja. De flesta glosorna ska ligga strax över det eleven klarade — ord hen inte kan än men är redo för — och ett par får vara lättare, så att listan inte bara är motstånd. Åldern säger vilken värld orden ska komma ur, inte hur svåra de ska vara: en vuxen nybörjare ska ha lätta ord om vuxna saker.
 
 Är det en lista använder du just de glosorna, alla, i den ordning de står. Saknas det ena språket översätter du. Rätta uppenbara stavfel men byt inte ut ord.
 
@@ -79,20 +85,104 @@ Ett felsvar får inte heller vara en synonym eller en annan godtagbar översätt
 
 Ge listan ett kort svenskt namn som säger vad den handlar om.`;
 
+/** Vad som följer med önskemålet. Allt utom glosorna är valfritt. */
+export interface ListContext {
+  /** Glosorna eleven redan har. */
+  known: readonly WordPair[];
+  /** Vad appen vet om eleven, eller `null` för den som aldrig gjort startrundan. */
+  profile?: Profile | null;
+  /** Namnen på listorna som redan finns, så att ett tema inte kommer två gånger. */
+  lists?: readonly string[];
+}
+
 /**
- * Önskemålet som det skickas.
+ * Frågan som den skickas.
  *
- * Glosorna eleven redan har följer med, så att ett tema inte ger samma ord en
- * gång till. De nämns som något att undvika *vid eget val*: den som klistrar in
- * veckans läxa ska få just den, även om hälften redan finns.
+ * Tre saker kan följa med önskemålet, och var och en nämns bara när den finns:
+ * vem eleven är, vilka listor hen har, och vilka glosor hen har. Glosorna nämns
+ * som något att undvika *vid eget val*: den som klistrar in veckans läxa ska få
+ * just den, även om hälften redan finns.
+ *
+ * Önskemålet får vara tomt. Då står det uttryckligen att temat är modellens att
+ * välja — en tom rad vore en fråga utan fråga.
  */
-export function listRequestText(wish: string, known: readonly WordPair[]): string {
-  const request = `Önskemål:\n${wish.trim()}`;
-  if (known.length === 0) {
-    return request;
+export function listRequestText(wish: string, context: ListContext): string {
+  const asked = wish.trim();
+  const parts = [
+    asked.length > 0
+      ? `Önskemål:\n${asked}`
+      : 'Inget önskemål den här gången. Välj temat själv efter det du vet om eleven.',
+  ];
+
+  const learner = context.profile ? describeLearner(context.profile) : null;
+  if (learner !== null) {
+    parts.push(`Om eleven:\n${learner}`);
   }
-  const have = known.map((pair) => `${pair.en} = ${pair.sv}`).join('\n');
-  return `${request}\n\nEleven har redan de här glosorna. Välj andra när du väljer själv:\n${have}`;
+
+  const lists = context.lists ?? [];
+  if (lists.length > 0) {
+    parts.push(`Eleven har redan listor om:\n${lists.join('\n')}`);
+  }
+
+  if (context.known.length > 0) {
+    const have = context.known.map((pair) => `${pair.en} = ${pair.sv}`).join('\n');
+    parts.push(`Eleven har redan de här glosorna. Välj andra när du väljer själv:\n${have}`);
+  }
+  return parts.join('\n\n');
+}
+
+const AGE_TEXT: Record<AgeBand, string> = {
+  child: 'Ålder: under 13 år.',
+  teen: 'Ålder: 13–17 år.',
+  adult: 'Ålder: vuxen.',
+};
+
+/**
+ * Profilen som modellen får läsa den, eller `null` om den inte säger något.
+ *
+ * Nivån beskrivs med *orden* och inte med en siffra. «Nivå 3 av 5» betyder
+ * något bara för den som sett trappan; «klarade although men inte reluctant»
+ * betyder samma sak för alla som kan engelska, och det är en sådan läsare som
+ * ska välja nästa ord.
+ */
+export function describeLearner(profile: Profile): string | null {
+  if (!saysSomething(profile)) {
+    return null;
+  }
+  const lines: string[] = [];
+  if (profile.age !== null) {
+    lines.push(AGE_TEXT[profile.age]);
+  }
+  if (profile.interests.length > 0) {
+    lines.push(`Tycker om: ${profile.interests.join(', ')}.`);
+  }
+  if (profile.voluntary === true) {
+    lines.push('Övar för att hen själv vill.');
+  } else if (profile.voluntary === false) {
+    lines.push(
+      'Övar för att hen måste, inte för att hen vill. Välj ord som är lätta att tycka om.',
+    );
+  }
+  if (profile.level !== null) {
+    lines.push(levelText(profile.level));
+  }
+  return lines.join('\n');
+}
+
+function levelText(level: number): string {
+  const passed = quoted(level > 0 ? wordsOnStep(level - 1) : []);
+  const failed = quoted(wordsOnStep(level));
+  if (level <= 0) {
+    return `Prov: klarade inte de lättaste orden (${failed}). Börja från början.`;
+  }
+  if (level >= TOP_LEVEL) {
+    return `Prov: klarade även de svåraste orden (${passed}). Välj ord som utmanar en van läsare.`;
+  }
+  return `Prov: klarade ord som ${passed}, men inte ${failed}.`;
+}
+
+function quoted(words: readonly string[]): string {
+  return words.map((word) => `«${word}»`).join(' och ');
 }
 
 /**

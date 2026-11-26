@@ -9,6 +9,7 @@
 /** Skälen, som vyn gör ord av. */
 export type WriteFailure =
   | 'no-key'
+  | 'no-wish'
   | 'bad-key'
   | 'busy'
   | 'offline'

@@ -53,6 +53,11 @@ export class WordLibrary {
     return this.own.some((block) => block.id === id);
   }
 
+  /** Namnen på de egna listorna, så att ett tema inte skrivs en gång till. */
+  get ownNames(): string[] {
+    return this.own.map((block) => block.name);
+  }
+
   /** Id:n som redan är tagna, för den som ska namnge en ny lista. */
   get takenIds(): ReadonlySet<string> {
     return new Set(this.allBlocks.map((block) => block.id));

@@ -44,9 +44,17 @@ import { Statement } from '../words/distractors';
 import { DirectedWord, answerOf, promptOf } from '../words/word-catalog';
 import { Response } from '../training/word-state';
 
+/**
+ * Vad som ligger på kortet.
+ *
+ * `ask` är startrundans kort: ett påstående om en själv, «Jag gillar djur».
+ * Det har inget facit och får därför ingen dom — men det svepas med samma tre
+ * gester, och det är meningen: den som svarat på det kan kortet.
+ */
 export type SwipeCard =
   | { kind: 'trueFalse'; statement: Statement }
-  | { kind: 'recall'; word: DirectedWord };
+  | { kind: 'recall'; word: DirectedWord }
+  | { kind: 'ask'; text: string };
 
 /** Vad vyn skickar ifrån sig: gesten och tiden, aldrig en dom. */
 export interface SwipeAnswer {
@@ -54,6 +62,38 @@ export interface SwipeAnswer {
   /** Sekunder, eller `null` när svaret inte gick att tajma. */
   seconds: number | null;
 }
+
+/** Vad ett svar heter: på knappen, och som stämpel på kortet. */
+interface Naming {
+  label: string;
+  /** Knappens ord i kortformat — det ska rymmas på kortet. */
+  stamp: string;
+}
+
+/**
+ * Vad svaren heter, per sorts kort.
+ *
+ * En tabell och inte tre villkor per getter, så att ett fjärde kort är en rad
+ * och inte sex ändringar.
+ */
+const NAMES: Record<SwipeCard['kind'], { affirm: Naming; deny: Naming; unsure: Naming }> = {
+  trueFalse: {
+    affirm: { label: 'Rätt', stamp: 'RÄTT' },
+    deny: { label: 'Fel', stamp: 'FEL' },
+    unsure: { label: 'Vet ej', stamp: 'VET EJ' },
+  },
+  recall: {
+    affirm: { label: 'Jag kunde det', stamp: 'KUNDE' },
+    deny: { label: 'Jag kunde inte', stamp: 'KUNDE INTE' },
+    unsure: { label: 'Vet ej', stamp: 'VET EJ' },
+  },
+  // Om en själv finns inget att inte veta. Det tredje svaret är att slippa.
+  ask: {
+    affirm: { label: 'Ja', stamp: 'JA' },
+    deny: { label: 'Nej', stamp: 'NEJ' },
+    unsure: { label: 'Hoppa över', stamp: 'HOPPA ÖVER' },
+  },
+};
 
 /** Hur länge kortet flyger ut innan nästa läggs fram. */
 const LEAVE_MS = 260;
@@ -167,13 +207,24 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
   /** Ordet som frågas efter, åt det håll kortet gäller. */
   get prompt(): string {
+    if (this.card.kind === 'ask') {
+      return this.card.text;
+    }
     return this.card.kind === 'trueFalse'
       ? this.card.statement.asked
       : promptOf(this.card.word.pair, this.card.word.direction);
   }
 
+  /** Om kortet är ett påstående om en själv och inte en glosa. */
+  get asking(): boolean {
+    return this.card.kind === 'ask';
+  }
+
   /** Det som står under ordet: påståendets översättning, eller facit. */
   get shown(): string {
+    if (this.card.kind === 'ask') {
+      return '';
+    }
     return this.card.kind === 'trueFalse'
       ? this.card.statement.shown
       : answerOf(this.card.word.pair, this.card.word.direction);
@@ -181,24 +232,43 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
   /** Vad knapparna heter. I återkalla är det den som övar som dömer sig själv. */
   get affirmLabel(): string {
-    return this.card.kind === 'trueFalse' ? 'Rätt' : 'Jag kunde det';
+    return NAMES[this.card.kind].affirm.label;
   }
 
   get denyLabel(): string {
-    return this.card.kind === 'trueFalse' ? 'Fel' : 'Jag kunde inte';
+    return NAMES[this.card.kind].deny.label;
+  }
+
+  /** Det tredje svaret. Om en själv är det «hoppa över», inte «vet ej». */
+  get unsureLabel(): string {
+    return NAMES[this.card.kind].unsure.label;
   }
 
   /** Stämplarna är knapparnas ord i kortformat — de ska rymmas på kortet. */
   get affirmStamp(): string {
-    return this.card.kind === 'trueFalse' ? 'RÄTT' : 'KUNDE';
+    return NAMES[this.card.kind].affirm.stamp;
   }
 
   get denyStamp(): string {
-    return this.card.kind === 'trueFalse' ? 'FEL' : 'KUNDE INTE';
+    return NAMES[this.card.kind].deny.stamp;
   }
 
-  /** Om facit ska stå på kortet just nu. */
+  get unsureStamp(): string {
+    return NAMES[this.card.kind].unsure.stamp;
+  }
+
+  /** Raden under kortet när ingen dom står där. */
+  get nudge(): string {
+    return this.card.kind === 'ask'
+      ? 'Höger om det stämmer, vänster om det inte gör det'
+      : 'Svep åt sidan — eller ner om du inte vet';
+  }
+
+  /** Om facit ska stå på kortet just nu. Ett påstående om en själv har inget. */
   get showsAnswer(): boolean {
+    if (this.card.kind === 'ask') {
+      return false;
+    }
     return this.card.kind === 'trueFalse' || this.phase !== 'asking';
   }
 
@@ -318,6 +388,14 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
    * hela kortets tid är undervisningstid.
    */
   private showVerdict(response: Response, correct: boolean | null): void {
+    if (this.card.kind === 'ask') {
+      // Inget att döma och inget att lära ut: svaret var sant för att den som
+      // svarade sa det. En kvardröjande dom från kortet innan ska ändå bort.
+      this.clear(this.verdictTimer);
+      this.verdictTimer = null;
+      this.verdict = undefined;
+      return;
+    }
     const truth =
       this.card.kind === 'trueFalse'
         ? answerOf(this.card.statement.pair, this.card.statement.direction)

@@ -227,3 +227,11 @@
     opacity: 0.5;
     cursor: default;
 }
+
+/* Startrundans kort bär en mening och inte ett ord. Den ska rymmas på samma
+   kvadrat, så stilen krymper och raderna får brytas. */
+.word--sentence {
+    font-size: calc(var(--card-size) * 0.075);
+    line-height: 1.25;
+    text-wrap: balance;
+}

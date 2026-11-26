@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ApiKeyStore } from './api-key-store';
 import { ListWriteError } from './list-write-error';
 import { ListWriter } from './list-writer';
+import { ProfileStore } from './profile-store';
 import { WordLibrary } from '../words/word-library';
 
 const GOOD = {
@@ -66,6 +67,42 @@ describe('ListWriter', () => {
     expect(apiKey).toBe('sk-ant-test');
     expect(request).toContain('på restaurang');
     expect(request).toContain(`${known.en} = ${known.sv}`);
+  });
+
+  it('ber inte om en lista utan vare sig önskemål eller profil', async () => {
+    keys.save('sk-ant-test');
+    answerWith(GOOD);
+
+    await expect(writer.write('   ')).rejects.toMatchObject({ reason: 'no-wish' });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('låter appen välja tema åt den som gjort startrundan', async () => {
+    keys.save('sk-ant-test');
+    TestBed.inject(ProfileStore).save({
+      interests: ['rymden'],
+      age: 'child',
+      voluntary: true,
+      level: 1,
+    });
+    answerWith(GOOD);
+
+    await writer.write('');
+
+    const [, request] = sent[0];
+    expect(request).toContain('Välj temat själv');
+    expect(request).toContain('rymden');
+    expect(request).toContain('under 13');
+  });
+
+  it('nämner listorna som redan finns', async () => {
+    keys.save('sk-ant-test');
+    TestBed.inject(WordLibrary).add({ id: 'egen-stallet', name: 'På stallet', words: GOOD.words });
+    answerWith(GOOD);
+
+    await writer.write('djur');
+
+    expect(sent[0][1]).toContain('På stallet');
   });
 
   it('sparar ingenting — listan ska ses innan den hamnar bland de andra', async () => {
