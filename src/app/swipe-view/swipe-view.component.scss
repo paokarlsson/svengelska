@@ -257,11 +257,40 @@
 
 .legend li {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
     /* Även ett håll som inte finns håller sin plats, så att de andra två
        står kvar där fingret väntar sig dem. */
-    min-height: 3.4rem;
+    min-height: 3.6rem;
+}
+
+/* Hållet är en knapp, fast den inte ser ut som en: ingen ram och ingen
+   fyllning, bara pilen och ordet. Träffytan är däremot en knapps — den som
+   trycker här ska träffa. */
+.legend button {
+    display: flex;
+    flex-direction: column;
+    align-items: inherit;
+    gap: var(--space-1);
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: var(--space-1) 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.legend button:active {
+    opacity: 0.6;
+}
+
+.legend button:focus-visible {
+    outline: 3px solid var(--text-primary);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .legend svg {
@@ -274,14 +303,18 @@
     stroke-linejoin: round;
 }
 
-.legend-deny { align-items: flex-start; color: var(--accent-red); }
-.legend-unsure { align-items: center; color: var(--text-muted); text-align: center; }
-.legend-affirm { align-items: flex-end; color: var(--accent-green); text-align: right; }
+.legend-deny { justify-content: flex-start; align-items: flex-start; color: var(--accent-red); }
+.legend-unsure { justify-content: center; align-items: center; color: var(--text-muted); text-align: center; }
+.legend-affirm { justify-content: flex-end; align-items: flex-end; color: var(--accent-green); text-align: right; }
 
 /* Ett vägval har inget fel håll. Vänster är bara tillbaka, och ner är vägen
    till något annat. */
 .legend--paths .legend-deny { color: var(--text-primary); }
 .legend--paths .legend-unsure { color: var(--violet-soft); }
+
+/* Bläddring: vänster och höger är samma sak åt var sitt håll, och inget av dem
+   är mer framåt än det andra. */
+.legend--paging .legend-affirm { color: var(--text-primary); }
 
 /* Återkallas «Visa facit» står kvar, gömd med steget. */
 .choices {
@@ -300,4 +333,17 @@
     font-size: calc(var(--card-size) * 0.066);
     line-height: 1.3;
     text-wrap: balance;
+}
+
+/* Ett tryck på ett gloskort: kortet vickar i sidled och lägger sig igen. Det
+   svarar inte, men det säger två saker — att det går att röra, och åt vilket
+   håll. */
+.game-card--wobble {
+    animation: wobble 520ms ease-in-out;
+}
+
+@keyframes wobble {
+    0%, 100% { transform: rotate(-1.5deg); }
+    25% { transform: translateX(-7%) rotate(-5deg); }
+    60% { transform: translateX(7%) rotate(3deg); }
 }

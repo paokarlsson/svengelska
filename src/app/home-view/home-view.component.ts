@@ -1,10 +1,17 @@
 /**
- * Startsidan: en lista som ett kort, och tre håll att svepa det åt.
+ * Startsidan: listorna som en bunt kort.
  *
- * Höger kör ett varv. Vänster bläddrar till nästa lista. Ner låter appen skriva
- * en ny. Det finns ingen startknapp och ingen lista att fälla ut — sidan är
- * samma föremål som resten av appen, och den som kan svara på ett kort kan
- * hitta hit och härifrån.
+ * Ett tryck på kortet kör listan. Vänster och höger bläddrar, åt var sitt håll.
+ * Ner låter appen skriva en ny. Raden under kortet säger samma sak och går att
+ * trycka på.
+ *
+ * Så var det inte från början. Först hette höger «kör» och vänster «nästa
+ * lista», eftersom höger är «ja» på ett gloskort. Loggen från första besöket
+ * visade vad det kostade: vänster är «nästa» för den som bläddrar, och höger är
+ * då «tillbaka» — så den som ville tillbaka till sin lista startade ett varv i
+ * fel lista, och den som ville starta tryckte på kortet, fyra gånger, utan att
+ * något hände. Ett kort man bläddrar bland ska bläddras åt båda hållen, och ett
+ * kort man vill in i trycker man på.
  *
  * Två saker går inte att svepa, och de ligger därför under kortet i stället
  * för på det: fälten där man skriver ett önskemål eller klistrar in en nyckel,
@@ -23,10 +30,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   OnInit,
   Output,
+  ViewChild,
   inject,
 } from '@angular/core';
 import { ApiKeyStore } from '../services/api-key-store';
@@ -54,6 +63,9 @@ interface BlockCard {
   /** Om listan kommit till här. Bara sådana går att ta bort. */
   own: boolean;
 }
+
+/** Så långt sidan ska vara rullad för att ett drag nedåt ska räknas som rullning. */
+const SCROLLED_PX = 40;
 
 /**
  * Vad den som väntade på en lista får veta när det inte blev någon.
@@ -152,9 +164,38 @@ export class HomeViewComponent implements OnInit {
   /** Hållet kortet sveptes åt. Verkställs när kortet lämnat bordet. */
   private swiped: Response | null = null;
 
+  /**
+   * Panelen för en ny lista, när den finns.
+   *
+   * En sättare och inte ett fält: panelen ritas först efter att `makerOpen`
+   * blivit sann, och det är i den stunden den ska rullas fram.
+   */
+  @ViewChild('maker') set makerPanel(panel: ElementRef<HTMLElement> | undefined) {
+    if (panel !== undefined && this.revealMaker) {
+      this.revealMaker = false;
+      // Panelen ligger under kortet, och på en telefon är det under kanten.
+      // Loggen visade «Ny lista» svepas två gånger i rad av någon som inte såg
+      // att den första redan hade öppnat den.
+      panel.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  private revealMaker = false;
+
   ngOnInit(): void {
     this.makerOpen = this.offerList;
+    this.revealMaker = this.offerList;
     this.deal();
+  }
+
+  /** Öppnar panelen för en ny lista och rullar fram den. */
+  private openMaker(): void {
+    if (this.makerOpen) {
+      // Redan öppen: sättaren körs inte igen, så rulla dit för hand.
+      document.querySelector('.maker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    this.revealMaker = true;
+    this.makerOpen = true;
   }
 
   /** Lägger fram kortet för listan som är aktuell nu. */
@@ -163,13 +204,17 @@ export class HomeViewComponent implements OnInit {
   }
 
   private cardFor(list: WordBlock | null): ChoiceCard {
+    // Med en enda lista finns inget att bläddra till.
+    const several = this.library.blocks.length > 1;
     return {
       kind: 'choice',
-      label: list === null ? 'Ingen lista' : `Listan ${list.name}`,
-      affirm: list === null ? null : 'Kör',
-      // Med en enda lista finns inget att bläddra till.
-      deny: this.library.blocks.length > 1 ? 'Nästa lista' : null,
+      label: list === null ? 'Ingen lista' : `Listan ${list.name}. Tryck för att köra.`,
+      // Hållen heter efter vad som kommer fram, inte efter vart fingret går:
+      // ett drag åt vänster drar fram nästa kort i bunten.
+      affirm: several ? 'Förra' : null,
+      deny: several ? 'Nästa' : null,
       unsure: 'Ny lista',
+      paging: true,
     };
   }
 
@@ -187,20 +232,38 @@ export class HomeViewComponent implements OnInit {
     const swiped = this.swiped;
     this.swiped = null;
     if (swiped === 'affirm') {
-      this.start();
+      this.browse(-1);
     } else if (swiped === 'deny') {
-      this.next();
+      this.browse(1);
     } else if (swiped === 'unsure') {
-      this.makerOpen = true;
-      this.deal();
+      this.pulledDown();
     }
   }
 
-  /** Bläddrar till nästa lista, runt till den första efter den sista. */
-  private next(): void {
+  /**
+   * Kortet drogs nedåt.
+   *
+   * Det betyder «ny lista» — utom när sidan är rullad. Kortet tar hela fingret
+   * för att kunna svepas, så sidan går inte att rulla med fingret på det, och
+   * ett drag nedåt är då den som försöker rulla tillbaka upp. Loggen visade
+   * just det: ett snabbt drag efter att inställningarna lästs, som öppnade en
+   * panel ingen bett om. Är sidan rullad får draget därför det det ville.
+   */
+  private pulledDown(): void {
+    if (window.scrollY > SCROLLED_PX) {
+      this.tracker.log('scrollup', { from: Math.round(window.scrollY) });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      this.openMaker();
+    }
+    this.deal();
+  }
+
+  /** Bläddrar ett steg i bunten, runt åt båda hållen. */
+  private browse(step: 1 | -1): void {
     const blocks = this.library.blocks;
     const at = blocks.findIndex((block) => block.id === this.list?.id);
-    this.pickedId = blocks[(at + 1) % blocks.length]?.id ?? null;
+    this.pickedId = blocks[(at + step + blocks.length) % blocks.length]?.id ?? null;
     this.deal();
   }
 

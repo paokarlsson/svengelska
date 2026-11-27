@@ -26,7 +26,11 @@
 
     <div class="stage">
         @if (ending; as end) {
-        <app-swipe-view [card]="end" (answered)="onEndSwipe($event)" (completed)="onEndLanded()">
+        <app-swipe-view
+            [card]="end"
+            (answered)="onEndSwipe($event)"
+            (completed)="onEndLanded()"
+            (tapped)="onEndTap()">
             @if (summary; as round) {
             <span class="face-label">Längsta svit i tempo</span>
             <p class="face-hero">

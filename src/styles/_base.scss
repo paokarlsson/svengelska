@@ -31,6 +31,18 @@ html {
     background-attachment: fixed;
 }
 
+/* Ingen dra-för-att-ladda-om. Appen är en sida som sveps, och ett drag nedåt
+   som börjar bredvid kortet får inte ladda om den: det kastar varvet som
+   pågår. Kortet stänger redan av det för sig självt med `touch-action`, men
+   raden under kortet och resten av sidan gjorde det inte — loggen visade två
+   omladdningar på tjugo sekunder, båda från ett finger som landade just där.
+   På både <html> och <body>, eftersom webbläsarna är oense om vilken som är
+   den som rullar. */
+html,
+body {
+    overscroll-behavior-y: none;
+}
+
 /* Annars målar kroppen över toningen på sin egen höjd. */
 body {
     background: transparent;
