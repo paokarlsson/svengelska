@@ -79,6 +79,13 @@ export interface ChoiceCard {
   unsure: string | null;
   /** Kortets färg. Gult är en lista, mint är ett avslutat varv. */
   face?: 'sun' | 'mint';
+  /**
+   * Om vänster och höger är samma sorts sak åt var sitt håll — bläddring.
+   *
+   * Annars är höger «framåt» och ritas i mint. På ett kort som bläddras är
+   * inget av hållen mer framåt än det andra, och då ska de se likadana ut.
+   */
+  paging?: boolean;
 }
 
 /** Vad vyn skickar ifrån sig: gesten och tiden, aldrig en dom. */
@@ -123,6 +130,18 @@ const NAMES: Record<
   },
 };
 
+/** Hur länge kortet visar upp ett håll, eller vickar, efter ett tryck. */
+const HINT_MS = 520;
+
+/** Hur långt stämpeln tonas fram under en visning. */
+const NUDGE = 0.75;
+
+/**
+ * Så länge efter ett drag räknas ett klick som dragets eget släpp och inte
+ * som ett tryck. Webbläsaren skickar ett klick också när ett drag släpps.
+ */
+const TAP_AFTER_DRAG_MS = 350;
+
 /** Hur snett kortet ligger i vila, i grader. */
 const REST_TILT = -1.5;
 
@@ -161,6 +180,14 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   @Output() readonly answered = new EventEmitter<SwipeAnswer>();
   /** Klart här — ge nästa uppgift. Kommer när kortet lämnat bordet. */
   @Output() readonly completed = new EventEmitter<void>();
+  /**
+   * Ett tryck på ett vägvalskort, utan drag.
+   *
+   * Vad trycket betyder avgör den som lade fram kortet: på startsidan kör det
+   * listan. På ett gloskort betyder ett tryck ingenting, och skickas inte —
+   * kortet vickar till i stället, se `onTap()`.
+   */
+  @Output() readonly tapped = new EventEmitter<void>();
 
   @ViewChild(CdkDrag) private drag?: CdkDrag;
 
@@ -177,6 +204,18 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   instant = false;
   /** Domen över förra svaret, eller `undefined` när raden är tyst. */
   verdict: Verdict | undefined;
+  /**
+   * Hållet kortet just nu visar upp, utan att svara.
+   *
+   * Sätts av ett tryck på raden under ett gloskort. Loggen visade tio sådana
+   * tryck på fyra minuter: raden läses som knappar. På ett gloskort ska den
+   * inte vara det — svaret är svepet — men ett tryck som inte gör någonting
+   * lär inte ut någonting heller. Kortet glider därför en bit åt det hållet,
+   * stämplas, och glider tillbaka: så här gör man.
+   */
+  nudging: Response | null = null;
+  /** Sant en kort stund efter ett tryck på ett gloskort: kortet vickar. */
+  wobbling = false;
 
   private readonly changes = inject(ChangeDetectorRef);
   private readonly tracker = inject(Tracker);
@@ -192,6 +231,9 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   /** De senaste punkterna under dragningen, för att kunna mäta farten. */
   private samples: DragSample[] = [];
   private advanceTimer: ReturnType<typeof setTimeout> | null = null;
+  private hintTimer: ReturnType<typeof setTimeout> | null = null;
+  /** När det senaste draget slutade, för att skilja ett tryck från ett släpp. */
+  private dragEndedAt = 0;
   private verdictTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
@@ -203,6 +245,10 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   ngOnChanges(): void {
     this.clear(this.advanceTimer);
     this.advanceTimer = null;
+    this.clear(this.hintTimer);
+    this.hintTimer = null;
+    this.nudging = null;
+    this.wobbling = false;
     this.phase = 'asking';
     this.progress = 0;
     this.down = 0;
@@ -224,6 +270,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   ngOnDestroy(): void {
     this.clear(this.advanceTimer);
     this.clear(this.verdictTimer);
+    this.clear(this.hintTimer);
   }
 
   /** Sant medan kortet lämnar bordet — då tas inga nya svar emot. */
@@ -245,6 +292,25 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
    */
   get rotation(): number {
     return REST_TILT + this.progress * 12;
+  }
+
+  /** Kortets läge när det inte är på väg bort: lutat, eller på visning åt ett håll. */
+  get pose(): string {
+    if (this.nudging === 'affirm') {
+      return 'translateX(18%) rotate(7deg)';
+    }
+    if (this.nudging === 'deny') {
+      return 'translateX(-18%) rotate(-7deg)';
+    }
+    if (this.nudging === 'unsure') {
+      return `translateY(12%) rotate(${REST_TILT}deg)`;
+    }
+    return `rotate(${this.rotation}deg)`;
+  }
+
+  /** Om vänster och höger ska se likadana ut i raden. */
+  get paging(): boolean {
+    return this.card.kind === 'choice' && this.card.paging === true;
   }
 
   /** 0 när kortet ligger stilla, 1 när det dragits hela vägen åt `dir`. */
@@ -372,6 +438,7 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
   dragEnd($event: CdkDragEnd): void {
     const { x, y } = $event.distance;
+    this.dragEndedAt = performance.now();
     const response = commitsSwipe(x, y, this.samples, window.innerWidth, window.innerHeight);
     this.samples = [];
 
@@ -416,13 +483,79 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
       this.answer('unsure', 'key');
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      this.reveal();
+      if (this.card.kind === 'choice') {
+        this.tracker.log('tap', { on: 'card', via: 'key' });
+        this.tapped.emit();
+      } else {
+        this.reveal();
+      }
     }
     // ArrowUp lämnas obunden av samma skäl som gesten uppåt gör ingenting.
   }
 
-  /** Svaret, oavsett om det kom som ett svep eller en piltangent. */
-  answer(response: Response, via: 'swipe' | 'key' = 'swipe'): void {
+  /**
+   * Ett tryck på kortet, utan drag.
+   *
+   * På ett vägval är det ett val, och den som lade fram kortet får veta. På ett
+   * gloskort är det ett missförstånd, och kortet svarar med att vicka i sidled:
+   * det går att röra, och det är åt sidorna det rör sig.
+   */
+  onTap(): void {
+    // Ett drag slutar också med ett klick. Det är inget tryck.
+    if (this.locked || performance.now() - this.dragEndedAt < TAP_AFTER_DRAG_MS) {
+      return;
+    }
+    if (this.card.kind === 'choice') {
+      this.tracker.log('tap', { on: 'card' });
+      this.tapped.emit();
+      return;
+    }
+    if (this.thinking) {
+      return;
+    }
+    this.tracker.log('tap', { on: 'card', did: 'wobble' });
+    this.wobbling = true;
+    this.afterHint(() => (this.wobbling = false));
+  }
+
+  /**
+   * Ett tryck på ett håll i raden under kortet.
+   *
+   * På ett vägval gör trycket det hållet säger: där mäts ingenting, och den
+   * som trycker på «Vidare» vill vidare. På ett gloskort visar kortet upp
+   * hållet utan att svara — se `nudging`.
+   */
+  onLegend(response: Response): void {
+    if (this.locked || this.naming(response).label === '') {
+      return;
+    }
+    if (this.card.kind === 'choice') {
+      this.answer(response, 'tap');
+      return;
+    }
+    this.tracker.log('tap', { on: 'legend', r: response, did: 'nudge' });
+    this.nudging = response;
+    this.progress = response === 'affirm' ? NUDGE : response === 'deny' ? -NUDGE : 0;
+    this.down = response === 'unsure' ? NUDGE : 0;
+    this.afterHint(() => {
+      this.nudging = null;
+      this.progress = 0;
+      this.down = 0;
+    });
+  }
+
+  /** Kör `reset` när visningen är över. En ny visning avbryter den förra. */
+  private afterHint(reset: () => void): void {
+    this.clear(this.hintTimer);
+    this.hintTimer = setTimeout(() => {
+      this.hintTimer = null;
+      reset();
+      this.changes.markForCheck();
+    }, HINT_MS);
+  }
+
+  /** Svaret, oavsett om det kom som ett svep, en piltangent eller ett tryck på ett vägval. */
+  answer(response: Response, via: 'swipe' | 'key' | 'tap' = 'swipe'): void {
     if (this.locked) {
       return;
     }
@@ -439,6 +572,11 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
       // Ett svar innan facit visats är ändå ett svar: tiden är den som gått.
       this.reveal();
     }
+    // En visning som pågår avbryts av ett riktigt svar.
+    this.clear(this.hintTimer);
+    this.hintTimer = null;
+    this.nudging = null;
+    this.wobbling = false;
 
     const seconds = this.secondsFor();
     const correct = this.wasCorrect(response);

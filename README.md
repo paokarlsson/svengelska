@@ -130,22 +130,39 @@ Nivån skickas till modellen som *ord* och inte som en siffra — «klarade
 engelska. Åldern skickas som ett spann, aldrig som ett tal, och inget namn
 frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
 
-## Svep gör allt
+## Svep, och tryck där det är ett val
 
-Appen har ett kort och tre håll, och det är hela gränssnittet.
+Appen har ett kort och tre håll. På ett gloskort är hållen svaret:
 
-    höger = framåt      vänster = tillbaka eller nästa      ner = något annat
+    höger = rätt      vänster = fel      ner = vet ej
 
-På ett gloskort heter hållen rätt, fel och vet ej. På startsidan — som också är
-ett kort, med listans namn på — heter de kör, nästa lista och ny lista. När
-varvet är slut heter de en gång till, hem och kartan. Under kortet står alltid
-en rad som säger vad hållen heter just nu, så ingen behöver minnas det.
+Där gäller bara svepet. Under kortet står en rad som säger vad hållen heter, och
+ett tryck på den svarar inte — kortet glider en bit åt det hållet, stämplas och
+glider tillbaka, som en visning av gesten. Ett tryck på själva kortet får det
+att vicka. Svaret är svepet, och tiden det tar är vad som mäts.
+
+På de kort som är vägval och inga frågor går raden däremot att trycka på, och
+gör då det den säger:
+
+| Kort | Vänster | Ner | Höger | Tryck på kortet |
+| --- | --- | --- | --- | --- |
+| Startsidan | nästa lista | ny lista | förra listan | kör listan |
+| Varvet klart | hem | kartan | en gång till | en gång till |
+| Startrundan klar | — | — | vidare | vidare |
+
+Startsidan är en bunt som bläddras åt båda hållen, och ett kort man vill in i
+trycker man på. Så var det inte först: höger hette «kör» och vänster «nästa»,
+eftersom höger är «ja» på ett gloskort. Loggen från första besöket visade vad
+det kostade — vänster är «nästa» för den som bläddrar, och då är höger
+«tillbaka». Raden under kortet fick tio tryck på fyra minuter av någon som läste
+den som knappar, och startrundan gjordes två gånger utan att sparas, därför att
+slutkortets vänster hette «gör om». Regeln som kom ur det: **svepet är svaret på
+en fråga, men ett val ska gå att trycka på, och ett håll får aldrig kasta bort
+arbete.**
 
 Det som inte går att svepa ligger under kortet och inte på det: fältet där man
-skriver ett önskemål eller klistrar in en nyckel, och inställningarna. Ett
-textfält är ingen gest. Kvar som knappar är också «Avsluta» mitt i ett varv och
-«Hoppa över» i startrundan — vägar ut som måste finnas när alla tre hållen är
-upptagna av svaret.
+skriver ett önskemål eller klistrar in en nyckel, och inställningarna. Kvar som
+knappar är också «Avsluta» mitt i ett varv och «Hoppa över» i startrundan.
 
 ### Sviten
 

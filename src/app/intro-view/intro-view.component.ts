@@ -52,7 +52,7 @@ export class IntroViewComponent implements OnInit {
   private readonly profiles = inject(ProfileStore);
   private readonly tracker = inject(Tracker);
 
-  private run = new IntroRun();
+  private readonly run = new IntroRun();
   private current: IntroCard | null = null;
 
   /**
@@ -65,12 +65,19 @@ export class IntroViewComponent implements OnInit {
   card: SwipeCard | null = null;
   /** Vad rundan kom fram till. `null` medan den pågår. */
   result: Profile | null = null;
-  /** Slutkortet: höger går vidare, vänster gör om. */
+  /**
+   * Slutkortet. Ett håll, och det går vidare.
+   *
+   * Här stod förut «Gör om» till vänster. Det var ett svep på en tiondels
+   * sekund som kastade tjugoen svar, och loggen visade det göras två gånger av
+   * någon som ville vidare — vänster är «nästa» för den som bläddrar. Att göra
+   * om finns kvar under Inställningar, där det inte går att råka göra.
+   */
   readonly ending: ChoiceCard = {
     kind: 'choice',
     label: 'Då vet jag lite mer',
     affirm: 'Vidare',
-    deny: 'Gör om',
+    deny: null,
     unsure: null,
   };
   /** Hållet slutkortet sveptes åt. Verkställs när kortet lämnat bordet. */
@@ -128,24 +135,12 @@ export class IntroViewComponent implements OnInit {
     this.swiped = null;
     if (swiped === 'affirm') {
       this.finish();
-    } else if (swiped === 'deny') {
-      this.restart();
     }
   }
 
-  /** Sparar profilen och går vidare. */
+  /** Går vidare. Profilen är redan sparad — se `advance()`. */
   finish(): void {
-    if (this.result !== null) {
-      this.profiles.save(this.result);
-    }
     this.finished.emit();
-  }
-
-  /** Börjar om från första kortet. */
-  restart(): void {
-    this.run = new IntroRun();
-    this.result = null;
-    this.advance();
   }
 
   private advance(): void {
@@ -153,6 +148,10 @@ export class IntroViewComponent implements OnInit {
     if (this.current === null) {
       this.card = null;
       this.result = this.run.profile();
+      // Sparas här, i samma stund sista kortet är besvarat, och inte när
+      // slutkortet svepts. Det som svarats är svarat; det ska inte hänga på
+      // att någon också hittar ut ur rundan.
+      this.profiles.save(this.result);
       this.tracker.log('intro.end', { ...this.result, cards: this.run.answered });
       return;
     }

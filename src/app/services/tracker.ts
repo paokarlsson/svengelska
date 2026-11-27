@@ -97,6 +97,13 @@ export function describeTarget(target: unknown): string {
     const id = field.id ? `#${field.id}` : '';
     return `${field.tagName.toLowerCase()}${id}`;
   }
+  // Raden under kortet före knapparna: den är byggd av knappar, men ska gå att
+  // skilja från dem i loggen. Det var trycken här som visade att den lästes som
+  // knappar innan den var det, och det ska gå att följa vad som hände sedan.
+  const legend = target.closest('.legend li');
+  if (legend !== null) {
+    return `legend:${squeeze(legend.textContent ?? '')}`;
+  }
   const button = target.closest('button, a, [role="button"]');
   if (button !== null) {
     const name = button.getAttribute('aria-label') ?? button.textContent ?? '';
@@ -104,12 +111,6 @@ export function describeTarget(target: unknown): string {
   }
   if (target.closest('.game-card') !== null) {
     return 'card';
-  }
-  const legend = target.closest('.legend li');
-  if (legend !== null) {
-    // Raden under kortet ser ut som den kunde vara knappar. Den är det inte,
-    // och ett tryck här är precis den sortens missförstånd loggen finns för.
-    return `legend:${squeeze(legend.textContent ?? '')}`;
   }
   const className = typeof target.className === 'string' ? target.className : '';
   const first = className.split(/\s+/).find((name) => name.length > 0);

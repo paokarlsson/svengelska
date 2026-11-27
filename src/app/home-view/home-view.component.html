@@ -5,10 +5,20 @@
     </header>
 
     @if (card; as current) {
-    <app-swipe-view [card]="deck" (answered)="onSwipe($event)" (completed)="onLanded()">
+    <app-swipe-view
+        [card]="deck"
+        (answered)="onSwipe($event)"
+        (completed)="onLanded()"
+        (tapped)="start()">
         <span class="face-label">Lista {{position}} av {{count}}</span>
         <h2 class="face-title">{{current.block.name}}</h2>
         <div class="face-foot">
+            <!-- Ingen knapp: hela kortet är tryckytan. Brickan säger bara vad
+                 ett tryck gör, på det ställe tummen redan är. -->
+            <span class="face-go" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                Tryck för att köra
+            </span>
             <div class="face-stats">
                 <span>{{current.block.words.length}} ord</span>
                 <span>
@@ -22,15 +32,15 @@
     </app-swipe-view>
 
     <p class="tagline">
-        Svep kortet. Höger startar ett varv, vänster bläddrar, och ner låter appen skriva en ny
-        lista åt dig.
+        Tryck på kortet för att köra. Svep åt sidan för att bläddra, och ner för att låta appen
+        skriva en ny lista.
     </p>
     } @else {
     <p class="tagline">Här finns ingen lista än.</p>
     }
 
     @if (makerOpen) {
-    <div class="ui-card panel">
+    <div #maker class="ui-card panel maker">
         @if (draft; as list) {
         <h3 class="ui-title">{{list.name}}</h3>
         <ul class="draft">

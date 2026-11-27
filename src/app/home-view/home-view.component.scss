@@ -55,6 +55,28 @@
     font-family: var(--font-body);
 }
 
+/* Vad ett tryck gör. En bricka i kortets bläck, ingen knapp: hela kortet är
+   tryckytan, och brickan pekar bara ut det. */
+.face-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    justify-self: start;
+    padding: 0.55em 1em 0.55em 0.8em;
+    border-radius: var(--radius-pill);
+    background: var(--card-ink);
+    color: var(--card-face);
+    font-family: var(--font-display);
+    font-size: calc(var(--card-size) * 0.04);
+    font-weight: 600;
+}
+
+.face-go svg {
+    width: 1.1em;
+    height: 1.1em;
+    fill: currentColor;
+}
+
 .face-stats {
     display: flex;
     justify-content: space-between;
@@ -97,6 +119,12 @@
 .panel {
     display: grid;
     gap: var(--space-3);
+}
+
+/* Lite luft ovanför när panelen rullas fram, så att den inte klistrar mot
+   skärmens kant. */
+.maker {
+    scroll-margin-top: var(--space-3);
 }
 
 .panel-actions {

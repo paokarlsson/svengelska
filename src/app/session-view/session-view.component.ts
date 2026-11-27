@@ -207,6 +207,20 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.swiped = answer.response;
   }
 
+  /**
+   * Ett tryck på slutkortet.
+   *
+   * Efter ett varv är det «en gång till» — kortets framåt. På kortet som säger
+   * att inget är moget finns inget framåt, och då är trycket vägen hem.
+   */
+  onEndTap(): void {
+    if (this.summary === null) {
+      this.exited.emit();
+    } else {
+      this.start();
+    }
+  }
+
   /** Slutkortet har lämnat bordet: nu händer det hållet betydde. */
   onEndLanded(): void {
     const swiped = this.swiped;

@@ -47,6 +47,16 @@ describe('describeTarget', () => {
     );
   });
 
+  // Raden är byggd av knappar sedan loggen visade att den lästes som det. Den
+  // ska ändå gå att skilja från appens vanliga knappar.
+  it('kallar raden under kortet för raden, också när den är knappar', () => {
+    const inside = element(
+      '<ul class="legend"><li><button><span>Vidare</span></button></li></ul>',
+      'span',
+    );
+    expect(describeTarget(inside)).toBe('legend:Vidare');
+  });
+
   it('klarar det som inte är ett element', () => {
     expect(describeTarget(null)).toBe('?');
     expect(describeTarget(document)).toBe('?');

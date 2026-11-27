@@ -14,11 +14,13 @@
                 [class.game-card--leaving-right]="leaving === 'right'"
                 [class.game-card--leaving-left]="leaving === 'left'"
                 [class.game-card--leaving-down]="leaving === 'down'"
-                [style.transform]="leaving ? null : 'rotate(' + rotation + 'deg)'"
+                [class.game-card--wobble]="wobbling"
+                [style.transform]="leaving ? null : pose"
                 tabindex="0"
                 role="group"
                 [attr.aria-label]="ariaLabel"
                 (pointerdown)="onPointerDown()"
+                (click)="onTap()"
                 (keydown)="onKey($event)">
 
                 <span class="stamp stamp--affirm" [style.opacity]="strength(1)">{{affirmStamp}}</span>
@@ -58,26 +60,37 @@
         <button type="button" class="ui-btn ui-btn--primary" (click)="showAnswer()">Visa facit</button>
     </div>
     } @else {
-    <!-- Inga knappar: svepet är svaret. Raden är en karta över fingret, i
-         samma vänster–ner–höger som gesterna, och säger vad varje håll heter.
-         Ett håll som inte finns på kortet lämnar sin plats tom. -->
-    <ul class="legend" [class.legend--paths]="choosing" aria-hidden="true">
+    <!-- Raden är en karta över fingret, i samma vänster–ner–höger som
+         gesterna, och säger vad varje håll heter. Den går att trycka på: på ett
+         vägval gör trycket det hållet säger, på ett gloskort visar kortet upp
+         hållet utan att svara. Ett håll som inte finns lämnar sin plats tom. -->
+    <ul
+        class="legend"
+        [class.legend--paths]="choosing"
+        [class.legend--paging]="paging"
+        [attr.aria-hidden]="choosing ? null : true">
         <li class="legend-deny">
             @if (denyLabel) {
-            <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
-            <span>{{denyLabel}}</span>
+            <button type="button" [attr.tabindex]="choosing ? null : -1" (click)="onLegend('deny')">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+                <span>{{denyLabel}}</span>
+            </button>
             }
         </li>
         <li class="legend-unsure">
             @if (unsureLabel) {
-            <svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
-            <span>{{unsureLabel}}</span>
+            <button type="button" [attr.tabindex]="choosing ? null : -1" (click)="onLegend('unsure')">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+                <span>{{unsureLabel}}</span>
+            </button>
             }
         </li>
         <li class="legend-affirm">
             @if (affirmLabel) {
-            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            <span>{{affirmLabel}}</span>
+            <button type="button" [attr.tabindex]="choosing ? null : -1" (click)="onLegend('affirm')">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                <span>{{affirmLabel}}</span>
+            </button>
             }
         </li>
     </ul>
