@@ -69,4 +69,14 @@ describe('BreakDeck', () => {
     const text = breakRequestText({ ...emptyProfile(), breaks: [{ text: 'Jag kan jonglera', answer: 'unsure' }] });
     expect(text).toContain('Jag kan jonglera');
   });
+
+  // Loggen: Claude skrev «Jag kan vissla med två fingrar i munnen» medan fröet
+  // om att vissla med fingrarna låg och väntade.
+  it('berättar för Claude vilka frön som väntar, och inte de som frågats', () => {
+    const asked = SEEDS[0].text;
+    const text = breakRequestText({ ...emptyProfile(), breaks: [{ text: asked, answer: 'no' }] });
+    const waiting = text.split('Ligger redan i appens hög')[1];
+    expect(waiting).toContain(SEEDS[1].text);
+    expect(waiting).not.toContain(asked);
+  });
 });

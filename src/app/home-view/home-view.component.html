@@ -6,7 +6,13 @@
         }
     </header>
 
-    @if (card; as current) {
+    @if (writing) {
+    <p class="waiting" role="status">Jag skriver en lista åt dig …</p>
+    @if (waitCard; as wait) {
+    <app-swipe-view [card]="wait" (answered)="onWaitAnswer($event)" (completed)="onWaitLanded()" />
+    <p class="tagline">Under tiden: något helt annat. Varvet börjar när listan är klar.</p>
+    }
+    } @else if (card; as current) {
     <app-swipe-view
         [card]="deck"
         (answered)="onSwipe($event)"

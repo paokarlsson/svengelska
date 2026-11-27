@@ -169,7 +169,9 @@ frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
 Mitt bland orden ligger ibland ett kort som inte har med engelska att göra:
 `Jag har sett ett norrsken`, `Jag tycker att ananas hör hemma på pizza`. Det står
 «Avbrott» på det, och det svaras på som alla andra påståenden. Ett kommer efter
-varje trappsteg i startrundan, och ett mitt i varje varv. Det räknas inte i
+varje trappsteg i startrundan, ett mitt i varje varv, och så många man hinner
+medan en lista skrivs — väntan är femton, tjugo sekunder, och loggen visade dem
+gå åt till att trycka på en avstängd knapp. Det räknas inte i
 varvet, rör inte sviten och mäts inte.
 
 Det bryter av — tjugo sant/falskt-kort i rad är ett prov — men det är också en
@@ -177,7 +179,9 @@ ingång. Ett ja till norrskenet säger något som tolv frågor om intressen inte
 fångar, och det byggs vidare på på två sätt:
 
 - **Nästa avbrott.** En del frön har en följdfråga som kommer om svaret var ja
-  (`Jag har stått ute mitt i natten för att se det`). Med en nyckel skriver
+  (`Jag har stått ute mitt i natten för att se norrsken`). Den måste gå att
+  förstå ensam: den kommer ett avbrott senare, och «Jag skulle vilja träffa
+  det» gav tio sekunders tvekan och ett hoppa över. Med en nyckel skriver
   Claude nya avbrott i bakgrunden utifrån allt som svarats: ett som går djupare
   i något eleven sagt ja till, och resten helt nya.
 - **Nästa lista.** Svaren skickas med när en lista skrivs, och modellen ombeds

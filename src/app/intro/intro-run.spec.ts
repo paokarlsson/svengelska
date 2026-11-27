@@ -228,6 +228,15 @@ describe('IntroRun', () => {
       expect(steps(seen)).not.toContain(0);
     });
 
+    // Loggen: första ordkortet var fällan `eventually = eventuellt`, och det
+    // tog tjugo sekunder att svepa fel.
+    it('lägger det sanna kortet först på det allra första steget', () => {
+      for (let seed = 1; seed <= 10; seed++) {
+        const first = play(new IntroRun(seeded(seed)), knowing(5)).find((card) => card.kind === 'probe')!;
+        expect(first.kind === 'probe' && first.statement.truthy).toBe(true);
+      }
+    });
+
     it('börjar vid de lättaste orden för ett barn', () => {
       expect(steps(play(new IntroRun(seeded(1)), knowing(TOP_LEVEL, 'child')))[0]).toBe(0);
     });

@@ -11,7 +11,7 @@
  * finns något att bygga vidare på dem i.
  */
 import { Injectable, inject } from '@angular/core';
-import { breakNote, breaksFromReply, followUpOf, nextBreak } from '../intro/breaks';
+import { SEEDS, breakNote, breaksFromReply, followUpOf, nextBreak } from '../intro/breaks';
 import { BREAKS_KEPT, Note, Profile } from '../intro/profile';
 import { Response } from '../training/word-state';
 import { describeLearner } from '../words/generated-list';
@@ -39,6 +39,14 @@ export function breakRequestText(profile: Profile): string {
   const asked = profile.breaks ?? [];
   if (asked.length > 0) {
     parts.push(`Avbrott eleven redan fått — fråga inte om dem igen:\n${asked.map((note) => `- ${note.text}`).join('\n')}`);
+  }
+  // Fröna som inte frågats än ligger kvar i högen. Loggen visade Claude skriva
+  // «Jag kan vissla med två fingrar i munnen» när «Jag kan vissla med
+  // fingrarna» väntade på sin tur.
+  const done = new Set(asked.map((note) => note.text));
+  const waiting = SEEDS.filter((seed) => !done.has(seed.text)).map((seed) => seed.text);
+  if (waiting.length > 0) {
+    parts.push(`Ligger redan i appens hög och kommer senare — skriv inget som liknar dem:\n${waiting.map((text) => `- ${text}`).join('\n')}`);
   }
   return parts.join('\n\n');
 }

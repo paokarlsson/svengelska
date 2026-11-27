@@ -35,6 +35,15 @@ describe('nextBreak', () => {
     expect(nextBreak(asked, null)).toBe(adultOnly.text);
   });
 
+  // Följdfrågan visas ett avbrott senare. «Jag skulle vilja träffa det» gick
+  // inte att förstå när det kom.
+  it('har följdfrågor som går att förstå utan fröet', () => {
+    for (const seed of SEEDS.filter((item) => item.then !== undefined)) {
+      expect(seed.then).toMatch(/^Jag /);
+      expect(seed.then).not.toMatch(/\b(det|dem|den|dit|där)\b/i);
+    }
+  });
+
   it('har inga frön med samma text, och inga följdfrågor som också är frön', () => {
     const texts = SEEDS.map((seed) => seed.text);
     expect(new Set(texts).size).toBe(texts.length);

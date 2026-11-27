@@ -483,8 +483,16 @@ export class IntroRun {
    */
   private queueStep(step: number): void {
     this.rightOnStep = 0;
-    this.gap = this.passed.size + this.failed.size === 0 ? 0 : ASKS_BETWEEN;
-    for (const probe of shuffle(LADDER[step], this.random)) {
+    const first = this.passed.size + this.failed.size === 0;
+    this.gap = first ? 0 : ASKS_BETWEEN;
+    // Det allra första ordkortet är det sanna. Loggen visade en vuxen som
+    // gick från «Jag övar för att jag själv vill» rakt in i fällan
+    // `eventually = eventuellt`, tvekade i tjugo sekunder och svepte fel. Det
+    // första kortet ska lära ut vad ett ordkort är, inte vara provets svåraste.
+    const order = first
+      ? [...LADDER[step]].sort((a, b) => Number(b.shown === b.truth) - Number(a.shown === a.truth))
+      : shuffle(LADDER[step], this.random);
+    for (const probe of order) {
       this.probes.push({ kind: 'probe', phase: 'words', level: step, statement: statementOf(probe) });
     }
   }

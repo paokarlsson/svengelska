@@ -21,7 +21,15 @@
 import { Response } from '../training/word-state';
 import { AgeBand, Note } from './profile';
 
-/** Ett frö: påståendet, och vad som frågas nästa gång om svaret var ja. */
+/**
+ * Ett frö: påståendet, och vad som frågas nästa gång om svaret var ja.
+ *
+ * Följdfrågan visas inte direkt efter fröet utan vid nästa avbrott — i
+ * startrundan några kort senare, i varven ett helt varv senare. Den måste
+ * därför gå att förstå ensam. Här stod först «Jag skulle vilja träffa det»
+ * efter «Jag tror att det finns liv på andra planeter», och loggen visade tio
+ * sekunders tvekan och ett «hoppa över»: det fanns inget «det» kvar att peka på.
+ */
 export interface Seed {
   text: string;
   then?: string;
@@ -39,26 +47,26 @@ export interface Seed {
  * ANTAGANDE: urvalet är satt på känsla.
  */
 export const SEEDS: readonly Seed[] = [
-  { text: 'Jag har sett ett norrsken', then: 'Jag har stått ute mitt i natten för att se det' },
+  { text: 'Jag har sett ett norrsken', then: 'Jag har stått ute mitt i natten för att se norrsken' },
   { text: 'Jag kan vissla med fingrarna' },
   { text: 'Jag tycker att ananas hör hemma på pizza' },
   {
     text: 'Jag har somnat på ett tåg eller en buss',
     then: 'Jag har missat min hållplats för att jag somnat',
   },
-  { text: 'Jag samlar på något', then: 'Jag har fler än hundra av dem' },
-  { text: 'Jag har byggt en koja', then: 'Jag har sovit i den' },
-  { text: 'Jag tror att det finns liv på andra planeter', then: 'Jag skulle vilja träffa det' },
+  { text: 'Jag samlar på något', then: 'Jag har fler än hundra saker i en samling' },
+  { text: 'Jag har byggt en koja', then: 'Jag har sovit en natt i en koja jag byggt' },
+  { text: 'Jag tror att det finns liv på andra planeter', then: 'Jag skulle vilja träffa någon från en annan planet' },
   { text: 'Jag skulle hellre kunna flyga än vara osynlig' },
   { text: 'Jag har klappat en ko' },
-  { text: 'Jag har ätit något utan att veta vad det var', then: 'Det smakade bättre än jag trodde' },
+  { text: 'Jag har ätit något utan att veta vad det var', then: 'Jag har ätit något okänt som smakade bättre än jag trodde' },
   { text: 'Jag har tappat en mobil i vattnet' },
-  { text: 'Jag har lagat något trasigt med tejp', then: 'Det håller fortfarande' },
-  { text: 'Jag har sjungit karaoke', then: 'Jag gjorde det frivilligt' },
+  { text: 'Jag har lagat något trasigt med tejp', then: 'Jag har en tejpad sak hemma som fortfarande håller' },
+  { text: 'Jag har sjungit karaoke', then: 'Jag har sjungit karaoke helt frivilligt' },
   { text: 'Jag kan ett kortkonstnummer' },
   { text: 'Jag har badat utomhus när det var is på sjön' },
   { text: 'Jag vaknar oftast före väckarklockan' },
-  { text: 'Jag har gått vilse i en stad', then: 'Jag hittade rätt utan karta' },
+  { text: 'Jag har gått vilse i en stad', then: 'Jag har hittat rätt i en okänd stad utan karta' },
   { text: 'Jag har en låt som jag aldrig tröttnar på' },
   { text: 'Jag har vunnit något på lotteri eller tävling' },
   { text: 'Jag har sett en älg på riktigt' },
@@ -127,6 +135,8 @@ export const BREAK_SCHEMA = {
 export const BREAK_INSTRUCTIONS = `Du skriver avbrott till en app där en svensk elev övar engelska glosor. Eleven sveper kort: höger för ja, vänster för nej, nedåt för vet ej. Mitt bland glosorna lägger appen ibland ett kort som inte har med engelska att göra — ett påstående om eleven, i jagform, som man ler åt och svarar på utan att tänka efter. Det är en paus, och det är en ingång: svaren används när appen väljer teman för nya glosor.
 
 Skriv ${BREAKS_PER_REQUEST} sådana påståenden. Ett av dem ska bygga vidare på något eleven sagt ja till — gå ett steg djupare, åt ett oväntat håll: ett ja till «Jag har sett ett norrsken» kan bli «Jag har stått ute i minus tjugo för att se det». De andra ska vara helt nya och gärna oväntade: något man gjort, kan, tycker eller har råkat ut för. Hoppa mellan ämnen; ett avbrott som liknar det förra är inget avbrott.
+
+Varje påstående visas ensamt, ofta ett helt varv efter det det bygger på, och måste gå att förstå utan det. Skriv «Jag skulle vilja träffa en utomjording», inte «Jag skulle vilja träffa det».
 
 Skriv som en människa pratar: korta påståenden på svenska, högst tolv ord, utan frågetecken. Anpassa dem till åldern. Fråga inte om något eleven redan svarat på. Fråga aldrig efter namn, var eleven bor eller går i skolan, eller något annat som pekar ut en person, och inte om hälsa, kropp, tro, politik, pengar eller hur familjen har det.`;
 
