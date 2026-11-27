@@ -19,7 +19,35 @@
     </div>
 
     <div class="stage">
-        @if (result; as profile) {
+        @if (after === 'check' && check && result) {
+        <!-- Ett tryck på kortet gör ingenting: frågan har två svar, och ett
+             tryck kan inte säga vilket. Raden under kortet går att trycka på. -->
+        <app-swipe-view
+            [card]="check"
+            (answered)="onCheckSwipe($event)"
+            (completed)="onCheckLanded()">
+            <span class="face-label">Tror du att jag vet vem du är nu?</span>
+            @if (shownInterests.length > 0) {
+            <ul class="likes">
+                @for (interest of shownInterests; track interest) {
+                <li>{{interest}}</li>
+                }
+                @if (hiddenInterests > 0) {
+                <li>+{{hiddenInterests}}</li>
+                }
+            </ul>
+            }
+            @if (levelText; as level) {
+            <p class="face-text">{{level}}</p>
+            }
+            @if (learned > 0) {
+            <p class="face-text">Och {{learned}} saker till som du berättat.</p>
+            }
+            <p class="face-text face-ask">Vill du börja med glosor?</p>
+        </app-swipe-view>
+        } @else if (after === 'waiting') {
+        <p class="thinking" role="status">Jag tänker ut nästa fråga …</p>
+        } @else if (after === 'end' && result; as profile) {
         <app-swipe-view
             [card]="ending"
             (answered)="onEndSwipe($event)"
@@ -44,7 +72,7 @@
         }
     </div>
 
-    @if (result !== null) {
+    @if (after === 'check' || after === 'end') {
     <p class="note">
         Det här sparas bara i den här webbläsaren, och används när appen skriver listor åt dig.
     </p>

@@ -104,6 +104,13 @@ och varvet sätter igång direkt. Valet av ord ligger under ytan, som
 repetitionsplanen. Den som gjort startrundan och har en nyckel behöver inte ens
 be — när rundan är slut skriver appen den första listan ur svaren.
 
+Startrundan slutar med en fråga: *Tror du att jag vet vem du är nu? Vill du
+börja med glosor?* Ja går till glosorna. Nej ger tre påståenden till, skrivna av
+Claude utifrån det som redan svarats (`intro/follow-up.ts`). De skrivs som ett
+ja/nej-träd tre steg djupt, så att nästa kort alltid finns när det förra svepts,
+och nästa träd skrivs medan de två sista besvaras. Svaren sparas i profilen och
+väger tyngst när orden väljs.
+
 Dagsgränsen för nya ord är avstängd tills vidare (`limitNewWords` i
 `training/training-engine.ts`). Med den på tog en lista dagens nya ord, och nästa
 lista spelades då med den förras ord.

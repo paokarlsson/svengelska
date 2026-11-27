@@ -11,7 +11,7 @@
  * hänga på att modellen lydde — se `withoutLeaks()`.
  */
 import { wordsOnStep } from '../intro/intro-run';
-import { AgeBand, Profile, TOP_LEVEL, saysSomething } from '../intro/profile';
+import { AgeBand, Note, Profile, TOP_LEVEL, saysSomething } from '../intro/profile';
 import { WordBlock, WordPair, normalize, parseBlocks } from './word-catalog';
 
 /**
@@ -70,6 +70,8 @@ Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan ha
 Är det ett tema väljer du ${LIST_SIZE} glosor som hör till det. Säger önskemålet något om ålder eller nivå följer du det; annars går du efter det du vet om eleven, och vet du inget siktar du på mellanstadiet. Välj ord eleven har nytta av och hoppa över dem som stavas likadant på båda språken, för «arm = arm» går inte att öva.
 
 Saknas önskemål väljer du temat själv, ur det eleven tycker om. Välj ett smalt och konkret tema hellre än ett brett: «på stallet» säger mer än «djur», och en lista man känner igen sig i är en lista man övar på. Ta inte ett tema eleven redan har en lista om.
+
+Har eleven svarat på följdfrågor väger de tyngst. De är det mest precisa du vet: ett ja till «Jag har tältat på fjället» säger mer om vilka ord eleven har nytta av än ett ja till natur. Ta temat ur dem när du väljer själv.
 
 Provet säger var det är lagom att börja. De flesta glosorna ska ligga strax över det eleven klarade — ord hen inte kan än men är redo för — och ett par får vara lättare, så att listan inte bara är motstånd. Åldern säger vilken värld orden ska komma ur, inte hur svåra de ska vara: en vuxen nybörjare ska ha lätta ord om vuxna saker.
 
@@ -166,8 +168,21 @@ export function describeLearner(profile: Profile): string | null {
   if (profile.level !== null) {
     lines.push(levelText(profile.level));
   }
+  const notes = profile.notes ?? [];
+  if (notes.length > 0) {
+    lines.push('Svar på följdfrågor:');
+    for (const note of notes) {
+      lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}`);
+    }
+  }
   return lines.join('\n');
 }
+
+const NOTE_ANSWER: Record<Note['answer'], string> = {
+  yes: 'ja',
+  no: 'nej',
+  unsure: 'vet ej',
+};
 
 function levelText(level: number): string {
   const passed = quoted(level > 0 ? wordsOnStep(level - 1) : []);
