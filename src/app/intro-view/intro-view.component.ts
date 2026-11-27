@@ -37,13 +37,18 @@ import {
 import { Response } from '../training/word-state';
 
 /** Rubriken över kortet. Säger vad korten handlar om, inte hur många som är kvar. */
+/**
+ * Inga frågetecken, inte heller här. Varje kort är ett påstående som är sant
+ * eller falskt, och en rubrik som frågar något gör kortet under den till ett
+ * svar på en fråga i stället.
+ */
 const PHASE_TITLE: Record<IntroPhase, string> = {
-  about: 'Vad gillar du?',
+  about: 'Det du gillar',
   you: 'Lite om dig',
-  how: 'Hur vill du ha det?',
+  how: 'Hur du vill ha det',
   // Ingen egen rubrik: ett avbrott ska inte presentera sig som ett.
   break: 'Lite om dig',
-  words: 'Kan du de här?',
+  words: 'Sant eller falskt',
 };
 
 /**
@@ -196,7 +201,7 @@ export class IntroViewComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Svaret på «Tror du att jag vet vem du är nu?».
+   * Svaret på «Du vet vem jag är nu».
    *
    * Ja går till glosorna. Nej ger tre frågor till — redan skrivna om det gick,
    * annars en kort väntan.
@@ -273,9 +278,10 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     this.walk = null;
     this.check = {
       kind: 'choice',
-      label: 'Tror du att jag vet vem du är nu?',
-      affirm: 'Ja, glosor',
-      deny: this.stuck ? null : 'Nej, fråga mer',
+      // Ett påstående och inte en fråga, som alla andra kort: sant eller falskt.
+      label: 'Du vet vem jag är nu',
+      affirm: 'Sant, glosor',
+      deny: this.stuck ? null : 'Falskt, fråga mer',
       unsure: null,
     };
     if (this.ready === null) {

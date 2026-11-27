@@ -197,7 +197,7 @@ describe('describeLearner', () => {
         { text: 'Jag kan vissla med fingrarna', answer: 'unsure' },
       ],
     })!;
-    expect(text).toContain('norrsken»: ja (öppnar: vinter och natthimmel)');
+    expect(text).toContain('norrsken»: sant (öppnar: vinter och natthimmel)');
     expect(text).not.toContain('vissla');
   });
 

@@ -8,7 +8,7 @@
  * fler påståenden, skrivna utifrån det hen redan svarat.
  *
  * **Ett träd, tre steg fram.** Claude skriver inte en fråga i taget utan ett
- * träd: en första fråga, en följdfråga för ja och en för nej, och under var och
+ * träd: en första fråga, en följdfråga för sant och en för falskt, och under var och
  * en av dem två till. Eleven ser bara vägen svaren leder — tre kort — men alla
  * sju finns redan när det första visas. Därför väntar ingen mellan korten.
  * Medan de två sista besvaras skrivs nästa träd, så att flytet håller även över
@@ -50,8 +50,8 @@ function branch<T>(child: T) {
     type: 'object',
     properties: {
       text: TEXT,
-      yes: { ...child, description: 'Nästa påstående om eleven svarar ja.' },
-      no: { ...child, description: 'Nästa påstående om eleven svarar nej eller vet ej.' },
+      yes: { ...child, description: 'Nästa påstående om eleven svarar sant.' },
+      no: { ...child, description: 'Nästa påstående om eleven svarar falskt eller hoppar över.' },
     },
     required: ['text', 'yes', 'no'],
     additionalProperties: false,
@@ -68,17 +68,17 @@ export const FOLLOW_UP_SCHEMA = branch(branch(LEAF));
  */
 export const FOLLOW_UP_INSTRUCTIONS = `Du lär känna en svensk elev som ska öva engelska glosor i en app. Svaren används till en enda sak: att välja vilka glosor eleven ska öva. Ord ur elevens egen vardag och egna intressen är ord eleven vill kunna och kommer ihåg.
 
-Appen visar ett påstående i taget om eleven, i jagform, och eleven sveper höger för ja, vänster för nej och nedåt för vet ej. Du får veta vad appen vet hittills.
+Appen visar ett påstående i taget om eleven, i jagform, och eleven sveper höger för sant, vänster för falskt och nedåt för att hoppa över. Alla kort i appen är påståenden som är sanna eller falska — aldrig frågor. Du får veta vad appen vet hittills.
 
-Skriv ett träd med tre påståenden i följd: ett första, ett att visa om eleven svarar ja och ett om hen svarar nej eller vet ej, och under vart och ett av dem samma sak en gång till. Eleven ser bara den väg svaren leder: tre kort. Alla sju ska alltså vara värda att visa.
+Skriv ett träd med tre påståenden i följd: ett första, ett att visa om eleven svarar sant och ett om hen svarar falskt eller hoppar över, och under vart och ett av dem samma sak en gång till. Eleven ser bara den väg svaren leder: tre kort. Alla sju ska alltså vara värda att visa.
 
-Varje påstående ska smalna av, så att svaret säger något nytt om vilka ord eleven har nytta av. Gå från det breda mot det konkreta — från «Jag lagar gärna mat» till «Jag bakar oftare än jag lagar middag» till «Jag har bakat surdegsbröd». Ett nej betyder att den vägen är stängd: byt riktning i stället för att fråga samma sak i en annan form. Börja gärna där appen vet minst, eller där ett ja ännu är brett.
+Varje påstående ska smalna av, så att svaret säger något nytt om vilka ord eleven har nytta av. Gå från det breda mot det konkreta — från «Jag lagar gärna mat» till «Jag bakar oftare än jag lagar middag» till «Jag har bakat surdegsbröd». Falskt betyder att den vägen är stängd: byt riktning i stället för att fråga samma sak i en annan form. Börja gärna där appen vet minst, eller där ett «sant» ännu är brett.
 
-Intressena är inte det enda värt att fråga om. Hur eleven använder engelska — läser, spelar, ser serier utan undertext, skriver på jobbet — säger var nivån ligger bättre än ett kort prov, och var ett ja öppnar ett ordförråd: den som spelar på engelska med andra kan andra ord än den som läser deckare. Ett av de tre korten får gärna handla om det, särskilt när provet slutade högt.
+Intressena är inte det enda värt att fråga om. Hur eleven använder engelska — läser, spelar, ser serier utan undertext, skriver på jobbet — säger var nivån ligger bättre än ett kort prov, och var ett «sant» öppnar ett ordförråd: den som spelar på engelska med andra kan andra ord än den som läser deckare. Ett av de tre korten får gärna handla om det, särskilt när provet slutade högt.
 
 Fråga inte om något eleven redan svarat på, och inte om det som står bland de påståenden som visas härnäst.
 
-Skriv som en människa pratar: korta påståenden i jagform, på svenska, högst tio ord, utan frågetecken, och så att de går att svara ja eller nej på utan att tänka efter. Anpassa dem till åldern. Fråga aldrig efter namn, var eleven bor eller går i skolan, eller något annat som pekar ut en person, och inte om hälsa, tro, politik eller hur familjen har det.`;
+Skriv som en människa pratar: korta påståenden i jagform, på svenska, högst tio ord, utan frågetecken, och så att de är sanna eller falska för eleven utan att hen behöver tänka efter. Anpassa dem till åldern. Fråga aldrig efter namn, var eleven bor eller går i skolan, eller något annat som pekar ut en person, och inte om hälsa, tro, politik eller hur familjen har det.`;
 
 /**
  * Frågan till Claude.

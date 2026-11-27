@@ -106,10 +106,9 @@ och varvet sätter igång direkt. Valet av ord ligger under ytan, som
 repetitionsplanen. Den som gjort startrundan och har en nyckel behöver inte ens
 be — när rundan är slut skriver appen den första listan ur svaren.
 
-Startrundan slutar med en fråga: *Tror du att jag vet vem du är nu? Vill du
-börja med glosor?* Ja går till glosorna. Nej ger tre påståenden till, skrivna av
-Claude utifrån det som redan svarats (`intro/follow-up.ts`). De skrivs som ett
-ja/nej-träd tre steg djupt, så att nästa kort alltid finns när det förra svepts,
+Startrundan slutar med ett påstående: *Du vet vem jag är nu.* Sant går till
+glosorna. Falskt ger tre påståenden till, skrivna av Claude utifrån det som redan
+svarats (`intro/follow-up.ts`). De skrivs som ett sant/falskt-träd tre steg djupt, så att nästa kort alltid finns när det förra svepts,
 och nästa träd skrivs medan de två sista besvaras. Svaren sparas i profilen och
 väger tyngst när orden väljs.
 
@@ -232,9 +231,17 @@ låg kvar.
 
 ## Svep, och tryck där det är ett val
 
-Appen har ett kort och tre håll. På ett gloskort är hållen svaret:
+Appen har ett kort och tre håll. Varje kort som frågar något är ett påstående,
+och svaret är om det stämmer:
 
-    höger = rätt      vänster = fel      ner = vet ej
+    höger = sant      vänster = falskt      ner = vet ej
+
+Det gäller gloskorten (`dog = hund`) och korten om en själv (`Jag har klappat en
+ko`) lika, och det tredje hållet heter «hoppa över» på de senare. Så var det inte
+först: gloskorten svarades med rätt och fel, korten om en själv med ja och nej,
+och slutet av startrundan var en fråga. Två sorters svar på samma sorts kort.
+Det Claude skriver — följdfrågor och avbrott — ska följa samma regel, och
+uppdragen säger det.
 
 Där gäller bara svepet. Under kortet står en rad som säger vad hållen heter, och
 ett tryck på den svarar inte — kortet glider en bit åt det hållet, stämplas och

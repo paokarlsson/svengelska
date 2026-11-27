@@ -26,7 +26,7 @@
             [card]="check"
             (answered)="onCheckSwipe($event)"
             (completed)="onCheckLanded()">
-            <span class="face-label">Tror du att jag vet vem du är nu?</span>
+            <span class="face-label">Det här vet jag om dig</span>
             @if (shownInterests.length > 0) {
             <ul class="likes">
                 @for (interest of shownInterests; track interest) {
@@ -46,7 +46,7 @@
             @if (learned > 0) {
             <p class="face-text">Och {{learned}} saker till som du berättat.</p>
             }
-            <p class="face-text face-ask">Vill du börja med glosor?</p>
+            <p class="face-text face-ask">Du vet vem jag är nu.</p>
         </app-swipe-view>
         } @else if (after === 'waiting') {
         <p class="thinking" role="status">Jag tänker ut nästa fråga …</p>

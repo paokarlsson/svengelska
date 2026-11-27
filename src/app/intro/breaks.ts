@@ -192,7 +192,7 @@ export const BREAK_SCHEMA = {
           opens: {
             type: 'string',
             description:
-              'Ordområdet ett ja öppnar, på svenska, några ord: «bondgården och djuren där».',
+              'Ordområdet «sant» öppnar, på svenska, några ord: «bondgården och djuren där».',
           },
         },
         required: ['text', 'opens'],
@@ -205,11 +205,11 @@ export const BREAK_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export const BREAK_INSTRUCTIONS = `Du skriver avbrott till en app där en svensk elev övar engelska glosor. Eleven sveper kort: höger för ja, vänster för nej, nedåt för vet ej. Mitt bland glosorna lägger appen ibland ett kort som inte har med engelska att göra — ett påstående om eleven, i jagform, som man ler åt och svarar på utan att tänka efter. Kortet presenteras inte som något särskilt; för eleven är det bara nästa kort.
+export const BREAK_INSTRUCTIONS = `Du skriver avbrott till en app där en svensk elev övar engelska glosor. Eleven sveper kort: höger för sant, vänster för falskt, nedåt för att hoppa över. Alla kort i appen är påståenden som är sanna eller falska — aldrig frågor. Mitt bland glosorna lägger appen ibland ett kort som inte har med engelska att göra — ett påstående om eleven, i jagform, som man ler åt och svarar på utan att tänka efter. Kortet presenteras inte som något särskilt; för eleven är det bara nästa kort.
 
-Knasigt är bra, men varje påstående måste ha en mening: ett ja ska öppna en värld av ord som eleven har nytta av. Svaren används till en enda sak — att välja teman för nya glosor — och ett påstående vars ja inte säger något om vilka ord eleven vill kunna är ett slösat kort, hur roligt det än är. «Jag har klappat en ko» öppnar bondgården; «Jag kan vissla med fingrarna» öppnar ingenting. Skriv i opens vilket ordområde ett ja öppnar.
+Knasigt är bra, men varje påstående måste ha en mening: ett «sant» ska öppna en värld av ord som eleven har nytta av. Svaren används till en enda sak — att välja teman för nya glosor — och ett påstående vars «sant» inte säger något om vilka ord eleven vill kunna är ett slösat kort, hur roligt det än är. «Jag har klappat en ko» öppnar bondgården; «Jag kan vissla med fingrarna» öppnar ingenting. Skriv i opens vilket ordområde ett «sant» öppnar.
 
-Skriv ${BREAKS_PER_REQUEST} sådana påståenden. Ett av dem ska bygga vidare på något eleven sagt ja till — gå ett steg djupare i samma område, åt ett oväntat håll: ett ja till «Jag har sett ett norrsken» kan bli «Jag har stått ute i minus tjugo för att se norrsken». De andra ska vara helt nya och gärna oväntade: något man gjort, kan, tycker eller har råkat ut för, och gärna i ett område appen inte vet något om än. Hoppa mellan områden; ett avbrott som liknar det förra är inget avbrott.
+Skriv ${BREAKS_PER_REQUEST} sådana påståenden. Ett av dem ska bygga vidare på något eleven svarat sant på — gå ett steg djupare i samma område, åt ett oväntat håll: «sant» på «Jag har sett ett norrsken» kan bli «Jag har stått ute i minus tjugo för att se norrsken». De andra ska vara helt nya och gärna oväntade: något man gjort, kan, tycker eller har råkat ut för, och gärna i ett område appen inte vet något om än. Hoppa mellan områden; ett avbrott som liknar det förra är inget avbrott.
 
 Varje påstående visas ensamt, ofta ett helt varv efter det det bygger på, och måste gå att förstå utan det. Skriv «Jag skulle vilja träffa en utomjording», inte «Jag skulle vilja träffa det».
 

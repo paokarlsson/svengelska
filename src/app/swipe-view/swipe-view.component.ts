@@ -112,9 +112,12 @@ const NAMES: Record<
   Exclude<SwipeCard['kind'], 'choice'>,
   { affirm: Naming; deny: Naming; unsure: Naming }
 > = {
+  // Kortet är ett påstående, «dog = hund», och svaret är om det stämmer. Här
+  // stod förut Rätt och Fel, och på korten om en själv Ja och Nej: två sorters
+  // svar på samma sorts kort. Nu heter båda det de är.
   trueFalse: {
-    affirm: { label: 'Rätt', stamp: 'RÄTT' },
-    deny: { label: 'Fel', stamp: 'FEL' },
+    affirm: { label: 'Sant', stamp: 'SANT' },
+    deny: { label: 'Falskt', stamp: 'FALSKT' },
     unsure: { label: 'Vet ej', stamp: 'VET EJ' },
   },
   recall: {
@@ -124,8 +127,8 @@ const NAMES: Record<
   },
   // Om en själv finns inget att inte veta. Det tredje svaret är att slippa.
   ask: {
-    affirm: { label: 'Ja', stamp: 'JA' },
-    deny: { label: 'Nej', stamp: 'NEJ' },
+    affirm: { label: 'Sant', stamp: 'SANT' },
+    deny: { label: 'Falskt', stamp: 'FALSKT' },
     unsure: { label: 'Hoppa över', stamp: 'HOPPA ÖVER' },
   },
 };
