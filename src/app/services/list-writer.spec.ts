@@ -4,6 +4,7 @@ import { ApiKeyStore } from './api-key-store';
 import { ListWriteError } from './list-write-error';
 import { ListWriter } from './list-writer';
 import { ProfileStore } from './profile-store';
+import { emptyProfile } from '../intro/profile';
 import { WordLibrary } from '../words/word-library';
 
 const GOOD = {
@@ -93,6 +94,22 @@ describe('ListWriter', () => {
     expect(request).toContain('Välj temat själv');
     expect(request).toContain('rymden');
     expect(request).toContain('under 13');
+  });
+
+  // Så att första varvet på listan kan säga om den låg rätt.
+  it('antecknar nivån listan skrevs för', async () => {
+    keys.save('sk-ant-test');
+    TestBed.inject(ProfileStore).save({ ...emptyProfile(), level: 5 });
+    answerWith(GOOD);
+
+    expect((await writer.write('bakning')).level).toBe(5);
+  });
+
+  it('antecknar ingen nivå när ingen är känd', async () => {
+    keys.save('sk-ant-test');
+    answerWith(GOOD);
+
+    expect((await writer.write('bakning')).level).toBeUndefined();
   });
 
   it('nämner listorna som redan finns', async () => {

@@ -31,6 +31,9 @@
                 <!-- Ett vägval: innehållet äger den som lade fram kortet. -->
                 <ng-content />
                 } @else {
+                @if (askLabel; as label) {
+                <span class="ask-label">{{label}}</span>
+                }
                 <p class="word" [class.word--sentence]="asking">{{prompt}}</p>
 
                 @if (asking) {

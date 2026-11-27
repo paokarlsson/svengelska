@@ -55,7 +55,12 @@ import { Response } from '../training/word-state';
 export type SwipeCard =
   | { kind: 'trueFalse'; statement: Statement }
   | { kind: 'recall'; word: DirectedWord }
-  | { kind: 'ask'; text: string }
+  | {
+      kind: 'ask';
+      text: string;
+      /** En rad ovanför påståendet, för ett kort som behöver säga vad det är. */
+      label?: string;
+    }
   | ChoiceCard;
 
 /**
@@ -334,6 +339,11 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   /** Om kortet är ett påstående om en själv och inte en glosa. */
   get asking(): boolean {
     return this.card.kind === 'ask';
+  }
+
+  /** Raden ovanför ett påstående, om kortet har en. */
+  get askLabel(): string | null {
+    return this.card.kind === 'ask' ? (this.card.label ?? null) : null;
   }
 
   /** Det som står under ordet: påståendets översättning, eller facit. */
@@ -725,7 +735,9 @@ function describeCard(card: SwipeCard): Record<string, unknown> {
     return { kind: 'word', asked, shown, truthy, dir: direction };
   }
   if (card.kind === 'ask') {
-    return { kind: 'ask', text: card.text };
+    return card.label === undefined
+      ? { kind: 'ask', text: card.text }
+      : { kind: 'ask', text: card.text, label: card.label };
   }
   if (card.kind === 'choice') {
     return { kind: 'choice', label: card.label, right: card.affirm, left: card.deny, down: card.unsure };

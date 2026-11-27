@@ -40,6 +40,9 @@
             @if (levelText; as level) {
             <p class="face-text">{{level}}</p>
             }
+            @if (personalityText; as personality) {
+            <p class="face-text">{{personality}}</p>
+            }
             @if (learned > 0) {
             <p class="face-text">Och {{learned}} saker till som du berättat.</p>
             }
@@ -56,8 +59,11 @@
             <span class="face-label">Då vet jag lite mer</span>
             @if (profile.interests.length > 0) {
             <ul class="likes">
-                @for (interest of profile.interests; track interest) {
+                @for (interest of shownInterests; track interest) {
                 <li>{{interest}}</li>
+                }
+                @if (hiddenInterests > 0) {
+                <li>+{{hiddenInterests}}</li>
                 }
             </ul>
             } @else {
@@ -65,6 +71,9 @@
             }
             @if (levelText; as level) {
             <p class="face-text">{{level}}</p>
+            }
+            @if (personalityText; as personality) {
+            <p class="face-text">{{personality}}</p>
             }
         </app-swipe-view>
         } @else if (card; as swipe) {

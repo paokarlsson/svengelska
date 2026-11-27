@@ -435,23 +435,32 @@ En skriven lista visades först som utkast. Det är borttaget: valet av ord ska
 ligga under ytan, och listan sparas och körs direkt.
 
 **Appen frågar vem man är innan den frågar vad man kan.** Startrundan
-(`intro/intro-run.ts`) är ett dussin kort om en själv, två om ålder, ett om
-varför man övar och en trappa av riktiga ord. Tre saker i den är beslut:
+(`intro/intro-run.ts`) är fyra kort om intressen, två om ålder, ett om varför
+man övar, och sedan en trappa av riktiga ord varvad med fem kort om hur man vill
+ha det och resten av intressena. Fyra saker i den är beslut:
 
 - *Samma kort som resten.* En startrunda med egna knappar hade lärt ut ett
   gränssnitt som aldrig används igen. Den som svarat på «Jag gillar djur» kan
   gesten innan första glosan kommer.
-- *Intressena först, provet sist.* Det första en ny användare möter ska inte gå
-  att svara fel på.
+- *Intressena först, provet efter åldern.* Det första en ny användare möter ska
+  inte gå att svara fel på. Men provet börjar där åldern säger att det är
+  troligt, och därför kommer åldern före det — en vuxen ska inte börja vid
+  `cat`. Provet läggs ut mellan de andra korten i stället för sist, så att det
+  inte blir ett prov i slutet.
+- *Personligheten bara där den ändrar något.* Fem drag, och vart och ett finns
+  för att det ändrar en lista: hur långt över nivån, udda eller nyttiga ord, hur
+  felsvaren ser ut. Två av dem syns också i övningen och spåras där.
 - *Två kort per trappsteg, ett sant och ett falskt.* Ett ensamt sant/falskt-kort
   är ett myntkast; med två går det inte att svepa sig uppåt genom att svara
   samma sak på allt. Det är samma räkning som gav kortet sitt tredje svar.
 
 Profilen bor under `svengelska-profile`, för sig, och följer med frågan till
 modellen som några rader text. Den ersätter *inte* mätningen: trappan säger var
-det är lagom att börja, och därefter är det framstegen som vet. Att låta de
-uppmätta orden — inte bara startprovet — styra nästa lista är nästa steg, och
-inte byggt.
+det är lagom att börja, och därefter är det framstegen som vet. Nivån flyttas
+av hur nya ord går på första försöket (`intro/skill.ts`): en lista där nästan
+allt satt direkt låg under nivån, en där nästan inget satt låg över. Det är den
+flyttade nivån nästa lista skrivs mot. Vilka *enskilda* ord som sitter styr
+ännu inte nästa lista — bara nivån gör det.
 
 Vad som *inte* är byggt: att klistra in en lista och få den använd ordagrant
 utan en modell emellan, och att språkparet är något annat än engelska och

@@ -10,8 +10,9 @@
  * igen behålls och resten faller bort. Ovanpå det ligger en regel som inte får
  * hänga på att modellen lydde — se `withoutLeaks()`.
  */
-import { wordsOnStep } from '../intro/intro-run';
-import { AgeBand, Note, Profile, TOP_LEVEL, saysSomething } from '../intro/profile';
+import { describePersonality } from '../intro/personality';
+import { AgeBand, Note, Profile, saysSomething } from '../intro/profile';
+import { describeSkill } from '../intro/skill';
 import { WordBlock, WordPair, normalize, parseBlocks } from './word-catalog';
 
 /**
@@ -65,15 +66,19 @@ export const LIST_INSTRUCTIONS = `Du skriver glosor till en app där en svensk e
 
 Appen visar ett kort i taget med ett påstående, till exempel «dog = hund», och eleven svarar sant, falskt eller vet ej. Varje glosa övas åt båda hållen: ibland är engelskan frågan, ibland svenskan. Hälften av korten är falska, och då står ett av dina felsvar i stället för den rätta översättningen.
 
-Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan har. Ibland får du i stället, eller dessutom, veta något om eleven: ungefärlig ålder, vad hen tycker om, om hen övar frivilligt, och vilka ord hen klarade i ett kort prov.
+Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan har. Ibland får du i stället, eller dessutom, veta något om eleven: ungefärlig ålder, vad hen tycker om, om hen övar frivilligt, hur hen vill ha det, och var nivån ligger.
 
 Är det ett tema väljer du ${LIST_SIZE} glosor som hör till det. Säger önskemålet något om ålder eller nivå följer du det; annars går du efter det du vet om eleven, och vet du inget siktar du på mellanstadiet. Välj ord eleven har nytta av och hoppa över dem som stavas likadant på båda språken, för «arm = arm» går inte att öva.
 
 Saknas önskemål väljer du temat själv, ur det eleven tycker om. Välj ett smalt och konkret tema hellre än ett brett: «på stallet» säger mer än «djur», och en lista man känner igen sig i är en lista man övar på. Ta inte ett tema eleven redan har en lista om.
 
+Avbrotten är lösa påståenden appen lagt mellan glosorna, om sådant som inte har med engelska att göra. Ett ja där är en ingång: «Jag har sett ett norrsken» kan bli en lista om vinternatten, «Jag har lagat något med tejp» en om verktyg. Ta gärna temat ur ett sådant ja när du väljer själv, särskilt om det är oväntat — en lista eleven inte väntat sig är en lista som minns.
+
 Har eleven svarat på följdfrågor väger de tyngst. De är det mest precisa du vet: ett ja till «Jag har tältat på fjället» säger mer om vilka ord eleven har nytta av än ett ja till natur. Ta temat ur dem när du väljer själv.
 
-Provet säger var det är lagom att börja. De flesta glosorna ska ligga strax över det eleven klarade — ord hen inte kan än men är redo för — och ett par får vara lättare, så att listan inte bara är motstånd. Åldern säger vilken värld orden ska komma ur, inte hur svåra de ska vara: en vuxen nybörjare ska ha lätta ord om vuxna saker.
+Nivån beskrivs med ord eleven klarar och ord hen inte klarar. Den kommer från ett kort prov och har sedan justerats av hur nya listor gått på första försöket, så den är det bästa måttet du har. De flesta glosorna ska ligga i höjd med orden hen inte klarar — ord hen inte kan än men är redo för — och ett par får vara lättare, så att listan inte bara är motstånd. En lista där eleven redan kan nästan allt är ett misslyckande lika mycket som en där hen inte kan något: mät dig mot nivån, inte mot temat. Även ett vardagligt tema har svåra ord. Åldern säger vilken värld orden ska komma ur, inte hur svåra de ska vara: en vuxen nybörjare ska ha lätta ord om vuxna saker, och en van vuxen läsare ska inte få ord en tioåring kan.
+
+Det som sägs om hur eleven vill ha det — motstånd eller medvind, udda ord eller nyttiga — väger in i vilka ord du väljer och hur felsvaren ser ut, men flyttar inte nivån mer än ett litet stycke.
 
 Är det en lista använder du just de glosorna, alla, i den ordning de står. Saknas det ena språket översätter du. Rätta uppenbara stavfel men byt inte ut ord.
 
@@ -165,13 +170,28 @@ export function describeLearner(profile: Profile): string | null {
       'Övar för att hen måste, inte för att hen vill. Välj ord som är lätta att tycka om.',
     );
   }
-  if (profile.level !== null) {
-    lines.push(levelText(profile.level));
+  const skill = describeSkill(profile);
+  if (skill !== null) {
+    lines.push(skill);
+  }
+  const personality = describePersonality(profile);
+  if (personality.length > 0) {
+    lines.push('Hur eleven vill ha det:');
+    lines.push(...personality.map((line) => `- ${line}`));
   }
   const notes = profile.notes ?? [];
   if (notes.length > 0) {
     lines.push('Svar på följdfrågor:');
     for (const note of notes) {
+      lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}`);
+    }
+  }
+  // Ett «vet ej» på ett avbrott säger ingenting. På en följdfråga säger det
+  // att frågan inte träffade, och det står kvar där.
+  const breaks = (profile.breaks ?? []).filter((note) => note.answer !== 'unsure');
+  if (breaks.length > 0) {
+    lines.push('Svar på avbrott — lösa frågor mellan glosorna:');
+    for (const note of breaks) {
       lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}`);
     }
   }
@@ -183,22 +203,6 @@ const NOTE_ANSWER: Record<Note['answer'], string> = {
   no: 'nej',
   unsure: 'vet ej',
 };
-
-function levelText(level: number): string {
-  const passed = quoted(level > 0 ? wordsOnStep(level - 1) : []);
-  const failed = quoted(wordsOnStep(level));
-  if (level <= 0) {
-    return `Prov: klarade inte de lättaste orden (${failed}). Börja från början.`;
-  }
-  if (level >= TOP_LEVEL) {
-    return `Prov: klarade även de svåraste orden (${passed}). Välj ord som utmanar en van läsare.`;
-  }
-  return `Prov: klarade ord som ${passed}, men inte ${failed}.`;
-}
-
-function quoted(words: readonly string[]): string {
-  return words.map((word) => `«${word}»`).join(' och ');
-}
 
 /**
  * Listan ur ett svar, eller `null` om svaret inte gick att göra en lista av.

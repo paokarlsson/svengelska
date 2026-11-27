@@ -61,6 +61,11 @@ export interface WordBlock {
   id: string;
   name: string;
   words: readonly WordPair[];
+  /**
+   * Nivån listan skrevs för, på startrundans trappa. Bara listor som appen
+   * skrivit har den; det är vad första varvet på listan mäts mot.
+   */
+  level?: number;
 }
 
 /**
@@ -211,7 +216,12 @@ function parseBlock(value: unknown): WordBlock | null {
   if (id === null || words.length === 0) {
     return null;
   }
-  return { id, name: text(value['name']) ?? id, words };
+  const block: WordBlock = { id, name: text(value['name']) ?? id, words };
+  const level = value['level'];
+  if (typeof level === 'number' && Number.isFinite(level) && level >= 0) {
+    block.level = Math.round(level);
+  }
+  return block;
 }
 
 function parseWord(value: unknown): WordPair | null {

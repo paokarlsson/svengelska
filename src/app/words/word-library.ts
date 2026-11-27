@@ -13,6 +13,9 @@ import { Injectable } from '@angular/core';
 import { loadLists, saveLists } from '../services/list-store';
 import { WORD_BLOCKS, WordBlock, WordPair, uniqueWords } from './word-catalog';
 
+/** Trappsteget byggets listor räknas som. Se `aimOf()`. */
+export const BUILT_IN_AIM = 1;
+
 @Injectable({ providedIn: 'root' })
 export class WordLibrary {
   private own: WordBlock[] = loadLists().filter((block) => !isBuiltIn(block.id));
@@ -56,6 +59,17 @@ export class WordLibrary {
   /** Namnen på de egna listorna, så att ett tema inte skrivs en gång till. */
   get ownNames(): string[] {
     return this.own.map((block) => block.name);
+  }
+
+  /**
+   * Nivån en lista är skriven för, eller `null` om den är okänd.
+   *
+   * Listorna som följer med bygget är veckoläxor för lågstadiet — `dog`,
+   * `teacher`, `rain` — och räknas som trappans steg 1. En egen lista skriven
+   * innan appen började anteckna nivån har ingen.
+   */
+  aimOf(block: WordBlock): number | null {
+    return block.level ?? (isBuiltIn(block.id) ? BUILT_IN_AIM : null);
   }
 
   /** Id:n som redan är tagna, för den som ska namnge en ny lista. */

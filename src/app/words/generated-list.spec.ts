@@ -169,6 +169,38 @@ describe('describeLearner', () => {
     );
   });
 
+  it('beskriver nivån som varven flyttat den, inte som provet satte den', () => {
+    const text = describeLearner({
+      ...emptyProfile(),
+      level: 3,
+      rounds: [{ list: 'l', aim: 3, answered: 20, hits: 20 }],
+    })!;
+    expect(text).toContain(LADDER[4][0].en);
+    expect(text).toContain('högre än provet');
+  });
+
+  it('bär de drag som sticker ut, och bara dem', () => {
+    const text = describeLearner({
+      ...emptyProfile(),
+      traits: { challenge: 1, careful: -1, playful: 0 },
+    })!;
+    expect(text).toContain('Vill ha motstånd');
+    expect(text).toContain('Chansar hellre');
+    expect(text).not.toContain('ordlek');
+  });
+
+  it('bär svaren på avbrotten, men inte de som var vet ej', () => {
+    const text = describeLearner({
+      ...emptyProfile(),
+      breaks: [
+        { text: 'Jag har sett ett norrsken', answer: 'yes' },
+        { text: 'Jag kan vissla med fingrarna', answer: 'unsure' },
+      ],
+    })!;
+    expect(text).toContain('norrsken»: ja');
+    expect(text).not.toContain('vissla');
+  });
+
   it('skiljer den som vill från den som måste', () => {
     const willing = describeLearner({ ...emptyProfile(), voluntary: true })!;
     const made = describeLearner({ ...emptyProfile(), voluntary: false })!;
