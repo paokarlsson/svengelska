@@ -33,6 +33,7 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  OnDestroy,
   OnInit,
   Output,
   ViewChild,
@@ -91,7 +92,7 @@ const FAILURE_TEXT: Record<WriteFailure, string> = {
   imports: [SwipeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomeViewComponent implements OnInit {
+export class HomeViewComponent implements OnInit, OnDestroy {
   /**
    * Om «Ny lista» ska stå utfälld från början.
    *
@@ -122,13 +123,8 @@ export class HomeViewComponent implements OnInit {
   writing = false;
   /** Varför det inte blev någon lista, eller `null`. */
   writeError: string | null = null;
-  /**
-   * Listan som just skrivits och ännu inte sparats.
-   *
-   * Den visas innan den hamnar bland de andra. Orden kommer från en modell och
-   * ska övas av ett barn, och den som bad om dem ska hinna läsa dem först.
-   */
-  draft: WordBlock | null = null;
+  /** Sant när sidan lämnats. Då startar en färdig lista inget varv. */
+  private gone = false;
 
   readonly maxNewPerDay = MAX_NEW_PER_DAY;
 
@@ -185,6 +181,15 @@ export class HomeViewComponent implements OnInit {
     this.makerOpen = this.offerList;
     this.revealMaker = this.offerList;
     this.deal();
+    // Startrundan är klar och nyckeln finns: då är det startrundans svar som
+    // väljer de första orden, utan att någon behöver trycka på något.
+    if (this.offerList && this.hasKey && this.hasProfile) {
+      void this.surprise();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.gone = true;
   }
 
   /** Öppnar panelen för en ny lista och rullar fram den. */
@@ -315,6 +320,11 @@ export class HomeViewComponent implements OnInit {
     return list === null ? null : (this.cards.find((item) => item.block.id === list.id) ?? null);
   }
 
+  /** Om dagsbudgeten gäller. Av tills vidare; då syns den inte heller. */
+  get limited(): boolean {
+    return this.engine.limitNewWords;
+  }
+
   get newWordsPerDay(): number {
     return this.engine.settings.newWordsPerDay;
   }
@@ -413,6 +423,10 @@ export class HomeViewComponent implements OnInit {
 
   saveKey(value: string): void {
     this.writeError = this.keys.save(value) ? null : FAILURE_TEXT['no-key'];
+    // Kom man hit från startrundan var nyckeln det enda som saknades.
+    if (this.writeError === null && this.offerList && this.hasProfile) {
+      void this.surprise();
+    }
   }
 
   forgetKey(): void {
@@ -430,7 +444,16 @@ export class HomeViewComponent implements OnInit {
   }
 
   /**
-   * Ber appen skriva en lista. Resultatet läggs fram som utkast, inte sparat.
+   * Ber appen skriva en lista, sparar den och kör den.
+   *
+   * Orden visas inte först. Så var det förut — ett utkast att läsa och behålla
+   * — men valet av ord är appens sak och ska ligga under ytan, precis som
+   * repetitionsplanen. Den som vill se dem efteråt har kartan.
+   *
+   * Listan sparas även om sidan lämnats medan den skrevs. Loggen visade en
+   * lista som kom fram arton sekunder efter att panelen stängts, mitt i ett
+   * varv, och försvann: anropet var betalt och ingen fick se resultatet. Nu
+   * hamnar den först i bunten, och är sidan kvar sätter den igång direkt.
    *
    * Ett tomt önskemål är tillåtet: för den som gjort startrundan betyder det
    * «välj åt mig», och för den som inte gjort det säger motorn ifrån.
@@ -441,18 +464,28 @@ export class HomeViewComponent implements OnInit {
     }
     this.writing = true;
     this.writeError = null;
-    this.draft = null;
     const began = Date.now();
     // Önskemålet loggas — det är vad någon bad om, och det behövs för att
     // förstå vad som kom tillbaka. Nyckeln står i ett annat fält och loggas aldrig.
     this.tracker.log('list.ask', { wish: wish.trim().slice(0, 400), auto: wish.trim() === '' });
     try {
-      this.draft = await this.writer.write(wish);
+      const block = await this.writer.write(wish);
       this.tracker.log('list.got', {
         ms: Date.now() - began,
-        name: this.draft.name,
-        words: this.draft.words.map((pair) => `${pair.en}=${pair.sv}`),
+        name: block.name,
+        words: block.words.map((pair) => `${pair.en}=${pair.sv}`),
       });
+      this.library.add(block);
+      this.tracker.log('list.keep', { id: block.id, started: !this.gone });
+      if (this.gone) {
+        // Nästa besök på startsidan öppnar på den nya listan.
+        this.engine.setActiveBlock(block.id);
+      } else {
+        this.pickedId = block.id;
+        this.makerOpen = false;
+        this.deal();
+        this.chosen.emit(block);
+      }
     } catch (error) {
       this.writeError = failureText(error);
       this.tracker.log('list.failed', {
@@ -464,24 +497,6 @@ export class HomeViewComponent implements OnInit {
       // Ett `await` ligger emellan, så Angular har redan kört sin kontroll.
       this.changes.markForCheck();
     }
-  }
-
-  /** Behåller utkastet: listan sparas och ligger framme på startsidan. */
-  keepDraft(): void {
-    if (this.draft === null) {
-      return;
-    }
-    this.library.add(this.draft);
-    this.tracker.log('list.keep', { id: this.draft.id });
-    this.pickedId = this.draft.id;
-    this.draft = null;
-    this.makerOpen = false;
-    this.deal();
-  }
-
-  dropDraft(): void {
-    this.tracker.log('list.drop', { name: this.draft?.name ?? null });
-    this.draft = null;
   }
 
   /** Tar bort en egen lista. Framstegen ligger kvar — de följer ordet. */

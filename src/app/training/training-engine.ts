@@ -244,6 +244,22 @@ export class TrainingEngine {
   }
 
   /**
+   * Om dagsbudgeten för nya ord gäller.
+   *
+   * Avstängd tills vidare. Loggen visade vad den kostade: Kroppen tog dagens
+   * fem nya ord, och en lista som skrevs strax efter spelades sedan tre gånger
+   * med Kropparnas ord i stället för sina egna — den som valt listan såg aldrig
+   * ett enda av dem och gav upp. Budgeten finns kvar i koden och i
+   * inställningarna, och slås på här.
+   */
+  limitNewWords = false;
+
+  /** Så många nya ord ett varv får ta in nu. Obegränsat när budgeten är av. */
+  newBudget(catalog: readonly WordPair[], now: number = Date.now()): number {
+    return this.limitNewWords ? this.newWordsLeft(catalog, now) : Number.POSITIVE_INFINITY;
+  }
+
+  /**
    * Orden appen *vet* är lätta för just den här spelaren: de som sitter åt båda
    * hållen. Kalibreringens förstahandsval.
    */

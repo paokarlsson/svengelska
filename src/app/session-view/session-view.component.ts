@@ -103,7 +103,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.tracker.log('round', {
       list: this.list.id,
       cards: this.session.target,
-      newLeft: this.engine.newWordsLeft(this.library.words),
+      newLeft: this.engine.limitNewWords ? this.engine.newWordsLeft(this.library.words) : null,
     });
     if (this.session.target === 0) {
       // Inget var moget och inget nytt fanns. Ett kort säger det, och det enda

@@ -60,6 +60,8 @@ describe('TrainingSession', () => {
     engine = new TrainingEngine();
     engine.useRepository(new MemoryRepository());
     await engine.hydrate();
+    // Budgeten är avstängd i appen men ska fortfarande hålla när den slås på.
+    engine.limitNewWords = true;
     engine.setNewWordsPerDay(ROUND_WORDS);
   });
 

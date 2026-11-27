@@ -431,8 +431,8 @@ regel som «Felsvaren står i listan, inte i koden» vilar på, och för en skri
 lista är den äntligen en invariant med ett test och inte en uppmaning till den
 som skriver CSV:n.
 
-En skriven lista visas som utkast innan den sparas. Orden kommer från en modell
-och ska övas av ett barn; den som bad om dem ska hinna läsa dem först.
+En skriven lista visades först som utkast. Det är borttaget: valet av ord ska
+ligga under ytan, och listan sparas och körs direkt.
 
 **Appen frågar vem man är innan den frågar vad man kan.** Startrundan
 (`intro/intro-run.ts`) är ett dussin kort om en själv, två om ålder, ett om
