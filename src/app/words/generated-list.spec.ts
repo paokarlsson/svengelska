@@ -189,6 +189,18 @@ describe('describeLearner', () => {
     expect(text).not.toContain('ordlek');
   });
 
+  it('bär svaren på avbrotten, men inte de som var vet ej', () => {
+    const text = describeLearner({
+      ...emptyProfile(),
+      breaks: [
+        { text: 'Jag har sett ett norrsken', answer: 'yes' },
+        { text: 'Jag kan vissla med fingrarna', answer: 'unsure' },
+      ],
+    })!;
+    expect(text).toContain('norrsken»: ja');
+    expect(text).not.toContain('vissla');
+  });
+
   it('skiljer den som vill från den som måste', () => {
     const willing = describeLearner({ ...emptyProfile(), voluntary: true })!;
     const made = describeLearner({ ...emptyProfile(), voluntary: false })!;

@@ -17,8 +17,8 @@
  *    läsare får tänka efter på. Den börjar där åldern säger att det är troligt
  *    och går upp eller ner tills den hittat kanten.
  *
- * Efter ålder och skäl varvas trappan med de andra korten: ett trappsteg, två
- * påståenden, nästa steg. Så var det inte först — då kom tolv frågor om
+ * Efter ålder och skäl varvas trappan med de andra korten: ett trappsteg, ett
+ * avbrott om något helt annat (se `breaks.ts`), ett påstående, nästa steg. Så var det inte först — då kom tolv frågor om
  * intressen, sedan ålder, sedan provet, och en vuxen som läser engelska till
  * vardags fick börja med `cat` efter att ha svarat på om hen gillar djur.
  *
@@ -28,11 +28,12 @@
 import { Response } from '../training/word-state';
 import { Statement } from '../words/distractors';
 import { Random, shuffle } from '../words/shuffle';
+import { breakNote, nextBreak } from './breaks';
 import { TRAITS, saidOf } from './personality';
-import { AgeBand, Profile, Said, TraitId } from './profile';
+import { AgeBand, Note, Profile, Said, TraitId } from './profile';
 
 /** Vilken del av rundan ett kort hör till. Vyn sätter rubrik efter det. */
-export type IntroPhase = 'about' | 'you' | 'how' | 'words';
+export type IntroPhase = 'about' | 'you' | 'how' | 'break' | 'words';
 
 /**
  * Ett kort i startrundan.
@@ -41,7 +42,7 @@ export type IntroPhase = 'about' | 'you' | 'how' | 'words';
  * riktigt sant/falskt-kort, och döms som ett.
  */
 export type IntroCard =
-  | { kind: 'ask'; phase: 'about' | 'you' | 'how'; id: string; text: string }
+  | { kind: 'ask'; phase: 'about' | 'you' | 'how' | 'break'; id: string; text: string }
   | { kind: 'probe'; phase: 'words'; level: number; statement: Statement };
 
 /** Ett påstående om en själv, och intresset ett ja står för. */
@@ -198,18 +199,18 @@ const START: Record<AgeBand | 'unknown', number> = {
   unknown: 1,
 };
 
-/** Så många påståenden som visas mellan två trappsteg. */
+/** Så många kort som visas mellan två trappsteg. Avbrottet är ett av dem. */
 export const ASKS_BETWEEN = 2;
 
 /**
  * Ungefär så många kort rundan brukar bli. Mätaren räknar mot det tills åldern
  * är känd och den vet bättre: öppningen, ålder och skäl, dragen, intressena som
- * är kvar, och tre trappsteg.
+ * är kvar, och tre trappsteg med var sitt avbrott.
  */
-const EXPECTED = OPENING + 3 + TRAITS.length + (ABOUT.length - OPENING - 2) + 6;
+const EXPECTED = OPENING + 3 + TRAITS.length + (ABOUT.length - OPENING - 2) + 6 + 3;
 
 /** Vilken kö ett kort kom ur. */
-type Source = 'front' | 'asks' | 'probes';
+type Source = 'front' | 'asks' | 'probes' | 'breakCard';
 
 export class IntroRun {
   /** De fasta korten först: öppningen, åldern och skälet. */
@@ -220,6 +221,12 @@ export class IntroRun {
   private readonly probes: IntroCard[] = [];
   /** Påståenden kvar att visa innan nästa trappsteg läggs fram. */
   private gap = 0;
+  /**
+   * Avbrottet som står på tur efter ett trappsteg. Dras en gång och sparas, så
+   * att kortet som visas är kortet som besvaras.
+   */
+  private readonly breakCard: IntroCard[] = [];
+  private readonly breakNotes: Note[] = [];
   /** Sant från att trappan börjat tills den hittat kanten. */
   private climbing = false;
 
@@ -260,7 +267,11 @@ export class IntroRun {
     }
     const left =
       this.start !== null
-        ? this.front.length + this.asks.length + this.probes.length + (this.climbing ? 2 : 0)
+        ? this.front.length +
+          this.asks.length +
+          this.probes.length +
+          this.breakCard.length +
+          (this.climbing ? 3 : 0)
         : Math.max(1, EXPECTED - this.answers);
     this.shown = Math.max(this.shown, Math.min(0.95, this.answers / (this.answers + left)));
     return this.shown;
@@ -285,12 +296,14 @@ export class IntroRun {
       this.answerProbe(card, response);
     } else if (card.phase === 'about') {
       this.answerAbout(card.id, response);
+    } else if (card.phase === 'break') {
+      this.breakNotes.push(breakNote(card.text, response));
     } else if (card.phase === 'how') {
       this.traits[card.id as TraitId] = saidOf(card.id as TraitId, response);
     } else {
       this.answerYou(card.id, response);
     }
-    if (from === 'asks') {
+    if (from === 'asks' || from === 'breakCard') {
       this.gap = Math.max(0, this.gap - 1);
     }
   }
@@ -306,19 +319,25 @@ export class IntroRun {
     if (Object.keys(this.traits).length > 0) {
       profile.traits = { ...this.traits };
     }
+    if (this.breakNotes.length > 0) {
+      profile.breaks = [...this.breakNotes];
+    }
     return profile;
   }
 
   /**
    * Kortet som ligger framme, och kön det ligger i.
    *
-   * De fasta korten först. Sedan ett trappsteg, när det är dags, och annars
-   * ett påstående. Är påståendena slut går trappan i ett svep, och är trappan
-   * slut visas påståendena som är kvar.
+   * De fasta korten först. Efter ett trappsteg ett avbrott. Sedan ett
+   * trappsteg, när det är dags, och annars ett påstående. Är påståendena slut
+   * går trappan i ett svep, och är trappan slut visas påståendena som är kvar.
    */
   private pick(): { card: IntroCard; from: Source } | null {
     if (this.front.length > 0) {
       return { card: this.front[0], from: 'front' };
+    }
+    if (this.breakCard.length > 0) {
+      return { card: this.breakCard[0], from: 'breakCard' };
     }
     if (this.probes.length > 0 && (this.gap === 0 || this.asks.length === 0)) {
       return { card: this.probes[0], from: 'probes' };
@@ -426,7 +445,8 @@ export class IntroRun {
       return;
     }
 
-    // Stegets andra kort är besvarat.
+    // Stegets andra kort är besvarat. Nu ett avbrott, innan något annat.
+    this.queueBreak();
     const step = card.level;
     if (this.rightOnStep === LADDER[step].length) {
       this.passed.add(step);
@@ -447,8 +467,19 @@ export class IntroRun {
   }
 
   /**
+   * Lägger fram ett avbrott: något helt annat, efter två kort om engelska ord.
+   * Se `breaks.ts`. Ett ja kan ge en följdfråga redan vid nästa avbrott.
+   */
+  private queueBreak(): void {
+    const text = nextBreak(this.breakNotes, this.age, this.random);
+    if (text !== null) {
+      this.breakCard.push(ask('break', 'break', text));
+    }
+  }
+
+  /**
    * Lägger fram ett trappsteg. Det första direkt efter skälet, resten efter
-   * några påståenden. Ordningen inom steget är slumpad.
+   * ett avbrott och ett påstående. Ordningen inom steget är slumpad.
    */
   private queueStep(step: number): void {
     this.rightOnStep = 0;
@@ -459,7 +490,7 @@ export class IntroRun {
   }
 }
 
-function ask(phase: 'about' | 'you' | 'how', id: string, text: string): IntroCard {
+function ask(phase: 'about' | 'you' | 'how' | 'break', id: string, text: string): IntroCard {
   return { kind: 'ask', phase, id, text };
 }
 

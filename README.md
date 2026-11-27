@@ -46,6 +46,7 @@ varvet är slut.
 | `src/app/services/api-key-store.ts`, `list-store.ts`, `profile-store.ts` | Var nyckeln, de egna listorna och profilen ligger |
 | `src/app/intro/` | Startrundan: korten som lär känna den som övar, och profilen de blir |
 | `src/app/intro/skill.ts`, `personality.ts` | Nivån och personligheten som de spåras: startrundan först, varven sedan |
+| `src/app/intro/breaks.ts`, `services/break-deck.ts` | Avbrotten: något helt annat mitt bland orden, och vad som byggs vidare på dem |
 | `src/app/intro-view/` | Startrundan på skärmen — appens vanliga kort, med frågor i stället för glosor |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
@@ -145,7 +146,8 @@ dag`, `Jag har sett samma film fler än tre gånger`. Efter fyra sådana kommer
 - **Resten av intressena**, valda efter åldern: en vuxen tillfrågas om engelska
   i jobbet, en tioåring om rymden.
 
-Trappan ligger två påståenden isär, så att det inte blir ett prov i slutet. Så
+Efter varje trappsteg kommer ett avbrott (se nedan) och ett påstående, så att
+det inte blir ett prov i slutet. Så
 var det inte först: tolv intressen, sedan ålder, sedan trappan från `cat` med
 fem steg. Loggen från en vuxen som läser engelska till vardags visade vad det
 gav — taket nått på åtta kort, en första lista om mjöl och deg, och sedan
@@ -161,6 +163,27 @@ Nivån skickas till modellen som *ord* och inte som en siffra — «klarar
 `reluctant` men inte `to sue`» — eftersom det betyder samma sak för alla som kan
 engelska. Åldern skickas som ett spann, aldrig som ett tal, och inget namn
 frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
+
+### Avbrotten
+
+Mitt bland orden ligger ibland ett kort som inte har med engelska att göra:
+`Jag har sett ett norrsken`, `Jag tycker att ananas hör hemma på pizza`. Det står
+«Avbrott» på det, och det svaras på som alla andra påståenden. Ett kommer efter
+varje trappsteg i startrundan, och ett mitt i varje varv. Det räknas inte i
+varvet, rör inte sviten och mäts inte.
+
+Det bryter av — tjugo sant/falskt-kort i rad är ett prov — men det är också en
+ingång. Ett ja till norrskenet säger något som tolv frågor om intressen inte
+fångar, och det byggs vidare på på två sätt:
+
+- **Nästa avbrott.** En del frön har en följdfråga som kommer om svaret var ja
+  (`Jag har stått ute mitt i natten för att se det`). Med en nyckel skriver
+  Claude nya avbrott i bakgrunden utifrån allt som svarats: ett som går djupare
+  i något eleven sagt ja till, och resten helt nya.
+- **Nästa lista.** Svaren skickas med när en lista skrivs, och modellen ombeds
+  ta temat ur ett oväntat ja när den väljer själv.
+
+Utan profil visas inga avbrott: det finns då inget att bygga vidare på dem i.
 
 ### Nivån och personligheten spåras
 
@@ -327,6 +350,7 @@ Medan appen utvecklas sparar den allt som händer, inte bara vad som blev av det
 | `outcome` | Vad motorn gjorde av svaret: utfall, låda före och efter, sviten |
 | `nav`, `round`, `round.end`, `leave`, `intro.end` | Var man var och vart man gick. `round.end` bär också listans nivå och nivån före och efter varvet |
 | `list.ask`, `list.got`, `list.failed`, `list.keep`, `list.drop` | Vad som önskades av Claude och vad som kom tillbaka |
+| `break`, `break.got`, `break.failed` | Ett avbrott och svaret på det, och avbrotten Claude skrev |
 | `visible`, `error`, `setting`, `export`, `track` | Det som förklarar resten |
 
 Ett drag som släpps halvvägs loggas som ett drag utan svar, och ett tryck på

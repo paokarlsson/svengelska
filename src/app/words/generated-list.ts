@@ -72,6 +72,8 @@ Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan ha
 
 Saknas önskemål väljer du temat själv, ur det eleven tycker om. Välj ett smalt och konkret tema hellre än ett brett: «på stallet» säger mer än «djur», och en lista man känner igen sig i är en lista man övar på. Ta inte ett tema eleven redan har en lista om.
 
+Avbrotten är lösa påståenden appen lagt mellan glosorna, om sådant som inte har med engelska att göra. Ett ja där är en ingång: «Jag har sett ett norrsken» kan bli en lista om vinternatten, «Jag har lagat något med tejp» en om verktyg. Ta gärna temat ur ett sådant ja när du väljer själv, särskilt om det är oväntat — en lista eleven inte väntat sig är en lista som minns.
+
 Har eleven svarat på följdfrågor väger de tyngst. De är det mest precisa du vet: ett ja till «Jag har tältat på fjället» säger mer om vilka ord eleven har nytta av än ett ja till natur. Ta temat ur dem när du väljer själv.
 
 Nivån beskrivs med ord eleven klarar och ord hen inte klarar. Den kommer från ett kort prov och har sedan justerats av hur nya listor gått på första försöket, så den är det bästa måttet du har. De flesta glosorna ska ligga i höjd med orden hen inte klarar — ord hen inte kan än men är redo för — och ett par får vara lättare, så att listan inte bara är motstånd. En lista där eleven redan kan nästan allt är ett misslyckande lika mycket som en där hen inte kan något: mät dig mot nivån, inte mot temat. Även ett vardagligt tema har svåra ord. Åldern säger vilken värld orden ska komma ur, inte hur svåra de ska vara: en vuxen nybörjare ska ha lätta ord om vuxna saker, och en van vuxen läsare ska inte få ord en tioåring kan.
@@ -181,6 +183,15 @@ export function describeLearner(profile: Profile): string | null {
   if (notes.length > 0) {
     lines.push('Svar på följdfrågor:');
     for (const note of notes) {
+      lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}`);
+    }
+  }
+  // Ett «vet ej» på ett avbrott säger ingenting. På en följdfråga säger det
+  // att frågan inte träffade, och det står kvar där.
+  const breaks = (profile.breaks ?? []).filter((note) => note.answer !== 'unsure');
+  if (breaks.length > 0) {
+    lines.push('Svar på avbrott — lösa frågor mellan glosorna:');
+    for (const note of breaks) {
       lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}`);
     }
   }

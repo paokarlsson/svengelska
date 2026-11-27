@@ -34,6 +34,7 @@ import { wordKey } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
 import { Tracker } from '../services/tracker';
 import { ProfileStore } from '../services/profile-store';
+import { BREAK_AT, BREAK_LABEL, BreakDeck } from '../services/break-deck';
 import { skillOf } from '../intro/skill';
 
 /** Så många flyttade håll som skrivs ut under slutkortet. */
@@ -59,6 +60,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   private readonly library = inject(WordLibrary);
   private readonly tracker = inject(Tracker);
   private readonly profiles = inject(ProfileStore);
+  private readonly breaks = inject(BreakDeck);
 
   session!: TrainingSession;
   task: Task | null = null;
@@ -84,6 +86,13 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   slots: readonly number[] = [];
   /** Hållet slutkortet sveptes åt. Verkställs när kortet lämnat bordet. */
   private swiped: Response | null = null;
+  /**
+   * Avbrottet som ligger på bordet, eller `null`. Ett per varv, mitt i — se
+   * `intro/breaks.ts`. Det räknas inte i varvet och rör inte sviten.
+   */
+  breakText: string | null = null;
+  /** Om varvet redan haft sitt avbrott. */
+  private hadBreak = false;
 
   readonly roundWords = ROUND_WORDS;
   readonly calibrationCards = CALIBRATION_CARDS;
@@ -102,6 +111,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.summary = null;
     this.record = false;
     this.ending = null;
+    this.breakText = null;
+    this.hadBreak = false;
+    // Skrivs i bakgrunden nu, så att ett skrivet avbrott finns när varvet är
+    // halvvägs. Utan nyckel gör det ingenting.
+    this.breaks.refill();
     this.slots = Array.from({ length: this.session.target }, (_, index) => index);
     this.tracker.log('round', {
       list: this.list.id,
@@ -157,6 +171,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   onAnswer(answer: SwipeAnswer): void {
+    if (this.breakText !== null) {
+      const note = this.breaks.answer(this.breakText, answer.response);
+      this.tracker.log('break', { text: this.breakText, as: note?.answer ?? null });
+      return;
+    }
     if (this.task === null) {
       return;
     }
@@ -176,6 +195,9 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   onCompleted(): void {
+    if (this.breakText !== null) {
+      this.breakText = null;
+    }
     this.advance();
   }
 
@@ -244,6 +266,17 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.exited.emit();
   }
 
+  /** Om det är dags för varvets avbrott: halvvägs, en gång, och bara med en profil. */
+  private breakDue(): boolean {
+    const half = Math.ceil(this.session.target * BREAK_AT);
+    return (
+      !this.hadBreak &&
+      this.breaks.available &&
+      this.session.answered >= half &&
+      this.session.answered < this.session.target
+    );
+  }
+
   /** Nivån som profilen säger just nu, för loggen. */
   private skill(): number | null {
     const profile = this.profiles.profile;
@@ -251,6 +284,15 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   private advance(): void {
+    if (this.breakDue()) {
+      this.hadBreak = true;
+      this.breakText = this.breaks.peek();
+      if (this.breakText !== null) {
+        this.task = null;
+        this.card = { kind: 'ask', text: this.breakText, label: BREAK_LABEL };
+        return;
+      }
+    }
     this.task = this.session.nextTask();
     this.card = this.task === null ? null : { kind: 'trueFalse', statement: this.task.statement };
     if (this.task === null) {

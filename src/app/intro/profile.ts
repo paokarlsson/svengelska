@@ -56,6 +56,9 @@ export interface Note {
   answer: 'yes' | 'no' | 'unsure';
 }
 
+/** Så många avbrott profilen minns. Fler än så säger inte modellen något nytt. */
+export const BREAKS_KEPT = 30;
+
 /** Dragen startrundan frågar om. Vad de betyder står i `personality.ts`. */
 export const TRAIT_IDS = ['challenge', 'playful', 'practical', 'persistent', 'careful'] as const;
 export type TraitId = (typeof TRAIT_IDS)[number];
@@ -125,6 +128,11 @@ export interface Profile {
    * de besvarades. Saknas för den som sa att appen visste nog.
    */
   notes?: Note[];
+  /**
+   * Svaren på avbrotten — de lösa påståendena mellan orden, se `breaks.ts`. I
+   * den ordning de besvarades, de senaste `BREAKS_KEPT`.
+   */
+  breaks?: Note[];
   /** Vad hen sa om sig själv i startrundan, drag för drag. Saknas = inte frågad. */
   traits?: Partial<Record<TraitId, Said>>;
   /** Vad hen gjort sedan. Saknas tills första varvet. */
@@ -149,6 +157,7 @@ export function saysSomething(profile: Profile): boolean {
     profile.voluntary !== null ||
     profile.level !== null ||
     (profile.notes?.length ?? 0) > 0 ||
+    (profile.breaks ?? []).some((note) => note.answer !== 'unsure') ||
     Object.values(profile.traits ?? {}).some((said) => said !== 0)
   );
 }
@@ -184,11 +193,13 @@ export function readProfile(value: unknown): Profile {
       ? LEVEL_FROM_V1[clamp(Math.round(raw['level']), 0, LEVEL_FROM_V1.length - 1)]
       : clamp(Math.round(raw['level']), 0, TOP_LEVEL);
   }
-  if (Array.isArray(raw['notes'])) {
-    const notes = raw['notes'].filter(isNote).map((note) => ({ text: note.text.trim(), answer: note.answer }));
-    if (notes.length > 0) {
-      profile.notes = notes;
-    }
+  const notes = readNotes(raw['notes']);
+  if (notes.length > 0) {
+    profile.notes = notes;
+  }
+  const breaks = readNotes(raw['breaks']).slice(-BREAKS_KEPT);
+  if (breaks.length > 0) {
+    profile.breaks = breaks;
   }
 
   const traits = readTraits(raw['traits']);
@@ -214,6 +225,12 @@ export function readProfile(value: unknown): Profile {
 /** Profilen som den lagras: med versionsraden, så att nästa läsning vet skalan. */
 export function storedProfile(profile: Profile): Profile & { version: number } {
   return { version: PROFILE_VERSION, ...profile };
+}
+
+function readNotes(value: unknown): Note[] {
+  return Array.isArray(value)
+    ? value.filter(isNote).map((note) => ({ text: note.text.trim(), answer: note.answer }))
+    : [];
 }
 
 function readTraits(value: unknown): Partial<Record<TraitId, Said>> | null {

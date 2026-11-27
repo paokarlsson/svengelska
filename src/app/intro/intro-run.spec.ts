@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ABOUT, ASKS_BETWEEN, IntroCard, IntroRun, LADDER, OPENING, wordsOnStep } from './intro-run';
 import { TRAITS } from './personality';
+import { SEEDS } from './breaks';
 import { TOP_LEVEL } from './profile';
 import { Response } from '../training/word-state';
 
@@ -72,6 +73,28 @@ describe('IntroRun', () => {
     expect(afterWhy.slice(0, 2).every((id) => id.startsWith('#'))).toBe(true);
     expect(afterWhy.slice(2, 2 + ASKS_BETWEEN).every((id) => !id.startsWith('#'))).toBe(true);
     expect(afterWhy[2 + ASKS_BETWEEN].startsWith('#')).toBe(true);
+  });
+
+  describe('avbrotten', () => {
+    it('kommer efter varje trappsteg, före något annat', () => {
+      const seen = ids(play(new IntroRun(seeded(1)), knowing(5)));
+      seen.forEach((id, i) => {
+        if (id.startsWith('#') && i + 1 < seen.length && !seen[i + 1].startsWith('#') && seen[i - 1] === id) {
+          expect(seen[i + 1]).toBe('break');
+        }
+      });
+      expect(seen.filter((id) => id === 'break').length).toBe(3);
+    });
+
+    it('bygger vidare på ett ja redan vid nästa avbrott', () => {
+      const run = new IntroRun(seeded(1));
+      const breaks = play(run, knowing(5)).filter((card) => card.kind === 'ask' && card.phase === 'break');
+      const first = SEEDS.find((seed) => breaks[0].kind === 'ask' && seed.text === breaks[0].text)!;
+      if (first.then !== undefined) {
+        expect(breaks[1].kind === 'ask' && breaks[1].text).toBe(first.then);
+      }
+      expect(run.profile().breaks!.map((note) => note.answer)).toEqual(['yes', 'yes', 'yes']);
+    });
   });
 
   it('frågar om vart och ett av dragen, en gång', () => {
