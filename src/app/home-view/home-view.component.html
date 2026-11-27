@@ -176,16 +176,40 @@
             </ul>
             }
 
-            @if (hasKey) {
+            <!-- Nyckeln står alltid här, också när den saknas. Den som letar efter
+                 var den läggs in letar under Inställningar. -->
             <div class="field">
                 <span class="field-name">Anthropic-nyckel</span>
-                <span class="key-hint">{{keyHint}}</span>
+                <span class="key-hint">@if (hasKey) { {{keyHint}} } @else { saknas }</span>
             </div>
+            @if (hasKey) {
             <div class="panel-actions">
                 <button type="button" class="ui-btn ui-btn--quiet" (click)="forgetKey()">
                     Ta bort nyckeln
                 </button>
             </div>
+            } @else {
+            <input
+                #settingsKey
+                id="settings-api-key"
+                class="text"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Anthropic-nyckel"
+                placeholder="sk-ant-…" />
+            <div class="panel-actions">
+                <button
+                    type="button"
+                    class="ui-btn ui-btn--primary"
+                    (click)="saveKey(settingsKey.value)">
+                    Spara nyckeln
+                </button>
+            </div>
+            <p class="field-note">
+                Behövs för att appen ska kunna skriva nya listor med Claude. Den sparas bara i den
+                här webbläsaren och skickas bara till Anthropic.
+            </p>
             }
 
             <div class="panel-actions">
