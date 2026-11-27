@@ -30,7 +30,9 @@ import { ROUND_WORDS } from '../training/round';
 import { TrainingEngine } from '../training/training-engine';
 import { Response } from '../training/word-state';
 import { WordBlock } from '../words/word-catalog';
+import { wordKey } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
+import { Tracker } from '../services/tracker';
 
 /** Så många flyttade håll som skrivs ut under slutkortet. */
 const ADVANCED_SHOWN = 4;
@@ -53,6 +55,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   private readonly engine = inject(TrainingEngine);
   private readonly library = inject(WordLibrary);
+  private readonly tracker = inject(Tracker);
 
   session!: TrainingSession;
   task: Task | null = null;
@@ -97,6 +100,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.record = false;
     this.ending = null;
     this.slots = Array.from({ length: this.session.target }, (_, index) => index);
+    this.tracker.log('round', {
+      list: this.list.id,
+      cards: this.session.target,
+      newLeft: this.engine.newWordsLeft(this.library.words),
+    });
     if (this.session.target === 0) {
       // Inget var moget och inget nytt fanns. Ett kort säger det, och det enda
       // hållet är hem.
@@ -146,9 +154,22 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   onAnswer(answer: SwipeAnswer): void {
-    if (this.task !== null) {
-      this.session.record(this.task, answer.response, answer.seconds);
+    if (this.task === null) {
+      return;
     }
+    const { statement, calibration } = this.task;
+    const word = { pair: statement.pair, direction: statement.direction };
+    const before = this.engine.statFor(word).box;
+    const outcome = this.session.record(this.task, answer.response, answer.seconds);
+    // Det vyn inte vet men loggen vill veta: vad motorn gjorde av svaret.
+    this.tracker.log('outcome', {
+      key: wordKey(statement.pair, statement.direction),
+      truthy: statement.truthy,
+      probe: calibration,
+      out: outcome,
+      box: [before, this.engine.statFor(word).box],
+      streak: this.session.streak,
+    });
   }
 
   onCompleted(): void {
@@ -200,6 +221,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   leave(): void {
+    this.tracker.log('leave', { answered: this.session.answered, of: this.session.target });
     void this.engine.flush();
     this.exited.emit();
   }
@@ -210,6 +232,12 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     if (this.task === null) {
       this.summary = this.session.summary();
       this.record = this.engine.noteStreak(this.summary.longest);
+      const { advanced, ...numbers } = this.summary;
+      this.tracker.log('round.end', {
+        ...numbers,
+        advanced: advanced.length,
+        record: this.record,
+      });
       this.ending = {
         kind: 'choice',
         label: 'Varvet är klart',

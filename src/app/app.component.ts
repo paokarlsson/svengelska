@@ -3,6 +3,7 @@ import { HomeViewComponent } from './home-view/home-view.component';
 import { IntroViewComponent } from './intro-view/intro-view.component';
 import { MapViewComponent } from './map-view/map-view.component';
 import { ProfileStore } from './services/profile-store';
+import { Tracker } from './services/tracker';
 import { SessionViewComponent } from './session-view/session-view.component';
 import { TrainingEngine } from './training/training-engine';
 import { WordBlock } from './words/word-catalog';
@@ -34,6 +35,7 @@ export class AppComponent {
   private readonly engine = inject(TrainingEngine);
   private readonly library = inject(WordLibrary);
   private readonly profiles = inject(ProfileStore);
+  private readonly tracker = inject(Tracker);
 
   /**
    * Den som aldrig öppnat appen möts av startrundan och inte av en lista.
@@ -45,6 +47,11 @@ export class AppComponent {
   screen: Screen = !this.profiles.hasProfile && !this.engine.hasPractice ? 'intro' : 'home';
   /** Om startsidan ska öppna med «Ny lista» utfälld — vägen ut ur startrundan. */
   offerList = false;
+
+  constructor() {
+    this.tracker.start();
+    this.tracker.log('nav', { to: this.screen });
+  }
   /** Listan som visas. Vid uppstart den som övades sist, om den finns kvar. */
   block: WordBlock | null = this.library.byId(this.engine.activeBlockId);
 
@@ -53,26 +60,32 @@ export class AppComponent {
     // Vilken lista nya ord hämtas ur ligger i framstegsdokumentet, så att nästa
     // besök kan peka ut var man var. Det är lagrets sak, inte skalets.
     this.engine.setActiveBlock(block.id);
-    this.screen = 'session';
+    this.go('session', block.id);
   }
 
   showMap(block: WordBlock): void {
     this.block = block;
-    this.screen = 'map';
+    this.go('map', block.id);
   }
 
   showHome(): void {
     this.offerList = false;
-    this.screen = 'home';
+    this.go('home');
   }
 
   showIntro(): void {
-    this.screen = 'intro';
+    this.go('intro');
   }
 
   /** Startrundan är klar: nu vet appen nog för att skriva en lista. */
   introDone(): void {
     this.offerList = true;
-    this.screen = 'home';
+    this.go('home');
+  }
+
+  /** Byter yta. Det enda stället som gör det, så att loggen ser varje byte. */
+  private go(screen: Screen, list: string | null = null): void {
+    this.tracker.log('nav', { from: this.screen, to: screen, list });
+    this.screen = screen;
   }
 }

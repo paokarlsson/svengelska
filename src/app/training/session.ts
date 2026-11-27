@@ -201,11 +201,14 @@ export class TrainingSession {
    * Kalibreringen och varvet skiljs åt här och ingen annanstans: ett prov går
    * till kanalens golv och lämnar varken dom eller låda efter sig, medan ett
    * kort som räknas går hela vägen genom motorn.
+   *
+   * Returnerar vad svaret blev, eller `null` för ett prov — som inte blir
+   * något.
    */
-  record(task: Task, response: Response, seconds: number | null): void {
+  record(task: Task, response: Response, seconds: number | null): Outcome | null {
     if (task.calibration !== null) {
       this.recordProbe(task.calibration, response, seconds);
-      return;
+      return null;
     }
 
     const outcome = this.engine.record(task.statement, response, seconds);
@@ -227,6 +230,7 @@ export class TrainingSession {
     if (!isCorrect(outcome)) {
       this.queueRetry(word);
     }
+    return outcome;
   }
 
   summary(): RoundSummary {

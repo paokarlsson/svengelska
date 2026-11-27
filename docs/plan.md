@@ -374,6 +374,10 @@ ger tunnare underlag.
 Beslut: bygg ingen observationslogg förrän frågan faktiskt ska besvaras. Att
 kopiera loggen «för säkerhets skull» ger data ingen läser.
 
+*Loggen finns nu — se «Loggen» i README. Skälet som saknades då finns i dag:
+appen utvecklas, frågorna ställs, och det finns någon som läser svaren. Den är
+medvetet en utvecklingslogg med en avstängningsrad, inte en del av spelet.*
+
 ---
 
 ## Kvarvarande steg
