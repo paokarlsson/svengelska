@@ -212,6 +212,29 @@
             </p>
             }
 
+            <span class="field-name">Data</span>
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--secondary" (click)="exportData()">
+                    Kopiera data
+                </button>
+                @if (copied) {
+                <span class="done" role="status">Kopierat — klistra in där det ska analyseras.</span>
+                }
+            </div>
+            @if (exported; as text) {
+            <textarea
+                class="text text--export"
+                rows="5"
+                readonly
+                aria-label="Data att kopiera"
+                (focus)="$any($event.target).select()">{{text}}</textarea>
+            <p class="field-note">Det gick inte att kopiera. Markera texten och kopiera den själv.</p>
+            }
+            <p class="field-note">
+                Allt appen mätt: svaren per ord och håll, tempot, profilen och listorna. Nyckeln
+                följer aldrig med.
+            </p>
+
             <div class="panel-actions">
                 <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
                     @if (hasProfile) { Gör om startfrågorna } @else { Svara på startfrågorna }

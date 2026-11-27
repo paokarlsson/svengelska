@@ -30,6 +30,7 @@ import {
   inject,
 } from '@angular/core';
 import { ApiKeyStore } from '../services/api-key-store';
+import { exportText } from '../services/data-export';
 import { ListWriteError, WriteFailure } from '../services/list-write-error';
 import { ListWriter } from '../services/list-writer';
 import { ProfileStore } from '../services/profile-store';
@@ -116,6 +117,17 @@ export class HomeViewComponent implements OnInit {
   draft: WordBlock | null = null;
 
   readonly maxNewPerDay = MAX_NEW_PER_DAY;
+
+  /**
+   * Exporten, när den inte gick att kopiera.
+   *
+   * Urklipp kräver en säker sida och ett ja från webbläsaren, och får appen
+   * inget av dem ska texten ändå gå att komma åt: då visas den i ett fält att
+   * markera för hand.
+   */
+  exported: string | null = null;
+  /** Sant en stund efter att exporten hamnat i urklipp. */
+  copied = false;
 
   /** Listan användaren bläddrat fram till, om någon. */
   private pickedId: string | null = null;
@@ -337,6 +349,29 @@ export class HomeViewComponent implements OnInit {
       this.pickedId = null;
     }
     this.deal();
+  }
+
+  /**
+   * Kopierar allt appen vet — utom nyckeln — som en text att klistra in för
+   * analys. Vad som följer med avgör `data-export.ts`.
+   */
+  async exportData(): Promise<void> {
+    const text = exportText({
+      document: this.engine.snapshot,
+      profile: this.profiles.profile,
+      blocks: this.library.blocks,
+      isOwn: (id) => this.library.isOwn(id),
+      now: Date.now(),
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copied = true;
+      this.exported = null;
+    } catch {
+      this.copied = false;
+      this.exported = text;
+    }
+    this.changes.markForCheck();
   }
 
   async reset(): Promise<void> {

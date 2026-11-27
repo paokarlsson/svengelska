@@ -57,6 +57,7 @@ varvet är slut.
 | `src/app/training/session.ts` | Varvsdirigenten — vad som kommer härnäst, och när varvet är slut |
 | `src/app/training/training-engine.ts` | Vad appen tror om den som övar, och vad den gör med det |
 | `src/app/services/progress-store.ts` | Det lagrade dokumentet, dess version och dess normalisering |
+| `src/app/services/data-export.ts` | Allt appen mätt som en text att kopiera, för analys. Aldrig nyckeln |
 | `src/app/match-view/`, `src/app/write-view/` | Steg 1 och 4. Avstängda av `scope.ts`, kvar i koden |
 | `src/app/entry-picker/`, `src/app/training/entry.ts` | Ingångsvalet. Avstängt av samma skäl — en dörr är inget val |
 | `src/app/swipe-view/` | Kortet: tre riktningar, inga knappar, och reglerna för när ett drag är ett svar |

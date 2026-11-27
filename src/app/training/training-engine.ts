@@ -278,6 +278,17 @@ export class TrainingEngine {
     return true;
   }
 
+  /**
+   * Hela dokumentet, för exporten. Att läsa, inte att ändra.
+   *
+   * Det enda stället motorn lämnar ifrån sig mer än ett svar på en fråga, och
+   * det är med flit en egen metod: allt annat som vill veta något ska fråga
+   * efter just det.
+   */
+  get snapshot(): Readonly<ProgressDocument> {
+    return this.document;
+  }
+
   /** Om det finns något alls att visa — en karta över ett tomt block ljuger. */
   get hasPractice(): boolean {
     return hasContent(this.document);
