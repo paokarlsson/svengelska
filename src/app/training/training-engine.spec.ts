@@ -207,6 +207,19 @@ describe('TrainingEngine', () => {
       engine.record(say(CAT, 'en', true), 'affirm', 1);
       expect(engine.newWordsLeft(BLOCK)).toBe(0);
     });
+
+    it('är avstängd tills vidare: ett varv får ta in hur många nya ord som helst', () => {
+      engine.setNewWordsPerDay(0);
+      expect(engine.limitNewWords).toBe(false);
+      expect(engine.newBudget(BLOCK)).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    it('gäller igen när den slås på', () => {
+      engine.limitNewWords = true;
+      engine.setNewWordsPerDay(1);
+      engine.record(say(DOG, 'en', true), 'affirm', 1);
+      expect(engine.newBudget(BLOCK)).toBe(0);
+    });
   });
 
   it('glömmer allt vid nollställning, i minnet och i lagret', async () => {

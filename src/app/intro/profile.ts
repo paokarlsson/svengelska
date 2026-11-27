@@ -18,6 +18,12 @@ export type AgeBand = 'child' | 'teen' | 'adult';
 /** Så många trappsteg nivåprovet har. Noll är «klarade inget av dem». */
 export const TOP_LEVEL = 5;
 
+/** Ett svar på en följdfråga: påståendet som eleven såg det, och vad hen svepte. */
+export interface Note {
+  text: string;
+  answer: 'yes' | 'no' | 'unsure';
+}
+
 export interface Profile {
   /** Det den som övar sa ja till, som det ska stå i frågan till modellen. */
   interests: string[];
@@ -29,6 +35,11 @@ export interface Profile {
    * provet gjorts — att inte ha prövats är inte samma sak som att inte kunna.
    */
   level: number | null;
+  /**
+   * Svaren på följdfrågorna som Claude skrev efter startrundan, i den ordning
+   * de besvarades. Saknas för den som sa att appen visste nog.
+   */
+  notes?: Note[];
 }
 
 export function emptyProfile(): Profile {
@@ -41,7 +52,8 @@ export function saysSomething(profile: Profile): boolean {
     profile.interests.length > 0 ||
     profile.age !== null ||
     profile.voluntary !== null ||
-    profile.level !== null
+    profile.level !== null ||
+    (profile.notes?.length ?? 0) > 0
   );
 }
 
@@ -72,5 +84,23 @@ export function readProfile(value: unknown): Profile {
   if (typeof raw['level'] === 'number' && Number.isFinite(raw['level'])) {
     profile.level = Math.max(0, Math.min(TOP_LEVEL, Math.round(raw['level'])));
   }
+  if (Array.isArray(raw['notes'])) {
+    const notes = raw['notes'].filter(isNote).map((note) => ({ text: note.text.trim(), answer: note.answer }));
+    if (notes.length > 0) {
+      profile.notes = notes;
+    }
+  }
   return profile;
+}
+
+function isNote(value: unknown): value is Note {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const raw = value as Record<string, unknown>;
+  return (
+    typeof raw['text'] === 'string' &&
+    raw['text'].trim().length > 0 &&
+    (raw['answer'] === 'yes' || raw['answer'] === 'no' || raw['answer'] === 'unsure')
+  );
 }

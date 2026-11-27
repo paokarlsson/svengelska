@@ -12,6 +12,7 @@
  * webbläsaren, och når aldrig någon annan än Anthropic.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { FOLLOW_UP_INSTRUCTIONS, FOLLOW_UP_SCHEMA } from '../intro/follow-up';
 import { LIST_INSTRUCTIONS, LIST_SCHEMA } from '../words/generated-list';
 import { ListWriteError } from './list-write-error';
 
@@ -31,13 +32,38 @@ export function connect(apiKey: string): Anthropic {
   return new Anthropic({ apiKey, dangerouslyAllowBrowser: true, timeout: TIMEOUT_MS });
 }
 
+/** Vad som skiljer ett uppdrag från ett annat: instruktionen, formen och hur länge modellen tänker. */
+export interface Task {
+  system: string;
+  schema: Record<string, unknown>;
+  effort: 'low' | 'medium' | 'high';
+}
+
+/** Att skriva en lista. Felsvaren kräver eftertanke. */
+export const LIST_TASK: Task = { system: LIST_INSTRUCTIONS, schema: LIST_SCHEMA, effort: 'medium' };
+
+/**
+ * Att skriva följdfrågor. Kort svar, och någon väntar på det mitt i ett svep —
+ * därför låg ansträngning. Frågorna ska vara lätta att svara på, inte svåra att
+ * skriva.
+ */
+export const FOLLOW_UP_TASK: Task = {
+  system: FOLLOW_UP_INSTRUCTIONS,
+  schema: FOLLOW_UP_SCHEMA,
+  effort: 'low',
+};
+
 /**
  * Ställer frågan och ger tillbaka svaret som det tolkade JSON-värdet.
  *
- * Vad värdet *är* avgörs inte här. Formen hålls av `LIST_SCHEMA`, men det som
- * kommer tillbaka möts ändå som en inklistrad fil av `blockFromReply()`.
+ * Vad värdet *är* avgörs inte här. Formen hålls av uppdragets schema, men det
+ * som kommer tillbaka möts ändå som en inklistrad fil av den som tar emot det.
  */
-export async function askClaude(client: Anthropic, request: string): Promise<unknown> {
+export async function askClaude(
+  client: Anthropic,
+  request: string,
+  task: Task = LIST_TASK,
+): Promise<unknown> {
   let response: Anthropic.Beta.BetaMessage;
   try {
     response = await client.beta.messages.create({
@@ -49,10 +75,10 @@ export async function askClaude(client: Anthropic, request: string): Promise<unk
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       output_config: {
-        effort: 'medium',
-        format: { type: 'json_schema', schema: LIST_SCHEMA },
+        effort: task.effort,
+        format: { type: 'json_schema', schema: task.schema },
       },
-      system: LIST_INSTRUCTIONS,
+      system: task.system,
       messages: [{ role: 'user', content: request }],
     });
   } catch (error) {
@@ -64,7 +90,7 @@ export async function askClaude(client: Anthropic, request: string): Promise<unk
   }
   if (response.stop_reason === 'max_tokens') {
     // Ett avklippt svar är ofullständig JSON. Bättre att säga det än att
-    // försöka göra en lista av en halv.
+    // försöka göra något av en halv.
     throw new ListWriteError('unreadable');
   }
 

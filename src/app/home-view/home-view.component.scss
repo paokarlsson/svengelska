@@ -199,27 +199,6 @@
     outline-offset: 2px;
 }
 
-/* Utkastet: två spalter, engelskan och svenskan, så att den som ska godkänna
-   listan kan läsa den som en glosläxa. */
-.draft {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-}
-
-.draft li {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-3);
-    padding: var(--space-2) 0;
-    border-bottom: 1px solid var(--line-soft);
-}
-
-.draft li span:last-child {
-    color: var(--text-muted);
-}
-
 .own {
     list-style: none;
     margin: 0;

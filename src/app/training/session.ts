@@ -108,7 +108,7 @@ export class TrainingSession {
       fresh,
       (word) => engine.statFor(word),
       now,
-      engine.newWordsLeft(catalog, now),
+      engine.newBudget(catalog, now),
     );
     this.cards = roundCards(words, random);
     this.size = this.cards.length;

@@ -11,14 +11,19 @@
  */
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
+  OnDestroy,
   OnInit,
   Output,
   inject,
 } from '@angular/core';
+import { QuestionNode, TreeWalk } from '../intro/follow-up';
 import { IntroCard, IntroPhase, IntroRun } from '../intro/intro-run';
 import { Profile, TOP_LEVEL } from '../intro/profile';
+import { FollowUpWriter } from '../services/follow-up-writer';
+import { ListWriteError } from '../services/list-write-error';
 import { ProfileStore } from '../services/profile-store';
 import { Tracker } from '../services/tracker';
 import {
@@ -36,6 +41,18 @@ const PHASE_TITLE: Record<IntroPhase, string> = {
   words: 'Några ord',
 };
 
+/**
+ * Var rundan står efter de fasta korten.
+ *
+ * `check` frågar om appen vet nog. `more` visar en följdfråga, `waiting` väntar
+ * på nästa träd. `end` är slutkortet för den som inte har någon nyckel — utan
+ * den finns inga följdfrågor att erbjuda.
+ */
+type After = 'check' | 'more' | 'waiting' | 'end';
+
+/** Så många intressen kortet visar innan resten blir ett tal. */
+const SHOWN_INTERESTS = 5;
+
 @Component({
   selector: 'app-intro-view',
   templateUrl: 'intro-view.component.html',
@@ -43,7 +60,7 @@ const PHASE_TITLE: Record<IntroPhase, string> = {
   imports: [SwipeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class IntroViewComponent implements OnInit {
+export class IntroViewComponent implements OnInit, OnDestroy {
   /** Rundan är klar och profilen sparad. */
   @Output() readonly finished = new EventEmitter<void>();
   /** Rundan lämnades. Ingenting sparades. */
@@ -51,6 +68,8 @@ export class IntroViewComponent implements OnInit {
 
   private readonly profiles = inject(ProfileStore);
   private readonly tracker = inject(Tracker);
+  private readonly writer = inject(FollowUpWriter);
+  private readonly changes = inject(ChangeDetectorRef);
 
   private readonly run = new IntroRun();
   private current: IntroCard | null = null;
@@ -83,17 +102,61 @@ export class IntroViewComponent implements OnInit {
   /** Hållet slutkortet sveptes åt. Verkställs när kortet lämnat bordet. */
   private swiped: Response | null = null;
 
+  /** Var rundan står när de fasta korten är slut. `null` medan de pågår. */
+  after: After | null = null;
+  /**
+   * Kortet som frågar om appen vet nog. Ett nytt objekt varje gång det visas,
+   * så att svepvyn lägger fram det på nytt efter en omgång följdfrågor.
+   */
+  check: ChoiceCard | null = null;
+  /** Vägen genom trädet som pågår. */
+  private walk: TreeWalk | null = null;
+  /** Nästa träd, skrivet i förväg och ännu inte påbörjat. */
+  private ready: QuestionNode | null = null;
+  /** Sant medan nästa träd skrivs. */
+  private fetching = false;
+  /** Sant när det inte gick att skriva fler frågor. Då finns bara ja kvar. */
+  private stuck = false;
+  private gone = false;
+
   ngOnInit(): void {
     this.advance();
   }
 
+  ngOnDestroy(): void {
+    this.gone = true;
+  }
+
   get title(): string {
+    if (this.after === 'more' || this.after === 'waiting') {
+      return 'Lite till om dig';
+    }
+    if (this.after === 'check') {
+      return 'Det här vet jag';
+    }
     return this.current === null ? 'Klart' : PHASE_TITLE[this.current.phase];
   }
 
   /** Mätarens fyllnad i procent. */
   get progress(): number {
     return Math.round(this.run.progress * 100);
+  }
+
+  /**
+   * Intressena på kortet som frågar om appen vet nog. Högst fem: den som sagt
+   * ja till alla tolv fick annars inte plats med frågan kortet faktiskt ställer.
+   */
+  get shownInterests(): string[] {
+    return (this.result?.interests ?? []).slice(0, SHOWN_INTERESTS);
+  }
+
+  get hiddenInterests(): number {
+    return Math.max(0, (this.result?.interests.length ?? 0) - SHOWN_INTERESTS);
+  }
+
+  /** Hur många följdfrågor som besvarats. Visas på kortet som frågar om det räcker. */
+  get learned(): number {
+    return this.result?.notes?.length ?? 0;
   }
 
   /**
@@ -119,11 +182,45 @@ export class IntroViewComponent implements OnInit {
   }
 
   onAnswer(answer: SwipeAnswer): void {
+    if (this.after === 'more') {
+      this.answerFollowUp(answer.response);
+      return;
+    }
     this.run.answer(answer.response);
   }
 
   onCompleted(): void {
+    if (this.after === 'more') {
+      this.showFollowUp();
+      return;
+    }
     this.advance();
+  }
+
+  onCheckSwipe(answer: SwipeAnswer): void {
+    this.swiped = answer.response;
+  }
+
+  /**
+   * Svaret på «Tror du att jag vet vem du är nu?».
+   *
+   * Ja går till glosorna. Nej ger tre frågor till — redan skrivna om det gick,
+   * annars en kort väntan.
+   */
+  onCheckLanded(): void {
+    const swiped = this.swiped;
+    this.swiped = null;
+    if (swiped === 'affirm') {
+      this.finish();
+    } else if (swiped === 'deny' && !this.stuck) {
+      if (this.ready !== null) {
+        this.startTree(this.ready);
+      } else {
+        this.after = 'waiting';
+        this.card = null;
+        this.fetch([]);
+      }
+    }
   }
 
   onEndSwipe(answer: SwipeAnswer): void {
@@ -153,6 +250,11 @@ export class IntroViewComponent implements OnInit {
       // att någon också hittar ut ur rundan.
       this.profiles.save(this.result);
       this.tracker.log('intro.end', { ...this.result, cards: this.run.answered });
+      if (this.writer.available) {
+        this.showCheck();
+      } else {
+        this.after = 'end';
+      }
       return;
     }
     this.card =
@@ -160,4 +262,109 @@ export class IntroViewComponent implements OnInit {
         ? { kind: 'ask', text: this.current.text }
         : { kind: 'trueFalse', statement: this.current.statement };
   }
+
+  /**
+   * Lägger fram frågan om appen vet nog, och börjar skriva nästa träd.
+   *
+   * Trädet skrivs redan nu, innan någon sagt nej: den som vill ha fler frågor
+   * ska inte behöva vänta på dem. Säger hen ja är det ett kort anrop i onödan.
+   */
+  private showCheck(): void {
+    this.after = 'check';
+    this.card = null;
+    this.walk = null;
+    this.check = {
+      kind: 'choice',
+      label: 'Tror du att jag vet vem du är nu?',
+      affirm: 'Ja, glosor',
+      deny: this.stuck ? null : 'Nej, fråga mer',
+      unsure: null,
+    };
+    if (this.ready === null) {
+      this.fetch([]);
+    }
+  }
+
+  private startTree(tree: QuestionNode): void {
+    this.ready = null;
+    this.walk = new TreeWalk(tree);
+    this.after = 'more';
+    this.showFollowUp();
+  }
+
+  /** Nästa kort i trädet, eller frågan om det räcker när vägen är gången. */
+  private showFollowUp(): void {
+    const text = this.walk?.current ?? null;
+    if (text === null) {
+      this.showCheck();
+      return;
+    }
+    this.card = { kind: 'ask', text };
+  }
+
+  private answerFollowUp(response: Response): void {
+    const walk = this.walk;
+    const note = walk?.answer(response) ?? null;
+    if (walk === null || note === null || this.result === null) {
+      return;
+    }
+    // Sparas för varje svar, av samma skäl som startrundan sparas innan
+    // slutkortet svepts: det som svarats är svarat.
+    this.result = { ...this.result, notes: [...(this.result.notes ?? []), note] };
+    this.profiles.save(this.result);
+
+    // Efter första kortet i trädet är resten känt nog för att skriva nästa:
+    // det tar ungefär lika lång tid som två svep.
+    if (walk.notes.length === 1) {
+      this.fetch(walk.upcoming());
+    }
+  }
+
+  /** Skriver nästa träd, om inget redan skrivs eller ligger färdigt. */
+  private fetch(upcoming: readonly string[]): void {
+    if (this.fetching || this.ready !== null || this.stuck || this.result === null) {
+      return;
+    }
+    this.fetching = true;
+    const began = Date.now();
+    this.tracker.log('followup.ask', { upcoming: upcoming.length });
+    this.writer
+      .write(this.result, upcoming)
+      .then((tree) => {
+        this.tracker.log('followup.got', { ms: Date.now() - began, tree: flatten(tree) });
+        if (this.gone) {
+          return;
+        }
+        this.ready = tree;
+        if (this.after === 'waiting') {
+          this.startTree(tree);
+        }
+      })
+      .catch((error: unknown) => {
+        this.tracker.log('followup.failed', {
+          ms: Date.now() - began,
+          why: error instanceof ListWriteError ? error.reason : 'failed',
+        });
+        if (this.gone) {
+          return;
+        }
+        this.stuck = true;
+        if (this.after === 'waiting' || this.after === 'check') {
+          // Utan fler frågor att ställa är ja det enda hållet.
+          this.showCheck();
+        }
+      })
+      .finally(() => {
+        this.fetching = false;
+        this.changes.markForCheck();
+      });
+  }
+}
+
+/** Trädet som en rad per påstående, för loggen. Indraget efter djup. */
+function flatten(node: QuestionNode | null, depth = 0): string[] {
+  if (node === null) {
+    return [];
+  }
+  return [`${'  '.repeat(depth)}${node.text}`, ...flatten(node.yes, depth + 1), ...flatten(node.no, depth + 1)];
 }
