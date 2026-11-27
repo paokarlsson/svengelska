@@ -224,3 +224,62 @@
     gap: var(--space-2);
     margin-top: var(--space-3);
 }
+
+/* Exporten när den får kopieras för hand: liten, tät text som inte ska läsas. */
+.text--export {
+    font-family: ui-monospace, monospace;
+    font-size: 0.7rem;
+    line-height: 1.3;
+    word-break: break-all;
+}
+
+.done {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent-green);
+}
+
+/* Reglaget för loggen. En vanlig kryssruta, ritad som en strömbrytare: av och
+   på är hela dess mening. */
+.switch {
+    appearance: none;
+    flex: none;
+    width: 3.2rem;
+    height: 1.9rem;
+    margin: 0;
+    border-radius: var(--radius-pill);
+    background: var(--bg-card-raised);
+    cursor: pointer;
+    position: relative;
+    transition: background var(--motion-fast);
+}
+
+.switch::after {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: transform var(--motion-fast), background var(--motion-fast);
+}
+
+.switch:checked {
+    background: var(--accent-green);
+}
+
+.switch:checked::after {
+    transform: translateX(1.3rem);
+    background: var(--on-green);
+}
+
+.switch:focus-visible {
+    outline: 3px solid var(--text-primary);
+    outline-offset: 3px;
+}
+
+.log-size {
+    font-variant-numeric: tabular-nums;
+}

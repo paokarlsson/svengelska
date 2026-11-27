@@ -57,6 +57,8 @@ varvet är slut.
 | `src/app/training/session.ts` | Varvsdirigenten — vad som kommer härnäst, och när varvet är slut |
 | `src/app/training/training-engine.ts` | Vad appen tror om den som övar, och vad den gör med det |
 | `src/app/services/progress-store.ts` | Det lagrade dokumentet, dess version och dess normalisering |
+| `src/app/services/data-export.ts` | Allt appen mätt som en text att kopiera, för analys. Aldrig nyckeln |
+| `src/app/services/tracker.ts` | Loggen: varje tryck, drag, kort och svar, medan appen utvecklas |
 | `src/app/match-view/`, `src/app/write-view/` | Steg 1 och 4. Avstängda av `scope.ts`, kvar i koden |
 | `src/app/entry-picker/`, `src/app/training/entry.ts` | Ingångsvalet. Avstängt av samma skäl — en dörr är inget val |
 | `src/app/swipe-view/` | Kortet: tre riktningar, inga knappar, och reglerna för när ett drag är ett svar |
@@ -237,6 +239,35 @@ version 2 delade upp baslinjerna i kanaler, gjorde utfallet fyrsiffrigt och gav
 dokumentet inställningar. Ett dokument skrivet av version 1 går att öva vidare
 på — inte för att formen är helig, utan för att ett barn som redan lagt tjugo
 varv inte ska förlora dem för att appen bytte form.
+
+## Loggen
+
+Medan appen utvecklas sparar den allt som händer, inte bara vad som blev av det:
+
+| Händelse | Vad den bär |
+| --- | --- |
+| `down`, `click` | Var på skärmen, och på vad — också tryck som inte träffade något |
+| `card` | Vad som stod på kortet och vad hållen hette |
+| `drag` | Fingrets hela väg, hur länge kortet låg innan det rördes, och om draget blev ett svar |
+| `answer`, `void` | Hållet, om det kom som svep eller tangent, och tiden — `void` är ett håll som inte fanns |
+| `outcome` | Vad motorn gjorde av svaret: utfall, låda före och efter, sviten |
+| `nav`, `round`, `round.end`, `leave`, `intro.end` | Var man var och vart man gick |
+| `list.ask`, `list.got`, `list.failed`, `list.keep`, `list.drop` | Vad som önskades av Claude och vad som kom tillbaka |
+| `visible`, `error`, `setting`, `export`, `track` | Det som förklarar resten |
+
+Ett drag som släpps halvvägs loggas som ett drag utan svar, och ett tryck på
+raden under kortet loggas som just det. Det är sådant framstegen inte kan
+berätta, och skälet till att loggen finns.
+
+Den ligger i `localStorage`, ett besök per post, med ett tak där de äldsta
+besöken kastas. Den lämnar aldrig enheten av sig själv — det finns ingen server
+— utan exporteras för hand under Inställningar: som fil tillsammans med datat,
+eller som text. Det som skrivs i ett fält loggas aldrig; loggen ser att någon
+tryckte på nyckelfältet, inte vad som står i det.
+
+Loggen är på från början. Det är `TRACK_BY_DEFAULT` i `tracker.ts`, och den dag
+appen inte längre är under utveckling är det den raden som ska ändras. Reglaget
+under Inställningar stänger av den för en enskild webbläsare.
 
 ## Släktskapet med ganger
 

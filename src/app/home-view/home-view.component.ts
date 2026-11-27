@@ -30,9 +30,11 @@ import {
   inject,
 } from '@angular/core';
 import { ApiKeyStore } from '../services/api-key-store';
+import { buildExport, exportText } from '../services/data-export';
 import { ListWriteError, WriteFailure } from '../services/list-write-error';
 import { ListWriter } from '../services/list-writer';
 import { ProfileStore } from '../services/profile-store';
+import { LogStats, Tracker } from '../services/tracker';
 import { MAX_NEW_PER_DAY } from '../services/progress-store';
 import {
   ChoiceCard,
@@ -96,6 +98,7 @@ export class HomeViewComponent implements OnInit {
   private readonly keys = inject(ApiKeyStore);
   private readonly writer = inject(ListWriter);
   private readonly profiles = inject(ProfileStore);
+  private readonly tracker = inject(Tracker);
   private readonly changes = inject(ChangeDetectorRef);
 
   askingReset = false;
@@ -116,6 +119,24 @@ export class HomeViewComponent implements OnInit {
   draft: WordBlock | null = null;
 
   readonly maxNewPerDay = MAX_NEW_PER_DAY;
+
+  /**
+   * Exporten, när den inte gick att kopiera.
+   *
+   * Urklipp kräver en säker sida och ett ja från webbläsaren, och får appen
+   * inget av dem ska texten ändå gå att komma åt: då visas den i ett fält att
+   * markera för hand.
+   */
+  exported: string | null = null;
+  /** Vad som senast hamnade i urklipp, för beskedet bredvid knappen. */
+  copied: 'data' | 'log' | null = null;
+  /**
+   * Loggens storlek, som den var när inställningarna öppnades.
+   *
+   * Ett fält och ingen getter: att räkna den är att serialisera hela loggen,
+   * och det ska inte ske vid varje ändringsdetektering.
+   */
+  logStats: LogStats = { sessions: 0, events: 0, chars: 0 };
 
   /** Listan användaren bläddrat fram till, om någon. */
   private pickedId: string | null = null;
@@ -254,6 +275,61 @@ export class HomeViewComponent implements OnInit {
 
   setNewWordsPerDay(value: string): void {
     this.engine.setNewWordsPerDay(Number.parseInt(value, 10));
+    this.tracker.log('setting', { newWordsPerDay: this.newWordsPerDay });
+  }
+
+  toggleSettings(): void {
+    this.settingsOpen = !this.settingsOpen;
+    if (this.settingsOpen) {
+      this.logStats = this.tracker.stats();
+    }
+  }
+
+  /** Om loggen är på. Se `tracker.ts` för vad den sparar och inte sparar. */
+  get tracking(): boolean {
+    return this.tracker.enabled;
+  }
+
+  setTracking(on: boolean): void {
+    this.tracker.enabled = on;
+    this.logStats = this.tracker.stats();
+  }
+
+  /** Loggens storlek i kilobyte, avrundat uppåt så att «0 kB» betyder tom. */
+  get logKb(): number {
+    return Math.ceil(this.logStats.chars / 1000);
+  }
+
+  /** Kopierar hela loggen. Den kan vara stor — filen är ofta ett bättre val. */
+  async copyLog(): Promise<void> {
+    await this.copy(JSON.stringify(this.tracker.export()), 'log');
+  }
+
+  /**
+   * Sparar data och logg i en fil.
+   *
+   * En fil och inte två: den som ska analysera behöver båda, och loggens
+   * händelser pekar på ord vars läge står i datat. En fil går också att bifoga
+   * där en inklistrad text hade varit för lång.
+   */
+  saveFile(): void {
+    const now = Date.now();
+    const content = JSON.stringify({
+      data: buildExport(this.exportSources(now)),
+      log: this.tracker.export(now),
+    });
+    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `svengelska-${new Date(now).toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.tracker.log('export', { what: 'file', chars: content.length });
+  }
+
+  clearLog(): void {
+    this.tracker.clear();
+    this.logStats = this.tracker.stats();
   }
 
   start(): void {
@@ -303,10 +379,23 @@ export class HomeViewComponent implements OnInit {
     this.writing = true;
     this.writeError = null;
     this.draft = null;
+    const began = Date.now();
+    // Önskemålet loggas — det är vad någon bad om, och det behövs för att
+    // förstå vad som kom tillbaka. Nyckeln står i ett annat fält och loggas aldrig.
+    this.tracker.log('list.ask', { wish: wish.trim().slice(0, 400), auto: wish.trim() === '' });
     try {
       this.draft = await this.writer.write(wish);
+      this.tracker.log('list.got', {
+        ms: Date.now() - began,
+        name: this.draft.name,
+        words: this.draft.words.map((pair) => `${pair.en}=${pair.sv}`),
+      });
     } catch (error) {
       this.writeError = failureText(error);
+      this.tracker.log('list.failed', {
+        ms: Date.now() - began,
+        why: error instanceof ListWriteError ? error.reason : 'failed',
+      });
     } finally {
       this.writing = false;
       // Ett `await` ligger emellan, så Angular har redan kört sin kontroll.
@@ -320,6 +409,7 @@ export class HomeViewComponent implements OnInit {
       return;
     }
     this.library.add(this.draft);
+    this.tracker.log('list.keep', { id: this.draft.id });
     this.pickedId = this.draft.id;
     this.draft = null;
     this.makerOpen = false;
@@ -327,6 +417,7 @@ export class HomeViewComponent implements OnInit {
   }
 
   dropDraft(): void {
+    this.tracker.log('list.drop', { name: this.draft?.name ?? null });
     this.draft = null;
   }
 
@@ -337,6 +428,38 @@ export class HomeViewComponent implements OnInit {
       this.pickedId = null;
     }
     this.deal();
+  }
+
+  /**
+   * Kopierar allt appen vet — utom nyckeln — som en text att klistra in för
+   * analys. Vad som följer med avgör `data-export.ts`.
+   */
+  async exportData(): Promise<void> {
+    await this.copy(exportText(this.exportSources(Date.now())), 'data');
+  }
+
+  private exportSources(now: number) {
+    return {
+      document: this.engine.snapshot,
+      profile: this.profiles.profile,
+      blocks: this.library.blocks,
+      isOwn: (id: string) => this.library.isOwn(id),
+      now,
+    };
+  }
+
+  /** Lägger texten i urklipp, eller i ett fält att markera om det inte går. */
+  private async copy(text: string, what: 'data' | 'log'): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copied = what;
+      this.exported = null;
+    } catch {
+      this.copied = null;
+      this.exported = text;
+    }
+    this.tracker.log('export', { what, chars: text.length });
+    this.changes.markForCheck();
   }
 
   async reset(): Promise<void> {

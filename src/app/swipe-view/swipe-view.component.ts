@@ -40,6 +40,7 @@ import {
 } from '@angular/core';
 import { CdkDrag, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop';
 import { DragSample, commitsSwipe, downProgress, swipeProgress } from './swipe-gesture';
+import { Tracker, compactPath } from '../services/tracker';
 import { Statement } from '../words/distractors';
 import { DirectedWord, answerOf, promptOf } from '../words/word-catalog';
 import { Response } from '../training/word-state';
@@ -178,6 +179,14 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   verdict: Verdict | undefined;
 
   private readonly changes = inject(ChangeDetectorRef);
+  private readonly tracker = inject(Tracker);
+  /**
+   * Dragningens hela väg, för loggen: tid sedan draget började, och hur långt
+   * kortet flyttats. `samples` ovan minns bara de sista punkterna, eftersom
+   * farten bara behöver dem.
+   */
+  private path: [number, number, number][] = [];
+  private dragStartedAt = 0;
   private startedAt = Date.now();
   private recallSeconds: number | null = null;
   /** De senaste punkterna under dragningen, för att kunna mäta farten. */
@@ -199,8 +208,10 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
     this.down = 0;
     this.leaving = null;
     this.samples = [];
+    this.path = [];
     this.recallSeconds = null;
     this.startedAt = Date.now();
+    this.tracker.log('card', describeCard(this.card));
     // Utan detta skulle kortet animeras in från kanten det förra for ut åt.
     this.instant = true;
     this.drag?.reset();
@@ -348,16 +359,34 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
     this.progress = swipeProgress($event.distance.x, window.innerWidth);
     this.down = downProgress($event.distance.y, window.innerHeight);
 
-    this.samples.push({ x: $event.distance.x, y: $event.distance.y, t: performance.now() });
+    const now = performance.now();
+    this.samples.push({ x: $event.distance.x, y: $event.distance.y, t: now });
     if (this.samples.length > 5) {
       this.samples.shift();
     }
+    if (this.path.length === 0) {
+      this.dragStartedAt = now;
+    }
+    this.path.push([now - this.dragStartedAt, $event.distance.x, $event.distance.y]);
   }
 
   dragEnd($event: CdkDragEnd): void {
     const { x, y } = $event.distance;
     const response = commitsSwipe(x, y, this.samples, window.innerWidth, window.innerHeight);
     this.samples = [];
+
+    // Varje drag loggas, också det som inte blev ett svar. Ett kort som dras
+    // halvvägs och släpps är en tvekan, och tvekan syns ingen annanstans.
+    const lasted = this.path.length === 0 ? 0 : performance.now() - this.dragStartedAt;
+    this.tracker.log('drag', {
+      // Hur länge kortet låg framme innan fingret började dra det, i ms.
+      at: Math.round(Date.now() - this.startedAt - lasted),
+      ms: Math.round(lasted),
+      end: [Math.round(x), Math.round(y)],
+      r: response,
+      p: compactPath(this.path),
+    });
+    this.path = [];
 
     if (response !== null) {
       this.answer(response);
@@ -379,12 +408,12 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
       return;
     }
     if (event.key === 'ArrowRight') {
-      this.answer('affirm');
+      this.answer('affirm', 'key');
     } else if (event.key === 'ArrowLeft') {
-      this.answer('deny');
+      this.answer('deny', 'key');
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();
-      this.answer('unsure');
+      this.answer('unsure', 'key');
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       this.reveal();
@@ -393,13 +422,14 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   }
 
   /** Svaret, oavsett om det kom som ett svep eller en piltangent. */
-  answer(response: Response): void {
+  answer(response: Response, via: 'swipe' | 'key' = 'swipe'): void {
     if (this.locked) {
       return;
     }
     if (this.naming(response).label === '') {
       // Hållet finns inte på det här kortet. En gest som inte betyder något
       // ska inte göra något — kortet fjädrar tillbaka.
+      this.tracker.log('void', { r: response, via });
       this.progress = 0;
       this.down = 0;
       this.drag?.reset();
@@ -412,6 +442,13 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
 
     const seconds = this.secondsFor();
     const correct = this.wasCorrect(response);
+    this.tracker.log('answer', {
+      r: response,
+      as: this.naming(response).label,
+      via,
+      s: seconds === null ? null : Math.round(seconds * 1000) / 1000,
+      ok: correct,
+    });
     if (correct === false) {
       this.buzz();
     }
@@ -541,4 +578,19 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
       clearTimeout(timer);
     }
   }
+}
+
+/** Kortet som loggen ska minnas det: vad som stod på det, och vad hållen hette. */
+function describeCard(card: SwipeCard): Record<string, unknown> {
+  if (card.kind === 'trueFalse') {
+    const { asked, shown, truthy, direction } = card.statement;
+    return { kind: 'word', asked, shown, truthy, dir: direction };
+  }
+  if (card.kind === 'ask') {
+    return { kind: 'ask', text: card.text };
+  }
+  if (card.kind === 'choice') {
+    return { kind: 'choice', label: card.label, right: card.affirm, left: card.deny, down: card.unsure };
+  }
+  return { kind: 'recall', asked: promptOf(card.word.pair, card.word.direction) };
 }

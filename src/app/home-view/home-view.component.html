@@ -121,7 +121,7 @@
             type="button"
             class="ui-btn ui-btn--quiet"
             [attr.aria-expanded]="settingsOpen"
-            (click)="settingsOpen = !settingsOpen">
+            (click)="toggleSettings()">
             Inställningar
         </button>
 
@@ -176,17 +176,98 @@
             </ul>
             }
 
-            @if (hasKey) {
+            <!-- Nyckeln står alltid här, också när den saknas. Den som letar efter
+                 var den läggs in letar under Inställningar. -->
             <div class="field">
                 <span class="field-name">Anthropic-nyckel</span>
-                <span class="key-hint">{{keyHint}}</span>
+                <span class="key-hint">@if (hasKey) { {{keyHint}} } @else { saknas }</span>
             </div>
+            @if (hasKey) {
             <div class="panel-actions">
                 <button type="button" class="ui-btn ui-btn--quiet" (click)="forgetKey()">
                     Ta bort nyckeln
                 </button>
             </div>
+            } @else {
+            <input
+                #settingsKey
+                id="settings-api-key"
+                class="text"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Anthropic-nyckel"
+                placeholder="sk-ant-…" />
+            <div class="panel-actions">
+                <button
+                    type="button"
+                    class="ui-btn ui-btn--primary"
+                    (click)="saveKey(settingsKey.value)">
+                    Spara nyckeln
+                </button>
+            </div>
+            <p class="field-note">
+                Behövs för att appen ska kunna skriva nya listor med Claude. Den sparas bara i den
+                här webbläsaren och skickas bara till Anthropic.
+            </p>
             }
+
+            <div class="field">
+                <label class="field-name" for="tracking">Logga allt</label>
+                <input
+                    id="tracking"
+                    class="switch"
+                    type="checkbox"
+                    role="switch"
+                    [checked]="tracking"
+                    (change)="setTracking($any($event.target).checked)" />
+            </div>
+            <p class="field-note">
+                Medan appen utvecklas sparas varje tryck, varje drag, varje kort och varje svar i
+                den här webbläsaren. Det som skrivs i ett fält sparas aldrig, och inget skickas
+                någonstans förrän du själv exporterar det.
+            </p>
+            <p class="field-note log-size">
+                Loggen: {{logStats.events}} händelser, {{logKb}} kB, {{logStats.sessions}} besök.
+            </p>
+
+            <span class="field-name">Exportera för analys</span>
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--primary" (click)="saveFile()">
+                    Spara fil
+                </button>
+                <button type="button" class="ui-btn ui-btn--secondary" (click)="exportData()">
+                    Kopiera data
+                </button>
+                <button type="button" class="ui-btn ui-btn--secondary" (click)="copyLog()">
+                    Kopiera logg
+                </button>
+            </div>
+            @if (copied; as what) {
+            <p class="done" role="status">
+                @if (what === 'log') { Loggen } @else { Datat } är kopierat — klistra in där det
+                ska analyseras.
+            </p>
+            }
+            @if (exported; as text) {
+            <textarea
+                class="text text--export"
+                rows="5"
+                readonly
+                aria-label="Text att kopiera"
+                (focus)="$any($event.target).select()">{{text}}</textarea>
+            <p class="field-note">Det gick inte att kopiera. Markera texten och kopiera den själv.</p>
+            }
+            <p class="field-note">
+                Filen bär både datat och loggen, och är det enklaste att bifoga. «Kopiera data» är
+                den korta sammanfattningen: läget per ord, tempot, profilen och listorna.
+                Anthropic-nyckeln följer aldrig med i något av dem.
+            </p>
+            <div class="panel-actions">
+                <button type="button" class="ui-btn ui-btn--quiet" (click)="clearLog()">
+                    Töm loggen
+                </button>
+            </div>
 
             <div class="panel-actions">
                 <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">

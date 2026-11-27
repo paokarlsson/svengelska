@@ -20,6 +20,7 @@ import {
 import { IntroCard, IntroPhase, IntroRun } from '../intro/intro-run';
 import { Profile, TOP_LEVEL } from '../intro/profile';
 import { ProfileStore } from '../services/profile-store';
+import { Tracker } from '../services/tracker';
 import {
   ChoiceCard,
   SwipeAnswer,
@@ -49,6 +50,7 @@ export class IntroViewComponent implements OnInit {
   @Output() readonly skipped = new EventEmitter<void>();
 
   private readonly profiles = inject(ProfileStore);
+  private readonly tracker = inject(Tracker);
 
   private run = new IntroRun();
   private current: IntroCard | null = null;
@@ -151,6 +153,7 @@ export class IntroViewComponent implements OnInit {
     if (this.current === null) {
       this.card = null;
       this.result = this.run.profile();
+      this.tracker.log('intro.end', { ...this.result, cards: this.run.answered });
       return;
     }
     this.card =
