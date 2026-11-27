@@ -329,17 +329,6 @@
 
 /* Startrundans kort bär en mening och inte ett ord. Den ska rymmas på samma
    kvadrat, så stilen krymper och raderna får brytas. */
-/* Raden ovanför ett påstående som inte är en glosa — «Avbrott». Liten och
-   spärrad, som rubrikerna på startsidans kort. */
-.ask-label {
-    font-family: var(--font-body);
-    font-size: calc(var(--card-size) * 0.036);
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    opacity: 0.7;
-}
-
 .word--sentence {
     font-size: calc(var(--card-size) * 0.066);
     line-height: 1.3;

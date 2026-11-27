@@ -10,7 +10,7 @@
     <p class="waiting" role="status">Jag skriver en lista åt dig …</p>
     @if (waitCard; as wait) {
     <app-swipe-view [card]="wait" (answered)="onWaitAnswer($event)" (completed)="onWaitLanded()" />
-    <p class="tagline">Under tiden: något helt annat. Varvet börjar när listan är klar.</p>
+    <p class="tagline">Varvet börjar när listan är klar.</p>
     }
     } @else if (card; as current) {
     <app-swipe-view
@@ -284,11 +284,9 @@
                 <button type="button" class="ui-btn ui-btn--quiet" (click)="intro.emit()">
                     @if (hasProfile) { Gör om startfrågorna } @else { Svara på startfrågorna }
                 </button>
-                @if (hasPractice) {
                 <button type="button" class="ui-btn ui-btn--danger" (click)="askingReset = true">
-                    Nollställ framstegen
+                    Börja om
                 </button>
-                }
             </div>
         </div>
         }
@@ -298,10 +296,13 @@
 @if (askingReset) {
 <div class="ui-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reset-title">
     <div class="ui-modal">
-        <h2 class="ui-title" id="reset-title">Nollställa allt?</h2>
-        <p class="tagline">Alla mätningar för alla listor försvinner. Det går inte att ångra.</p>
+        <h2 class="ui-title" id="reset-title">Börja om från början?</h2>
+        <p class="tagline">
+            Framstegen, svaren på startfrågorna och dina egna listor försvinner, och appen börjar om
+            med startfrågorna. Nyckeln och loggen ligger kvar. Det går inte att ångra.
+        </p>
         <div class="modal-actions">
-            <button type="button" class="ui-btn ui-btn--danger" (click)="reset()">Nollställ</button>
+            <button type="button" class="ui-btn ui-btn--danger" (click)="reset()">Börja om</button>
             <button type="button" class="ui-btn ui-btn--secondary" (click)="askingReset = false">
                 Avbryt
             </button>

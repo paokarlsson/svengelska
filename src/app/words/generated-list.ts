@@ -72,7 +72,7 @@ Du får ett önskemål. Det är antingen ett tema eller en lista eleven redan ha
 
 Saknas önskemål väljer du temat själv, ur det eleven tycker om. Välj ett smalt och konkret tema hellre än ett brett: «på stallet» säger mer än «djur», och en lista man känner igen sig i är en lista man övar på. Ta inte ett tema eleven redan har en lista om.
 
-Avbrotten är lösa påståenden appen lagt mellan glosorna, om sådant som inte har med engelska att göra. Ett ja där är en ingång: «Jag har sett ett norrsken» kan bli en lista om vinternatten, «Jag har lagat något med tejp» en om verktyg. Ta gärna temat ur ett sådant ja när du väljer själv, särskilt om det är oväntat — en lista eleven inte väntat sig är en lista som minns.
+Avbrotten är lösa påståenden appen lagt mellan glosorna, om sådant som inte har med engelska att göra. Vart och ett frågades för att ett ja öppnar ett ordområde, och området står bredvid svaret: «Jag har sett ett norrsken» öppnar vinter och natthimmel, «Jag har lagat något med tejp» verktyg. Ta gärna temat ur ett sådant ja när du väljer själv, särskilt om det är oväntat — en lista eleven inte väntat sig är en lista som minns.
 
 Har eleven svarat på följdfrågor väger de tyngst. De är det mest precisa du vet: ett ja till «Jag har tältat på fjället» säger mer om vilka ord eleven har nytta av än ett ja till natur. Ta temat ur dem när du väljer själv.
 
@@ -190,9 +190,10 @@ export function describeLearner(profile: Profile): string | null {
   // att frågan inte träffade, och det står kvar där.
   const breaks = (profile.breaks ?? []).filter((note) => note.answer !== 'unsure');
   if (breaks.length > 0) {
-    lines.push('Svar på avbrott — lösa frågor mellan glosorna:');
+    lines.push('Svar på avbrott — lösa frågor mellan glosorna, och vilket ordområde ett ja öppnar:');
     for (const note of breaks) {
-      lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}`);
+      const opens = note.opens === undefined ? '' : ` (öppnar: ${note.opens})`;
+      lines.push(`- «${note.text}»: ${NOTE_ANSWER[note.answer]}${opens}`);
     }
   }
   return lines.join('\n');

@@ -25,7 +25,6 @@ import { sayPersonality } from '../intro/personality';
 import { Profile } from '../intro/profile';
 import { sayLevel } from '../intro/skill';
 import { FollowUpWriter } from '../services/follow-up-writer';
-import { BREAK_LABEL } from '../services/break-deck';
 import { ListWriteError } from '../services/list-write-error';
 import { ProfileStore } from '../services/profile-store';
 import { Tracker } from '../services/tracker';
@@ -42,7 +41,8 @@ const PHASE_TITLE: Record<IntroPhase, string> = {
   about: 'Vad gillar du?',
   you: 'Lite om dig',
   how: 'Hur vill du ha det?',
-  break: 'Något helt annat',
+  // Ingen egen rubrik: ett avbrott ska inte presentera sig som ett.
+  break: 'Lite om dig',
   words: 'Kan du de här?',
 };
 
@@ -258,9 +258,7 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     this.card =
       this.current.kind === 'probe'
         ? { kind: 'trueFalse', statement: this.current.statement }
-        : this.current.phase === 'break'
-          ? { kind: 'ask', text: this.current.text, label: BREAK_LABEL }
-          : { kind: 'ask', text: this.current.text };
+        : { kind: 'ask', text: this.current.text };
   }
 
   /**

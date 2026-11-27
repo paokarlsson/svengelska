@@ -42,7 +42,14 @@ export type IntroPhase = 'about' | 'you' | 'how' | 'break' | 'words';
  * riktigt sant/falskt-kort, och döms som ett.
  */
 export type IntroCard =
-  | { kind: 'ask'; phase: 'about' | 'you' | 'how' | 'break'; id: string; text: string }
+  | {
+      kind: 'ask';
+      phase: 'about' | 'you' | 'how' | 'break';
+      id: string;
+      text: string;
+      /** För ett avbrott: ordområdet ett ja öppnar. */
+      opens?: string;
+    }
   | { kind: 'probe'; phase: 'words'; level: number; statement: Statement };
 
 /** Ett påstående om en själv, och intresset ett ja står för. */
@@ -297,7 +304,7 @@ export class IntroRun {
     } else if (card.phase === 'about') {
       this.answerAbout(card.id, response);
     } else if (card.phase === 'break') {
-      this.breakNotes.push(breakNote(card.text, response));
+      this.breakNotes.push(breakNote({ text: card.text, opens: card.opens ?? '' }, response));
     } else if (card.phase === 'how') {
       this.traits[card.id as TraitId] = saidOf(card.id as TraitId, response);
     } else {
@@ -471,9 +478,9 @@ export class IntroRun {
    * Se `breaks.ts`. Ett ja kan ge en följdfråga redan vid nästa avbrott.
    */
   private queueBreak(): void {
-    const text = nextBreak(this.breakNotes, this.age, this.random);
-    if (text !== null) {
-      this.breakCard.push(ask('break', 'break', text));
+    const item = nextBreak(this.breakNotes, this.age, this.random);
+    if (item !== null) {
+      this.breakCard.push({ kind: 'ask', phase: 'break', id: 'break', text: item.text, opens: item.opens });
     }
   }
 

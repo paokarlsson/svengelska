@@ -94,6 +94,8 @@ describe('IntroRun', () => {
         expect(breaks[1].kind === 'ask' && breaks[1].text).toBe(first.then);
       }
       expect(run.profile().breaks!.map((note) => note.answer)).toEqual(['yes', 'yes', 'yes']);
+      // Varje svar bär området ett ja öppnar.
+      expect(run.profile().breaks!.every((note) => (note.opens ?? '').length > 0)).toBe(true);
     });
   });
 

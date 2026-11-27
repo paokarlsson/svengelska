@@ -54,6 +54,8 @@ const LEVEL_FROM_V1 = [0, 1, 2, 3, 4, 6] as const;
 export interface Note {
   text: string;
   answer: 'yes' | 'no' | 'unsure';
+  /** För ett avbrott: ordområdet ett ja öppnar. Se `breaks.ts`. */
+  opens?: string;
 }
 
 /** Så många avbrott profilen minns. Fler än så säger inte modellen något nytt. */
@@ -229,7 +231,13 @@ export function storedProfile(profile: Profile): Profile & { version: number } {
 
 function readNotes(value: unknown): Note[] {
   return Array.isArray(value)
-    ? value.filter(isNote).map((note) => ({ text: note.text.trim(), answer: note.answer }))
+    ? value.filter(isNote).map((note) => {
+        const read: Note = { text: note.text.trim(), answer: note.answer };
+        if (typeof note.opens === 'string' && note.opens.trim().length > 0) {
+          read.opens = note.opens.trim();
+        }
+        return read;
+      })
     : [];
 }
 

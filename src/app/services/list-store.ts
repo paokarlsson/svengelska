@@ -3,8 +3,8 @@
  *
  * Svaret på frågan `docs/plan.md` lämnade öppen under steg 6 — var en lista som
  * inte kom med bygget *bor*. Den bor under en egen nyckel med en egen version,
- * inte i framstegsdokumentet: en lista är innehåll och framstegen är mätningar,
- * och «Nollställ framstegen» ska ta det ena utan att röra det andra.
+ * inte i framstegsdokumentet: en lista är innehåll och framstegen är mätningar.
+ * «Börja om» under Inställningar tar båda, men var för sig.
  *
  * Läsningen har samma hållning som `normalize()` i `progress-store.ts`: det
  * som inte känns igen faller bort i stället för att krascha övningen, och

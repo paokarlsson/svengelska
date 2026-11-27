@@ -51,7 +51,7 @@ describe('readProfile', () => {
       traits: { challenge: 1, careful: -1, playful: 0 },
       habits: { finished: 3, left: 1, misses: 7, unsure: 2 },
       rounds: [{ list: 'egen-deg', aim: 4, answered: 18, hits: 16 }],
-      breaks: [{ text: 'Jag har sett ett norrsken', answer: 'yes' }],
+      breaks: [{ text: 'Jag har sett ett norrsken', answer: 'yes', opens: 'vinter och natthimmel' }],
     };
     expect(readProfile(JSON.parse(JSON.stringify(storedProfile(profile))))).toEqual(profile);
   });

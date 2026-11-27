@@ -11,16 +11,13 @@
  * finns något att bygga vidare på dem i.
  */
 import { Injectable, inject } from '@angular/core';
-import { SEEDS, breakNote, breaksFromReply, followUpOf, nextBreak } from '../intro/breaks';
+import { Break, SEEDS, breakNote, breaksFromReply, followUpOf, nextBreak } from '../intro/breaks';
 import { BREAKS_KEPT, Note, Profile } from '../intro/profile';
 import { Response } from '../training/word-state';
 import { describeLearner } from '../words/generated-list';
 import { ApiKeyStore } from './api-key-store';
 import { ProfileStore } from './profile-store';
 import { Tracker } from './tracker';
-
-/** Raden ovanför ett avbrott på kortet. */
-export const BREAK_LABEL = 'Avbrott';
 
 /**
  * Var i varvet avbrottet kommer: efter så stor del av korten som räknas.
@@ -44,7 +41,9 @@ export function breakRequestText(profile: Profile): string {
   // «Jag kan vissla med två fingrar i munnen» när «Jag kan vissla med
   // fingrarna» väntade på sin tur.
   const done = new Set(asked.map((note) => note.text));
-  const waiting = SEEDS.filter((seed) => !done.has(seed.text)).map((seed) => seed.text);
+  const waiting = SEEDS.filter((seed) => !done.has(seed.text)).map(
+    (seed) => `${seed.text} (öppnar: ${seed.opens})`,
+  );
   if (waiting.length > 0) {
     parts.push(`Ligger redan i appens hög och kommer senare — skriv inget som liknar dem:\n${waiting.map((text) => `- ${text}`).join('\n')}`);
   }
@@ -58,7 +57,7 @@ export class BreakDeck {
   private readonly tracker = inject(Tracker);
 
   /** Avbrott Claude skrivit som ännu inte visats. Lever sidan ut. */
-  private written: string[] = [];
+  private written: Break[] = [];
   private fetching = false;
 
   /** Frågan till Claude. Ett fält, så att ett test kan peka om det. */
@@ -77,27 +76,32 @@ export class BreakDeck {
    * först när det besvarats, så att ett avbrott som aldrig visades inte går
    * förlorat.
    */
-  peek(random: () => number = Math.random): string | null {
+  peek(random: () => number = Math.random): Break | null {
     const profile = this.profiles.profile;
     if (profile === null) {
       return null;
     }
     const asked = profile.breaks ?? [];
     const done = new Set(asked.map((note) => note.text));
-    this.written = this.written.filter((text) => !done.has(text));
+    this.written = this.written.filter((item) => !done.has(item.text));
     // Ett ja till ett frö med följdfråga går före det skrivna: det är det som
     // bygger vidare på just det svaret.
     return followUpOf(asked) ?? this.written[0] ?? nextBreak(asked, profile.age, random);
   }
 
+  /** Glömmer det Claude skrivit. För den som börjar om: de skrevs för någon annan. */
+  forget(): void {
+    this.written = [];
+  }
+
   /** Svaret på ett avbrott. Sparas, och nya skrivs om högen börjar ta slut. */
-  answer(text: string, response: Response): Note | null {
+  answer(item: Break, response: Response): Note | null {
     const profile = this.profiles.profile;
     if (profile === null) {
       return null;
     }
-    const note = breakNote(text, response);
-    this.written = this.written.filter((other) => other !== text);
+    const note = breakNote(item, response);
+    this.written = this.written.filter((other) => other.text !== item.text);
     this.profiles.save({ ...profile, breaks: [...(profile.breaks ?? []), note].slice(-BREAKS_KEPT) });
     this.refill();
     return note;

@@ -167,16 +167,23 @@ frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
 ### Avbrotten
 
 Mitt bland orden ligger ibland ett kort som inte har med engelska att göra:
-`Jag har sett ett norrsken`, `Jag tycker att ananas hör hemma på pizza`. Det står
-«Avbrott» på det, och det svaras på som alla andra påståenden. Ett kommer efter
+`Jag har sett ett norrsken`, `Jag tycker att ananas hör hemma på pizza`. Inget på
+kortet säger att det är ett avbrott — för den som sveper är det bara nästa kort,
+och det svaras på som alla andra påståenden. Ett kommer efter
 varje trappsteg i startrundan, ett mitt i varje varv, och så många man hinner
 medan en lista skrivs — väntan är femton, tjugo sekunder, och loggen visade dem
 gå åt till att trycka på en avstängd knapp. Det räknas inte i
 varvet, rör inte sviten och mäts inte.
 
-Det bryter av — tjugo sant/falskt-kort i rad är ett prov — men det är också en
-ingång. Ett ja till norrskenet säger något som tolv frågor om intressen inte
-fångar, och det byggs vidare på på två sätt:
+Knasigt får det vara, men aldrig meningslöst. Varje avbrott finns för att ett ja
+*öppnar* ett ordområde: `Jag har klappat en ko` öppnar bondgården, `Jag har lagat
+något trasigt med tejp` verktygslådan. Området står på varje frö, följer med
+svaret in i profilen och står bredvid svaret när en lista skrivs. Ett avbrott
+som inte öppnar något hör inte hemma — `Jag kan vissla med fingrarna` stod med
+först och är borttaget — och ett som Claude skrivit utan område visas inte.
+
+Det bryter också av — tjugo sant/falskt-kort i rad är ett prov — och ett ja
+byggs vidare på på två sätt:
 
 - **Nästa avbrott.** En del frön har en följdfråga som kommer om svaret var ja
   (`Jag har stått ute mitt i natten för att se norrsken`). Den måste gå att
@@ -213,6 +220,15 @@ inte gett upp.
 Görs startrundan om behålls vanorna, men inte varvens anteckningar om nivån: ett
 nytt prov är en ny utgångspunkt. En profil från före trappans nio steg flyttas
 till den nya skalan när den läses.
+
+### Börja om
+
+Under Inställningar ligger «Börja om». Den tar framstegen, profilen och de egna
+listorna, och appen börjar om med startfrågorna. Nyckeln ligger kvar — att
+klistra in den igen är det jobbigaste steget av alla — och loggen likaså, så att
+omstarten syns i den. Här fanns förut bara «Nollställ framstegen», och loggen
+visade den följas av «Gör om startfrågorna» medan profilen och de gamla listorna
+låg kvar.
 
 ## Svep, och tryck där det är ett val
 

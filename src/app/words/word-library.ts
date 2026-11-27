@@ -97,6 +97,12 @@ export class WordLibrary {
     this.commit();
   }
 
+  /** Tar bort alla egna listor. Byggets listor finns kvar; de går inte att ta bort. */
+  clearOwn(): void {
+    this.own = [];
+    this.commit();
+  }
+
   private commit(): void {
     saveLists(this.own);
     this.rebuild();
