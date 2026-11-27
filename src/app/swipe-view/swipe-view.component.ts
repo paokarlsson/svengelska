@@ -55,12 +55,7 @@ import { Response } from '../training/word-state';
 export type SwipeCard =
   | { kind: 'trueFalse'; statement: Statement }
   | { kind: 'recall'; word: DirectedWord }
-  | {
-      kind: 'ask';
-      text: string;
-      /** En rad ovanför påståendet, för ett kort som behöver säga vad det är. */
-      label?: string;
-    }
+  | { kind: 'ask'; text: string }
   | ChoiceCard;
 
 /**
@@ -117,9 +112,12 @@ const NAMES: Record<
   Exclude<SwipeCard['kind'], 'choice'>,
   { affirm: Naming; deny: Naming; unsure: Naming }
 > = {
+  // Kortet är ett påstående, «dog = hund», och svaret är om det stämmer. Här
+  // stod förut Rätt och Fel, och på korten om en själv Ja och Nej: två sorters
+  // svar på samma sorts kort. Nu heter båda det de är.
   trueFalse: {
-    affirm: { label: 'Rätt', stamp: 'RÄTT' },
-    deny: { label: 'Fel', stamp: 'FEL' },
+    affirm: { label: 'Sant', stamp: 'SANT' },
+    deny: { label: 'Falskt', stamp: 'FALSKT' },
     unsure: { label: 'Vet ej', stamp: 'VET EJ' },
   },
   recall: {
@@ -129,8 +127,8 @@ const NAMES: Record<
   },
   // Om en själv finns inget att inte veta. Det tredje svaret är att slippa.
   ask: {
-    affirm: { label: 'Ja', stamp: 'JA' },
-    deny: { label: 'Nej', stamp: 'NEJ' },
+    affirm: { label: 'Sant', stamp: 'SANT' },
+    deny: { label: 'Falskt', stamp: 'FALSKT' },
     unsure: { label: 'Hoppa över', stamp: 'HOPPA ÖVER' },
   },
 };
@@ -339,11 +337,6 @@ export class SwipeViewComponent implements OnChanges, OnDestroy {
   /** Om kortet är ett påstående om en själv och inte en glosa. */
   get asking(): boolean {
     return this.card.kind === 'ask';
-  }
-
-  /** Raden ovanför ett påstående, om kortet har en. */
-  get askLabel(): string | null {
-    return this.card.kind === 'ask' ? (this.card.label ?? null) : null;
   }
 
   /** Det som står under ordet: påståendets översättning, eller facit. */
@@ -735,9 +728,7 @@ function describeCard(card: SwipeCard): Record<string, unknown> {
     return { kind: 'word', asked, shown, truthy, dir: direction };
   }
   if (card.kind === 'ask') {
-    return card.label === undefined
-      ? { kind: 'ask', text: card.text }
-      : { kind: 'ask', text: card.text, label: card.label };
+    return { kind: 'ask', text: card.text };
   }
   if (card.kind === 'choice') {
     return { kind: 'choice', label: card.label, right: card.affirm, left: card.deny, down: card.unsure };

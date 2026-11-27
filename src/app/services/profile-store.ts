@@ -2,8 +2,8 @@
  * Profilen, och var den ligger.
  *
  * Under en egen nyckel och inte i framstegsdokumentet, av samma skäl som
- * listorna: profilen är vem någon är och framstegen vad hen kan, och
- * «Nollställ framstegen» ska inte få appen att glömma att någon gillar hästar.
+ * listorna: profilen är vem någon är och framstegen vad hen kan. «Börja om»
+ * under Inställningar tar båda, men var för sig.
  *
  * Profilen lämnar webbläsaren på ett ställe — som några rader i frågan till
  * modellen när en lista ska skrivas. Där står ett åldersspann och inte en

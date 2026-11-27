@@ -106,10 +106,9 @@ och varvet sätter igång direkt. Valet av ord ligger under ytan, som
 repetitionsplanen. Den som gjort startrundan och har en nyckel behöver inte ens
 be — när rundan är slut skriver appen den första listan ur svaren.
 
-Startrundan slutar med en fråga: *Tror du att jag vet vem du är nu? Vill du
-börja med glosor?* Ja går till glosorna. Nej ger tre påståenden till, skrivna av
-Claude utifrån det som redan svarats (`intro/follow-up.ts`). De skrivs som ett
-ja/nej-träd tre steg djupt, så att nästa kort alltid finns när det förra svepts,
+Startrundan slutar med ett påstående: *Du vet vem jag är nu.* Sant går till
+glosorna. Falskt ger tre påståenden till, skrivna av Claude utifrån det som redan
+svarats (`intro/follow-up.ts`). De skrivs som ett sant/falskt-träd tre steg djupt, så att nästa kort alltid finns när det förra svepts,
 och nästa träd skrivs medan de två sista besvaras. Svaren sparas i profilen och
 väger tyngst när orden väljs.
 
@@ -167,17 +166,28 @@ frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
 ### Avbrotten
 
 Mitt bland orden ligger ibland ett kort som inte har med engelska att göra:
-`Jag har sett ett norrsken`, `Jag tycker att ananas hör hemma på pizza`. Det står
-«Avbrott» på det, och det svaras på som alla andra påståenden. Ett kommer efter
-varje trappsteg i startrundan, och ett mitt i varje varv. Det räknas inte i
+`Jag har sett ett norrsken`, `Jag tycker att ananas hör hemma på pizza`. Inget på
+kortet säger att det är ett avbrott — för den som sveper är det bara nästa kort,
+och det svaras på som alla andra påståenden. Ett kommer efter
+varje trappsteg i startrundan, ett mitt i varje varv, och så många man hinner
+medan en lista skrivs — väntan är femton, tjugo sekunder, och loggen visade dem
+gå åt till att trycka på en avstängd knapp. Det räknas inte i
 varvet, rör inte sviten och mäts inte.
 
-Det bryter av — tjugo sant/falskt-kort i rad är ett prov — men det är också en
-ingång. Ett ja till norrskenet säger något som tolv frågor om intressen inte
-fångar, och det byggs vidare på på två sätt:
+Knasigt får det vara, men aldrig meningslöst. Varje avbrott finns för att ett ja
+*öppnar* ett ordområde: `Jag har klappat en ko` öppnar bondgården, `Jag har lagat
+något trasigt med tejp` verktygslådan. Området står på varje frö, följer med
+svaret in i profilen och står bredvid svaret när en lista skrivs. Ett avbrott
+som inte öppnar något hör inte hemma — `Jag kan vissla med fingrarna` stod med
+först och är borttaget — och ett som Claude skrivit utan område visas inte.
+
+Det bryter också av — tjugo sant/falskt-kort i rad är ett prov — och ett ja
+byggs vidare på på två sätt:
 
 - **Nästa avbrott.** En del frön har en följdfråga som kommer om svaret var ja
-  (`Jag har stått ute mitt i natten för att se det`). Med en nyckel skriver
+  (`Jag har stått ute mitt i natten för att se norrsken`). Den måste gå att
+  förstå ensam: den kommer ett avbrott senare, och «Jag skulle vilja träffa
+  det» gav tio sekunders tvekan och ett hoppa över. Med en nyckel skriver
   Claude nya avbrott i bakgrunden utifrån allt som svarats: ett som går djupare
   i något eleven sagt ja till, och resten helt nya.
 - **Nästa lista.** Svaren skickas med när en lista skrivs, och modellen ombeds
@@ -210,11 +220,28 @@ Görs startrundan om behålls vanorna, men inte varvens anteckningar om nivån: 
 nytt prov är en ny utgångspunkt. En profil från före trappans nio steg flyttas
 till den nya skalan när den läses.
 
+### Börja om
+
+Under Inställningar ligger «Börja om». Den tar framstegen, profilen och de egna
+listorna, och appen börjar om med startfrågorna. Nyckeln ligger kvar — att
+klistra in den igen är det jobbigaste steget av alla — och loggen likaså, så att
+omstarten syns i den. Här fanns förut bara «Nollställ framstegen», och loggen
+visade den följas av «Gör om startfrågorna» medan profilen och de gamla listorna
+låg kvar.
+
 ## Svep, och tryck där det är ett val
 
-Appen har ett kort och tre håll. På ett gloskort är hållen svaret:
+Appen har ett kort och tre håll. Varje kort som frågar något är ett påstående,
+och svaret är om det stämmer:
 
-    höger = rätt      vänster = fel      ner = vet ej
+    höger = sant      vänster = falskt      ner = vet ej
+
+Det gäller gloskorten (`dog = hund`) och korten om en själv (`Jag har klappat en
+ko`) lika, och det tredje hållet heter «hoppa över» på de senare. Så var det inte
+först: gloskorten svarades med rätt och fel, korten om en själv med ja och nej,
+och slutet av startrundan var en fråga. Två sorters svar på samma sorts kort.
+Det Claude skriver — följdfrågor och avbrott — ska följa samma regel, och
+uppdragen säger det.
 
 Där gäller bara svepet. Under kortet står en rad som säger vad hållen heter, och
 ett tryck på den svarar inte — kortet glider en bit åt det hållet, stämplas och

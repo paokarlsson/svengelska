@@ -44,11 +44,14 @@ import { buildExport, exportText } from '../services/data-export';
 import { ListWriteError, WriteFailure } from '../services/list-write-error';
 import { ListWriter } from '../services/list-writer';
 import { ProfileStore } from '../services/profile-store';
+import { BreakDeck } from '../services/break-deck';
+import { Break } from '../intro/breaks';
 import { LogStats, Tracker } from '../services/tracker';
 import { MAX_NEW_PER_DAY } from '../services/progress-store';
 import {
   ChoiceCard,
   SwipeAnswer,
+  SwipeCard,
   SwipeViewComponent,
 } from '../swipe-view/swipe-view.component';
 import { TrainingEngine } from '../training/training-engine';
@@ -105,6 +108,8 @@ export class HomeViewComponent implements OnInit, OnDestroy {
   @Output() readonly mapped = new EventEmitter<WordBlock>();
   /** Gör startrundan — första gången, eller om igen. */
   @Output() readonly intro = new EventEmitter<void>();
+  /** Allt är nollställt. Appen börjar om med startrundan. */
+  @Output() readonly restarted = new EventEmitter<void>();
 
   private readonly engine = inject(TrainingEngine);
   private readonly library = inject(WordLibrary);
@@ -113,6 +118,7 @@ export class HomeViewComponent implements OnInit, OnDestroy {
   private readonly profiles = inject(ProfileStore);
   private readonly tracker = inject(Tracker);
   private readonly changes = inject(ChangeDetectorRef);
+  private readonly breaks = inject(BreakDeck);
 
   askingReset = false;
   /** Om inställningspanelen är öppen. */
@@ -121,6 +127,16 @@ export class HomeViewComponent implements OnInit, OnDestroy {
   makerOpen = false;
   /** Sant medan appen väntar på en lista. */
   writing = false;
+  /**
+   * Avbrottet som ligger framme medan en lista skrivs, eller `null`.
+   *
+   * Väntan är femton, tjugo sekunder. Loggen visade dem gå åt till tre tryck
+   * på en grå «Välj åt mig» — knappen var avstängd för att listan redan
+   * skrevs, men det syntes inte. Nu ligger ett avbrott på bordet i stället,
+   * och svaret byggs vidare på i nästa lista.
+   */
+  waitCard: SwipeCard | null = null;
+  private waitItem: Break | null = null;
   /** Varför det inte blev någon lista, eller `null`. */
   writeError: string | null = null;
   /** Sant när sidan lämnats. Då startar en färdig lista inget varv. */
@@ -438,6 +454,27 @@ export class HomeViewComponent implements OnInit, OnDestroy {
     return this.profiles.hasProfile;
   }
 
+  /** Svaret på ett avbrott medan listan skrivs. */
+  onWaitAnswer(answer: SwipeAnswer): void {
+    if (this.waitItem === null) {
+      return;
+    }
+    const note = this.breaks.answer(this.waitItem, answer.response);
+    this.tracker.log('break', { ...this.waitItem, as: note?.answer ?? null, waiting: true });
+  }
+
+  /** Avbrottet har lämnat bordet. Skrivs listan fortfarande kommer ett till. */
+  onWaitLanded(): void {
+    if (this.writing) {
+      this.nextWaitCard();
+    }
+  }
+
+  private nextWaitCard(): void {
+    this.waitItem = this.breaks.peek();
+    this.waitCard = this.waitItem === null ? null : { kind: 'ask', text: this.waitItem.text };
+  }
+
   /** Låter appen välja temat, efter det startrundan sa. */
   surprise(): Promise<void> {
     return this.write('');
@@ -464,6 +501,11 @@ export class HomeViewComponent implements OnInit, OnDestroy {
     }
     this.writing = true;
     this.writeError = null;
+    // Panelen stängs: väntan syns på bordet, där kortet brukar ligga, och
+    // panelens knappar har inget att göra förrän listan finns.
+    this.makerOpen = false;
+    this.nextWaitCard();
+    window.scrollTo?.({ top: 0, behavior: 'smooth' });
     const began = Date.now();
     // Önskemålet loggas — det är vad någon bad om, och det behövs för att
     // förstå vad som kom tillbaka. Nyckeln står i ett annat fält och loggas aldrig.
@@ -488,12 +530,16 @@ export class HomeViewComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       this.writeError = failureText(error);
+      // Felet står i panelen, så den öppnas igen.
+      this.makerOpen = true;
       this.tracker.log('list.failed', {
         ms: Date.now() - began,
         why: error instanceof ListWriteError ? error.reason : 'failed',
       });
     } finally {
       this.writing = false;
+      this.waitCard = null;
+      this.waitItem = null;
       // Ett `await` ligger emellan, så Angular har redan kört sin kontroll.
       this.changes.markForCheck();
     }
@@ -540,11 +586,28 @@ export class HomeViewComponent implements OnInit, OnDestroy {
     this.changes.markForCheck();
   }
 
+  /**
+   * Börjar om från början: framstegen, profilen och de egna listorna.
+   *
+   * Nyckeln får ligga kvar — den är inte en del av vad appen vet om någon,
+   * utan vad som låter den skriva listor, och att klistra in den igen är det
+   * jobbigaste steget av alla. Loggen får också ligga kvar: den är till för
+   * den som utvecklar appen, och omstarten är något den ska kunna se.
+   *
+   * Här fanns förut bara «Nollställ framstegen». Loggen visade den följas av
+   * «Gör om startfrågorna», medan profilen, listan om mjöl och deg och
+   * följdfrågornas svar låg kvar från förra gången.
+   */
   async reset(): Promise<void> {
+    this.tracker.log('reset', {});
     await this.engine.reset();
+    this.profiles.clear();
+    this.library.clearOwn();
+    this.breaks.forget();
+    this.pickedId = null;
     this.askingReset = false;
-    // Det enda stället som behöver `markForCheck`: ett `await` ligger emellan,
-    // så Angular har redan kört sin kontroll när svaret kommer.
+    this.restarted.emit();
+    // Ett `await` ligger emellan, så Angular har redan kört sin kontroll.
     this.changes.markForCheck();
   }
 }

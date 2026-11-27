@@ -94,6 +94,8 @@ describe('IntroRun', () => {
         expect(breaks[1].kind === 'ask' && breaks[1].text).toBe(first.then);
       }
       expect(run.profile().breaks!.map((note) => note.answer)).toEqual(['yes', 'yes', 'yes']);
+      // Varje svar bär området ett ja öppnar.
+      expect(run.profile().breaks!.every((note) => (note.opens ?? '').length > 0)).toBe(true);
     });
   });
 
@@ -226,6 +228,15 @@ describe('IntroRun', () => {
       const seen = play(new IntroRun(seeded(1)), knowing(TOP_LEVEL, 'adult'));
       expect(steps(seen)[0]).toBeGreaterThan(0);
       expect(steps(seen)).not.toContain(0);
+    });
+
+    // Loggen: första ordkortet var fällan `eventually = eventuellt`, och det
+    // tog tjugo sekunder att svepa fel.
+    it('lägger det sanna kortet först på det allra första steget', () => {
+      for (let seed = 1; seed <= 10; seed++) {
+        const first = play(new IntroRun(seeded(seed)), knowing(5)).find((card) => card.kind === 'probe')!;
+        expect(first.kind === 'probe' && first.statement.truthy).toBe(true);
+      }
     });
 
     it('börjar vid de lättaste orden för ett barn', () => {

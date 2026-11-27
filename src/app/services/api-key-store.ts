@@ -4,7 +4,7 @@
  * Appen är en ren webbsida utan server bakom sig, så den som vill att appen
  * ska skriva listor åt sig lägger in sin egen nyckel. Den bor under en egen
  * nyckel i `localStorage` och inte i framstegsdokumentet, av två skäl:
- * «Nollställ framstegen» ska inte kasta den, och ett framstegsdokument som
+ * «Börja om» ska inte kasta den, och ett framstegsdokument som
  * någon gång exporteras eller delas ska inte bära en hemlighet med sig.
  *
  * Nyckeln lämnar webbläsaren på ett enda ställe — anropet i `list-writer.ts`,

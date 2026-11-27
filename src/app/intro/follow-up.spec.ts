@@ -114,8 +114,8 @@ describe('följdfrågornas svar i profilen', () => {
         { text: 'Jag grillar', answer: 'unsure' },
       ],
     });
-    expect(text).toContain('«Jag bakar»: ja');
-    expect(text).toContain('«Jag grillar»: vet ej');
+    expect(text).toContain('«Jag bakar»: sant');
+    expect(text).toContain('«Jag grillar»: hoppade över');
   });
 
   it('och till nästa träd, med det som står på tur', () => {

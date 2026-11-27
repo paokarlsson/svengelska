@@ -193,11 +193,11 @@ describe('describeLearner', () => {
     const text = describeLearner({
       ...emptyProfile(),
       breaks: [
-        { text: 'Jag har sett ett norrsken', answer: 'yes' },
+        { text: 'Jag har sett ett norrsken', answer: 'yes', opens: 'vinter och natthimmel' },
         { text: 'Jag kan vissla med fingrarna', answer: 'unsure' },
       ],
     })!;
-    expect(text).toContain('norrsken»: ja');
+    expect(text).toContain('norrsken»: sant (öppnar: vinter och natthimmel)');
     expect(text).not.toContain('vissla');
   });
 

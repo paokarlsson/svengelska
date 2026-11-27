@@ -42,7 +42,14 @@ export type IntroPhase = 'about' | 'you' | 'how' | 'break' | 'words';
  * riktigt sant/falskt-kort, och döms som ett.
  */
 export type IntroCard =
-  | { kind: 'ask'; phase: 'about' | 'you' | 'how' | 'break'; id: string; text: string }
+  | {
+      kind: 'ask';
+      phase: 'about' | 'you' | 'how' | 'break';
+      id: string;
+      text: string;
+      /** För ett avbrott: ordområdet ett ja öppnar. */
+      opens?: string;
+    }
   | { kind: 'probe'; phase: 'words'; level: number; statement: Statement };
 
 /** Ett påstående om en själv, och intresset ett ja står för. */
@@ -297,7 +304,7 @@ export class IntroRun {
     } else if (card.phase === 'about') {
       this.answerAbout(card.id, response);
     } else if (card.phase === 'break') {
-      this.breakNotes.push(breakNote(card.text, response));
+      this.breakNotes.push(breakNote({ text: card.text, opens: card.opens ?? '' }, response));
     } else if (card.phase === 'how') {
       this.traits[card.id as TraitId] = saidOf(card.id as TraitId, response);
     } else {
@@ -471,9 +478,9 @@ export class IntroRun {
    * Se `breaks.ts`. Ett ja kan ge en följdfråga redan vid nästa avbrott.
    */
   private queueBreak(): void {
-    const text = nextBreak(this.breakNotes, this.age, this.random);
-    if (text !== null) {
-      this.breakCard.push(ask('break', 'break', text));
+    const item = nextBreak(this.breakNotes, this.age, this.random);
+    if (item !== null) {
+      this.breakCard.push({ kind: 'ask', phase: 'break', id: 'break', text: item.text, opens: item.opens });
     }
   }
 
@@ -483,8 +490,16 @@ export class IntroRun {
    */
   private queueStep(step: number): void {
     this.rightOnStep = 0;
-    this.gap = this.passed.size + this.failed.size === 0 ? 0 : ASKS_BETWEEN;
-    for (const probe of shuffle(LADDER[step], this.random)) {
+    const first = this.passed.size + this.failed.size === 0;
+    this.gap = first ? 0 : ASKS_BETWEEN;
+    // Det allra första ordkortet är det sanna. Loggen visade en vuxen som
+    // gick från «Jag övar för att jag själv vill» rakt in i fällan
+    // `eventually = eventuellt`, tvekade i tjugo sekunder och svepte fel. Det
+    // första kortet ska lära ut vad ett ordkort är, inte vara provets svåraste.
+    const order = first
+      ? [...LADDER[step]].sort((a, b) => Number(b.shown === b.truth) - Number(a.shown === a.truth))
+      : shuffle(LADDER[step], this.random);
+    for (const probe of order) {
       this.probes.push({ kind: 'probe', phase: 'words', level: step, statement: statementOf(probe) });
     }
   }

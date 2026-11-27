@@ -105,6 +105,28 @@
     transition: width var(--motion-fast);
 }
 
+/* Medan en lista skrivs. Står där kortets rubrik brukar stå, och pulserar
+   svagt så att det syns att något pågår. */
+.waiting {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-align: center;
+    color: var(--accent-green);
+    animation: waiting 1.6s ease-in-out infinite;
+}
+
+@keyframes waiting {
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .waiting {
+        animation: none;
+    }
+}
+
 .tagline {
     font-size: 0.88rem;
     line-height: 1.45;

@@ -25,7 +25,6 @@ import { sayPersonality } from '../intro/personality';
 import { Profile } from '../intro/profile';
 import { sayLevel } from '../intro/skill';
 import { FollowUpWriter } from '../services/follow-up-writer';
-import { BREAK_LABEL } from '../services/break-deck';
 import { ListWriteError } from '../services/list-write-error';
 import { ProfileStore } from '../services/profile-store';
 import { Tracker } from '../services/tracker';
@@ -38,12 +37,18 @@ import {
 import { Response } from '../training/word-state';
 
 /** Rubriken över kortet. Säger vad korten handlar om, inte hur många som är kvar. */
+/**
+ * Inga frågetecken, inte heller här. Varje kort är ett påstående som är sant
+ * eller falskt, och en rubrik som frågar något gör kortet under den till ett
+ * svar på en fråga i stället.
+ */
 const PHASE_TITLE: Record<IntroPhase, string> = {
-  about: 'Vad gillar du?',
+  about: 'Det du gillar',
   you: 'Lite om dig',
-  how: 'Hur vill du ha det?',
-  break: 'Något helt annat',
-  words: 'Kan du de här?',
+  how: 'Hur du vill ha det',
+  // Ingen egen rubrik: ett avbrott ska inte presentera sig som ett.
+  break: 'Lite om dig',
+  words: 'Sant eller falskt',
 };
 
 /**
@@ -196,7 +201,7 @@ export class IntroViewComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Svaret på «Tror du att jag vet vem du är nu?».
+   * Svaret på «Du vet vem jag är nu».
    *
    * Ja går till glosorna. Nej ger tre frågor till — redan skrivna om det gick,
    * annars en kort väntan.
@@ -258,9 +263,7 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     this.card =
       this.current.kind === 'probe'
         ? { kind: 'trueFalse', statement: this.current.statement }
-        : this.current.phase === 'break'
-          ? { kind: 'ask', text: this.current.text, label: BREAK_LABEL }
-          : { kind: 'ask', text: this.current.text };
+        : { kind: 'ask', text: this.current.text };
   }
 
   /**
@@ -275,9 +278,10 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     this.walk = null;
     this.check = {
       kind: 'choice',
-      label: 'Tror du att jag vet vem du är nu?',
-      affirm: 'Ja, glosor',
-      deny: this.stuck ? null : 'Nej, fråga mer',
+      // Ett påstående och inte en fråga, som alla andra kort: sant eller falskt.
+      label: 'Du vet vem jag är nu',
+      affirm: 'Sant, glosor',
+      deny: this.stuck ? null : 'Falskt, fråga mer',
       unsure: null,
     };
     if (this.ready === null) {

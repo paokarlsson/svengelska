@@ -34,7 +34,8 @@ import { wordKey } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
 import { Tracker } from '../services/tracker';
 import { ProfileStore } from '../services/profile-store';
-import { BREAK_AT, BREAK_LABEL, BreakDeck } from '../services/break-deck';
+import { BREAK_AT, BreakDeck } from '../services/break-deck';
+import { Break } from '../intro/breaks';
 import { skillOf } from '../intro/skill';
 
 /** Så många flyttade håll som skrivs ut under slutkortet. */
@@ -90,7 +91,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
    * Avbrottet som ligger på bordet, eller `null`. Ett per varv, mitt i — se
    * `intro/breaks.ts`. Det räknas inte i varvet och rör inte sviten.
    */
-  breakText: string | null = null;
+  private breakItem: Break | null = null;
   /** Om varvet redan haft sitt avbrott. */
   private hadBreak = false;
 
@@ -111,7 +112,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.summary = null;
     this.record = false;
     this.ending = null;
-    this.breakText = null;
+    this.breakItem = null;
     this.hadBreak = false;
     // Skrivs i bakgrunden nu, så att ett skrivet avbrott finns när varvet är
     // halvvägs. Utan nyckel gör det ingenting.
@@ -171,9 +172,9 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   onAnswer(answer: SwipeAnswer): void {
-    if (this.breakText !== null) {
-      const note = this.breaks.answer(this.breakText, answer.response);
-      this.tracker.log('break', { text: this.breakText, as: note?.answer ?? null });
+    if (this.breakItem !== null) {
+      const note = this.breaks.answer(this.breakItem, answer.response);
+      this.tracker.log('break', { ...this.breakItem, as: note?.answer ?? null });
       return;
     }
     if (this.task === null) {
@@ -195,9 +196,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   onCompleted(): void {
-    if (this.breakText !== null) {
-      this.breakText = null;
-    }
+    this.breakItem = null;
     this.advance();
   }
 
@@ -286,10 +285,10 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   private advance(): void {
     if (this.breakDue()) {
       this.hadBreak = true;
-      this.breakText = this.breaks.peek();
-      if (this.breakText !== null) {
+      this.breakItem = this.breaks.peek();
+      if (this.breakItem !== null) {
         this.task = null;
-        this.card = { kind: 'ask', text: this.breakText, label: BREAK_LABEL };
+        this.card = { kind: 'ask', text: this.breakItem.text };
         return;
       }
     }
