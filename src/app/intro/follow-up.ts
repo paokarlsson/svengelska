@@ -74,6 +74,8 @@ Skriv ett träd med tre påståenden i följd: ett första, ett att visa om elev
 
 Varje påstående ska smalna av, så att svaret säger något nytt om vilka ord eleven har nytta av. Gå från det breda mot det konkreta — från «Jag lagar gärna mat» till «Jag bakar oftare än jag lagar middag» till «Jag har bakat surdegsbröd». Ett nej betyder att den vägen är stängd: byt riktning i stället för att fråga samma sak i en annan form. Börja gärna där appen vet minst, eller där ett ja ännu är brett.
 
+Intressena är inte det enda värt att fråga om. Hur eleven använder engelska — läser, spelar, ser serier utan undertext, skriver på jobbet — säger var nivån ligger bättre än ett kort prov, och var ett ja öppnar ett ordförråd: den som spelar på engelska med andra kan andra ord än den som läser deckare. Ett av de tre korten får gärna handla om det, särskilt när provet slutade högt.
+
 Fråga inte om något eleven redan svarat på, och inte om det som står bland de påståenden som visas härnäst.
 
 Skriv som en människa pratar: korta påståenden i jagform, på svenska, högst tio ord, utan frågetecken, och så att de går att svara ja eller nej på utan att tänka efter. Anpassa dem till åldern. Fråga aldrig efter namn, var eleven bor eller går i skolan, eller något annat som pekar ut en person, och inte om hälsa, tro, politik eller hur familjen har det.`;

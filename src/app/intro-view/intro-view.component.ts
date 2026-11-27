@@ -21,7 +21,9 @@ import {
 } from '@angular/core';
 import { QuestionNode, TreeWalk } from '../intro/follow-up';
 import { IntroCard, IntroPhase, IntroRun } from '../intro/intro-run';
-import { Profile, TOP_LEVEL } from '../intro/profile';
+import { sayPersonality } from '../intro/personality';
+import { Profile } from '../intro/profile';
+import { sayLevel } from '../intro/skill';
 import { FollowUpWriter } from '../services/follow-up-writer';
 import { ListWriteError } from '../services/list-write-error';
 import { ProfileStore } from '../services/profile-store';
@@ -38,7 +40,8 @@ import { Response } from '../training/word-state';
 const PHASE_TITLE: Record<IntroPhase, string> = {
   about: 'Vad gillar du?',
   you: 'Lite om dig',
-  words: 'Några ord',
+  how: 'Hur vill du ha det?',
+  words: 'Kan du de här?',
 };
 
 /**
@@ -143,8 +146,8 @@ export class IntroViewComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Intressena på kortet som frågar om appen vet nog. Högst fem: den som sagt
-   * ja till alla tolv fick annars inte plats med frågan kortet faktiskt ställer.
+   * Intressena på slutkortet. Högst fem: den som sagt ja till alla fick annars
+   * inte plats med nivån och personligheten, eller med frågan kortet ställer.
    */
   get shownInterests(): string[] {
     return (this.result?.interests ?? []).slice(0, SHOWN_INTERESTS);
@@ -159,26 +162,15 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     return this.result?.notes?.length ?? 0;
   }
 
-  /**
-   * Nivån i ord.
-   *
-   * Sagd som var det är lagom att börja och inte som ett betyg: den som nyss
-   * svept fel på `house` ska inte mötas av en nolla.
-   */
+  /** Nivån i ord. Se `sayLevel()`. */
   get levelText(): string | null {
     const level = this.result?.level ?? null;
-    if (level === null) {
-      return null;
-    }
-    if (level === 0) {
-      return 'Vi börjar från början, med de vanligaste orden.';
-    }
-    if (level >= TOP_LEVEL) {
-      return 'Du kan mycket redan. Det blir ord som får dig att tänka efter.';
-    }
-    return level <= 2
-      ? 'Du kan vardagsorden. Vi bygger vidare därifrån.'
-      : 'Du kan mer än vardagsorden. Det blir ord med lite motstånd.';
+    return level === null ? null : sayLevel(level);
+  }
+
+  /** Personligheten i en mening, eller `null` om inget drag stack ut. */
+  get personalityText(): string | null {
+    return this.result === null ? null : sayPersonality(this.result);
   }
 
   onAnswer(answer: SwipeAnswer): void {
@@ -244,7 +236,11 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     this.current = this.run.next();
     if (this.current === null) {
       this.card = null;
-      this.result = this.run.profile();
+      // Vanorna följer med när startrundan görs om: de är vad någon gjort, och
+      // det har inte ändrats av att frågorna ställts igen. Varvens anteckningar
+      // om nivån gör det inte — ett nytt prov är en ny utgångspunkt.
+      const habits = this.profiles.profile?.habits;
+      this.result = habits === undefined ? this.run.profile() : { ...this.run.profile(), habits };
       // Sparas här, i samma stund sista kortet är besvarat, och inte när
       // slutkortet svepts. Det som svarats är svarat; det ska inte hänga på
       // att någon också hittar ut ur rundan.

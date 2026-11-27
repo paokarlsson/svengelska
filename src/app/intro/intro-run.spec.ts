@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ABOUT, IntroCard, IntroRun, LADDER, MAX_CARDS, wordsOnStep } from './intro-run';
+import { ABOUT, ASKS_BETWEEN, IntroCard, IntroRun, LADDER, OPENING, wordsOnStep } from './intro-run';
+import { TRAITS } from './personality';
 import { TOP_LEVEL } from './profile';
 import { Response } from '../training/word-state';
 
@@ -25,33 +26,69 @@ function play(run: IntroRun, respond: (card: IntroCard) => Response): IntroCard[
   throw new Error('rundan tog aldrig slut');
 }
 
-/** Rätt svar på ett prov; `yes` på allt annat. */
-function knowing(upTo: number, yes: Response = 'affirm') {
+/** Vuxen eller barn på ålderskorten, ja på allt annat, och rätt på trappan upp till `upTo`. */
+function knowing(upTo: number, age: 'child' | 'teen' | 'adult' | 'unsure' = 'adult') {
   return (card: IntroCard): Response => {
-    if (card.kind !== 'probe') {
-      return yes;
+    if (card.kind === 'probe') {
+      if (card.level >= upTo) {
+        return 'unsure';
+      }
+      return card.statement.truthy ? 'affirm' : 'deny';
     }
-    if (card.level >= upTo) {
-      return 'unsure';
+    if (card.id === 'age-13') {
+      return age === 'unsure' ? 'unsure' : age === 'child' ? 'deny' : 'affirm';
     }
-    return card.statement.truthy ? 'affirm' : 'deny';
+    if (card.id === 'age-18') {
+      return age === 'adult' ? 'affirm' : 'deny';
+    }
+    return 'affirm';
   };
 }
+
+const ids = (cards: IntroCard[]) => cards.map((card) => (card.kind === 'ask' ? card.id : `#${card.level}`));
+const steps = (cards: IntroCard[]) =>
+  [...new Set(cards.filter((card) => card.kind === 'probe').map((card) => (card.kind === 'probe' ? card.level : -1)))];
 
 describe('IntroRun', () => {
   it('börjar med frågor om en själv, inte med ett prov', () => {
     const seen = play(new IntroRun(seeded(1)), knowing(TOP_LEVEL));
     const firstProbe = seen.findIndex((card) => card.kind === 'probe');
 
-    expect(seen[0].kind).toBe('ask');
-    expect(firstProbe).toBeGreaterThanOrEqual(ABOUT.length);
-    expect(seen.slice(firstProbe).every((card) => card.kind === 'probe')).toBe(true);
+    expect(seen.slice(0, OPENING).every((card) => card.kind === 'ask' && card.phase === 'about')).toBe(true);
+    expect(firstProbe).toBeGreaterThan(OPENING);
   });
 
-  it('tar aldrig fler kort än mätaren räknar med', () => {
-    for (let seed = 1; seed <= 20; seed++) {
+  it('frågar om ålder och skäl innan provet, eftersom åldern avgör var det börjar', () => {
+    const seen = ids(play(new IntroRun(seeded(1)), knowing(TOP_LEVEL)));
+    expect(seen.indexOf('why')).toBeLessThan(seen.findIndex((id) => id.startsWith('#')));
+  });
+
+  // Så var det inte först: tolv intressen, sedan ålder, sedan prov.
+  it('varvar trappan med påståenden', () => {
+    const seen = play(new IntroRun(seeded(1)), knowing(4));
+    const afterWhy = ids(seen).slice(ids(seen).indexOf('why') + 1);
+
+    // Steg, två påståenden, steg, två påståenden …
+    expect(afterWhy.slice(0, 2).every((id) => id.startsWith('#'))).toBe(true);
+    expect(afterWhy.slice(2, 2 + ASKS_BETWEEN).every((id) => !id.startsWith('#'))).toBe(true);
+    expect(afterWhy[2 + ASKS_BETWEEN].startsWith('#')).toBe(true);
+  });
+
+  it('frågar om vart och ett av dragen, en gång', () => {
+    const seen = play(new IntroRun(seeded(1)), knowing(TOP_LEVEL));
+    const how = seen.filter((card) => card.kind === 'ask' && card.phase === 'how');
+    expect(ids(how).sort()).toEqual(TRAITS.map((item) => item.id).sort());
+  });
+
+  it('tar mätaren till slutet utan att backa', () => {
+    for (let seed = 1; seed <= 10; seed++) {
       const run = new IntroRun(seeded(seed));
-      expect(play(run, knowing(TOP_LEVEL)).length).toBeLessThanOrEqual(MAX_CARDS);
+      let last = 0;
+      for (let guard = 0; guard < 200 && run.next() !== null; guard++) {
+        run.answer(knowing(seed % TOP_LEVEL, seed % 2 === 0 ? 'adult' : 'child')(run.next()!));
+        expect(run.progress).toBeGreaterThanOrEqual(last);
+        last = run.progress;
+      }
       expect(run.progress).toBe(1);
     }
   });
@@ -68,13 +105,52 @@ describe('IntroRun', () => {
     expect(run.profile().interests).toEqual([]);
   });
 
+  describe('intressena efter åldern', () => {
+    const asked = (age: 'child' | 'adult' | 'unsure') =>
+      ids(play(new IntroRun(seeded(1)), knowing(0, age)));
+
+    it('frågar en vuxen om jobbet, och ett barn om rymden', () => {
+      expect(asked('adult')).toContain('work');
+      expect(asked('adult')).not.toContain('space');
+      expect(asked('child')).toContain('space');
+      expect(asked('child')).not.toContain('work');
+    });
+
+    it('frågar om allt när åldern inte sagts', () => {
+      const all = asked('unsure');
+      for (const about of ABOUT) {
+        expect(all).toContain(about.id);
+      }
+    });
+  });
+
+  describe('dragen', () => {
+    it('sparar vad ett ja betyder för draget, inte svaret', () => {
+      const run = new IntroRun(seeded(1));
+      play(run, knowing(0));
+      // Ja till «Det får gärna vara svårt» är för motstånd; ja till «Jag
+      // tröttnar fort» är emot uthållighet.
+      expect(run.profile().traits).toMatchObject({ challenge: 1, persistent: -1, careful: -1 });
+    });
+
+    it('sparar ett vet ej som noll', () => {
+      const run = new IntroRun(seeded(1));
+      play(run, () => 'unsure');
+      expect(Object.values(run.profile().traits ?? {})).toEqual(TRAITS.map(() => 0));
+    });
+
+    it('säger inget om dragen innan de frågats', () => {
+      expect(new IntroRun(seeded(1)).profile().traits).toBeUndefined();
+    });
+  });
+
   describe('åldern', () => {
     const ageFor = (answers: Record<string, Response>) => {
       const run = new IntroRun(seeded(1));
       const seen = play(run, (card) =>
         card.kind === 'ask' ? (answers[card.id] ?? 'deny') : 'unsure',
       );
-      return { age: run.profile().age, ids: seen.map((card) => (card.kind === 'ask' ? card.id : '')) };
+      return { age: run.profile().age, ids: ids(seen) };
     };
 
     it('är ett spann, och två svep räcker', () => {
@@ -108,21 +184,39 @@ describe('IntroRun', () => {
   });
 
   describe('trappan', () => {
-    it('sätter nivån till antalet steg som höll', () => {
-      for (let level = 0; level <= TOP_LEVEL; level++) {
-        const run = new IntroRun(seeded(level + 1));
-        play(run, knowing(level));
-        expect(run.profile().level).toBe(level);
+    it('har ett steg per nivå', () => {
+      expect(LADDER).toHaveLength(TOP_LEVEL);
+    });
+
+    it('sätter nivån till antalet steg som höll, var den än började', () => {
+      for (const age of ['child', 'teen', 'adult', 'unsure'] as const) {
+        for (let level = 0; level <= TOP_LEVEL; level++) {
+          const run = new IntroRun(seeded(level + 1));
+          play(run, knowing(level, age));
+          expect(run.profile().level, `${age}, nivå ${level}`).toBe(level);
+        }
       }
     });
 
-    // En nybörjare ska få två kort och inte tio.
-    it('stannar vid första steget som inte höll', () => {
-      const run = new IntroRun(seeded(1));
-      const probes = play(run, knowing(1)).filter((card) => card.kind === 'probe');
+    // Det loggen visade: en vuxen fick börja vid `cat`.
+    it('låter en vuxen börja ovanför de lättaste orden', () => {
+      const seen = play(new IntroRun(seeded(1)), knowing(TOP_LEVEL, 'adult'));
+      expect(steps(seen)[0]).toBeGreaterThan(0);
+      expect(steps(seen)).not.toContain(0);
+    });
 
-      expect(probes).toHaveLength(4);
-      expect(Math.max(...probes.map((card) => (card.kind === 'probe' ? card.level : 0)))).toBe(1);
+    it('börjar vid de lättaste orden för ett barn', () => {
+      expect(steps(play(new IntroRun(seeded(1)), knowing(TOP_LEVEL, 'child')))[0]).toBe(0);
+    });
+
+    it('går nedåt när första steget inte håller, och stannar där det håller', () => {
+      const seen = play(new IntroRun(seeded(1)), knowing(1, 'adult'));
+      expect(steps(seen)).toEqual([3, 2, 1, 0]);
+    });
+
+    it('går uppåt tills ett steg inte håller', () => {
+      const seen = play(new IntroRun(seeded(1)), knowing(5, 'adult'));
+      expect(steps(seen)).toEqual([3, 4, 5]);
     });
 
     // Ett sant/falskt-kort är ett myntkast. Den som sveper ja på allt ska inte

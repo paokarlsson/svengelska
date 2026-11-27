@@ -33,6 +33,8 @@ import { WordBlock } from '../words/word-catalog';
 import { wordKey } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
 import { Tracker } from '../services/tracker';
+import { ProfileStore } from '../services/profile-store';
+import { skillOf } from '../intro/skill';
 
 /** Så många flyttade håll som skrivs ut under slutkortet. */
 const ADVANCED_SHOWN = 4;
@@ -56,6 +58,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   private readonly engine = inject(TrainingEngine);
   private readonly library = inject(WordLibrary);
   private readonly tracker = inject(Tracker);
+  private readonly profiles = inject(ProfileStore);
 
   session!: TrainingSession;
   task: Task | null = null;
@@ -236,8 +239,15 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   leave(): void {
     this.tracker.log('leave', { answered: this.session.answered, of: this.session.target });
+    this.profiles.noteLeave(this.session.summary());
     void this.engine.flush();
     this.exited.emit();
+  }
+
+  /** Nivån som profilen säger just nu, för loggen. */
+  private skill(): number | null {
+    const profile = this.profiles.profile;
+    return profile === null ? null : skillOf(profile);
   }
 
   private advance(): void {
@@ -247,10 +257,15 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       this.summary = this.session.summary();
       this.record = this.engine.noteStreak(this.summary.longest);
       const { advanced, ...numbers } = this.summary;
+      const aim = this.library.aimOf(this.list);
+      const before = this.skill();
+      this.profiles.noteRound(this.list.id, aim, this.summary);
       this.tracker.log('round.end', {
         ...numbers,
         advanced: advanced.length,
         record: this.record,
+        aim,
+        skill: [before, this.skill()],
       });
       this.ending = {
         kind: 'choice',

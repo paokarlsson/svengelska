@@ -69,6 +69,31 @@ describe('TrainingSession', () => {
     return new TrainingSession(engine, CATALOG, CATALOG, seeded(seed));
   }
 
+  describe('nya ord', () => {
+    const right = (task: Task): Response => (task.statement.truthy ? 'affirm' : 'deny');
+
+    it('räknar första försöket på varje håll som aldrig setts', () => {
+      const session = round();
+      play(session, right);
+      // Kalibreringen räknas inte, och inte heller andra chanser.
+      expect(session.summary().fresh).toEqual({ answered: ROUND_WORDS * 2, hits: ROUND_WORDS * 2 });
+    });
+
+    it('räknar inte ett ord som setts förut som nytt', async () => {
+      play(round(1), right);
+      const again = round(1);
+      play(again, right);
+      expect(again.summary().fresh.answered).toBeLessThan(ROUND_WORDS * 2);
+    });
+
+    it('räknar bara rätt i tempo som rätt', () => {
+      const session = round();
+      play(session, 'unsure');
+      expect(session.summary().fresh.hits).toBe(0);
+      expect(session.summary().fresh.answered).toBe(ROUND_WORDS * 2);
+    });
+  });
+
   it('inleder varvet med kalibreringen och sedan tjugo kort', () => {
     const session = round();
     expect(session.target).toBe(ROUND_WORDS * 2);

@@ -45,6 +45,7 @@ varvet är slut.
 | `src/app/services/list-writer.ts`, `claude-call.ts` | Önskemål in, lista ut — och det enda anropet till Anthropic |
 | `src/app/services/api-key-store.ts`, `list-store.ts`, `profile-store.ts` | Var nyckeln, de egna listorna och profilen ligger |
 | `src/app/intro/` | Startrundan: korten som lär känna den som övar, och profilen de blir |
+| `src/app/intro/skill.ts`, `personality.ts` | Nivån och personligheten som de spåras: startrundan först, varven sedan |
 | `src/app/intro-view/` | Startrundan på skärmen — appens vanliga kort, med frågor i stället för glosor |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
@@ -128,20 +129,63 @@ svarade.
 ### Startrundan
 
 Den som öppnar appen första gången möts inte av en lista utan av några kort om
-sig själv, svepta med samma tre gester som resten: `Jag gillar djur`, `Jag har
-sett samma film fler än tre gånger`. Sedan två kort om ålder, ett om varför man
-övar, och sist en kort trappa av riktiga ord — från `cat` till ord en vuxen får
-tänka efter på — som stannar vid första steget som inte höll.
+sig själv, svepta med samma tre gester som resten: `Jag lyssnar på musik varje
+dag`, `Jag har sett samma film fler än tre gånger`. Efter fyra sådana kommer
+ålder och skäl, och sedan blandas tre sorters kort:
 
-Svaren blir en profil: intressen, ett åldersspann, om man övar frivilligt, och
-var det är lagom att börja. Med den kan appen välja tema själv («Välj åt mig»
-under «Ny lista»), och det är så samma app kan skriva om stallet åt en tioåring
-och om jobbresor åt en fyrtiofemåring utan att någon ställer in en nivå.
+- **En trappa av riktiga ord**, nio steg från `cat` till `obsequious`, med en
+  fälla på varje steg (`eventually = eventuellt`, `sensible = sensibel`). Den
+  börjar där åldern säger att det är troligt — en vuxen vid `reluctant`, ett
+  barn vid `cat` — och går upp eller ner tills ett klarat steg ligger under ett
+  som inte höll.
+- **Fem påståenden om hur man vill ha det**: om det får vara svårt, om udda ord
+  är roliga, om orden ska gå att använda direkt, om man tröttnar fort, och om
+  man chansar hellre än säger vet ej. Varje drag är med för att det ändrar
+  något i en lista. Se `intro/personality.ts`.
+- **Resten av intressena**, valda efter åldern: en vuxen tillfrågas om engelska
+  i jobbet, en tioåring om rymden.
 
-Nivån skickas till modellen som *ord* och inte som en siffra — «klarade
-`kitchen` men inte `although`» — eftersom det betyder samma sak för alla som kan
+Trappan ligger två påståenden isär, så att det inte blir ett prov i slutet. Så
+var det inte först: tolv intressen, sedan ålder, sedan trappan från `cat` med
+fem steg. Loggen från en vuxen som läser engelska till vardags visade vad det
+gav — taket nått på åtta kort, en första lista om mjöl och deg, och sedan
+Skolan med nitton rätt av tjugo. «Lite fånigt enkelt.»
+
+Svaren blir en profil: intressen, ett åldersspann, om man övar frivilligt, hur
+man vill ha det, och var det är lagom att börja. Med den kan appen välja tema
+själv («Välj åt mig» under «Ny lista»), och det är så samma app kan skriva om
+stallet åt en tioåring och om jobbresor åt en fyrtiofemåring utan att någon
+ställer in en nivå.
+
+Nivån skickas till modellen som *ord* och inte som en siffra — «klarar
+`reluctant` men inte `to sue`» — eftersom det betyder samma sak för alla som kan
 engelska. Åldern skickas som ett spann, aldrig som ett tal, och inget namn
 frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
+
+### Nivån och personligheten spåras
+
+Startrundan är en första gissning. Efter den växer profilen av sig själv, och i
+båda fallen lagras det som hänt och inte slutsatsen — vad appen tror räknas fram
+vid läsning:
+
+**Nivån** flyttas av ord som aldrig setts förut. Första försöket på ett nytt ord
+är det enda kort där «rätt i tempo» betyder *kunde redan*, så varje varv
+antecknar hur många nya ord det hade och hur många som satt direkt, och vilken
+nivå listan skrevs för. Satt minst 85 % låg listan under nivån, och nivån går
+upp till steget ovanför listan; satt högst 25 % går den ner. Nivån flyttas
+aldrig längre än listan bär: Skolan (räknad som steg 1) med nitton rätt säger
+inget om den som redan står på steg 4. Varje skriven lista bär nivån den skrevs
+för, och det är den nivån — inte provets — som nästa lista skrivs mot.
+
+**Personligheten** vägs ihop av vad någon sa och vad hen gör. Två av dragen syns
+i övningen: den som lämnar varv efter några kort, och den som har många fel men
+få «vet ej». Där tar beteendet över i takt med att det blir mer av det. Ett varv
+som lämnas på första kortet räknas inte — den som gör det har valt fel lista,
+inte gett upp.
+
+Görs startrundan om behålls vanorna, men inte varvens anteckningar om nivån: ett
+nytt prov är en ny utgångspunkt. En profil från före trappans nio steg flyttas
+till den nya skalan när den läses.
 
 ## Svep, och tryck där det är ett val
 
@@ -281,7 +325,7 @@ Medan appen utvecklas sparar den allt som händer, inte bara vad som blev av det
 | `drag` | Fingrets hela väg, hur länge kortet låg innan det rördes, och om draget blev ett svar |
 | `answer`, `void` | Hållet, om det kom som svep eller tangent, och tiden — `void` är ett håll som inte fanns |
 | `outcome` | Vad motorn gjorde av svaret: utfall, låda före och efter, sviten |
-| `nav`, `round`, `round.end`, `leave`, `intro.end` | Var man var och vart man gick |
+| `nav`, `round`, `round.end`, `leave`, `intro.end` | Var man var och vart man gick. `round.end` bär också listans nivå och nivån före och efter varvet |
 | `list.ask`, `list.got`, `list.failed`, `list.keep`, `list.drop` | Vad som önskades av Claude och vad som kom tillbaka |
 | `visible`, `error`, `setting`, `export`, `track` | Det som förklarar resten |
 

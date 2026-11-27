@@ -8,6 +8,7 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { saysSomething } from '../intro/profile';
+import { skillOf } from '../intro/skill';
 import { blockFromReply, listRequestText } from '../words/generated-list';
 import { WordBlock } from '../words/word-catalog';
 import { WordLibrary } from '../words/word-library';
@@ -61,6 +62,9 @@ export class ListWriter {
     if (block === null) {
       throw new ListWriteError('unreadable');
     }
-    return block;
+    // Nivån listan skrevs för följer med, så att första varvet på den kan
+    // säga om den låg rätt. Se `intro/skill.ts`.
+    const aim = profile === null ? null : skillOf(profile);
+    return aim === null ? block : { ...block, level: aim };
   }
 }

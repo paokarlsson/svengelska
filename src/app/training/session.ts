@@ -53,6 +53,12 @@ export interface RoundSummary {
   mastered: number;
   /** Varvets längsta svit av svar i tempo. Se `streak`. */
   longest: number;
+  /**
+   * Håll som aldrig setts förut: hur många som besvarades, och hur många av dem
+   * som var rätt i tempo på första försöket. Det enda i varvet som säger vad
+   * någon kunde *innan* övningen — se `intro/skill.ts`.
+   */
+  fresh: { answered: number; hits: number };
 }
 
 /**
@@ -82,6 +88,9 @@ export class TrainingSession {
   private readonly before = new Map<string, number>();
   /** Varvets kort uppslagna på nyckel. Köerna töms; den här gör det inte. */
   private readonly lookup = new Map<string, DirectedWord>();
+  /** Håll som aldrig setts förut och ännu inte besvarats i varvet. */
+  private readonly unseen = new Set<string>();
+  private readonly freshTally = { answered: 0, hits: 0 };
 
   /** Kort varvet lovade. Ett fält och ingen längd: köerna töms medan de spelas. */
   private readonly size: number;
@@ -119,8 +128,12 @@ export class TrainingSession {
 
     for (const card of this.cards) {
       const key = keyOf(card);
-      this.before.set(key, engine.statFor(card).box);
+      const stat = engine.statFor(card);
+      this.before.set(key, stat.box);
       this.lookup.set(key, card);
+      if (stat.firstSeen === null) {
+        this.unseen.add(key);
+      }
     }
   }
 
@@ -225,6 +238,13 @@ export class TrainingSession {
       pair: task.statement.pair,
       direction: task.statement.direction,
     };
+    // Bara första försöket. Andra chansen kommer efter att facit visats.
+    if (this.unseen.delete(keyOf(word))) {
+      this.freshTally.answered++;
+      if (outcome === 'hit') {
+        this.freshTally.hits++;
+      }
+    }
     this.take(word);
     this.last = pairKey(word.pair);
     if (!isCorrect(outcome)) {
@@ -249,6 +269,7 @@ export class TrainingSession {
       advanced,
       mastered: this.engine.masteredCount(this.catalog),
       longest: this.longestRun,
+      fresh: { ...this.freshTally },
     };
   }
 
