@@ -6,8 +6,8 @@
 > [`docs/nerskalad.md`](docs/nerskalad.md). Appen som helhet beskrivs
 > fortfarande av [`docs/plan.md`](docs/plan.md).
 
-Glosträning där veckans glosor svepas rätt eller fel — `dog = hund`, stämmer
-det? — åt båda hållen, mot ett tempo som mäts om varje varv.
+Glosträning där orden svepas rätt eller fel — `dog = hund`, stämmer det? — åt
+båda hållen, mot ett tempo som mäts om varje varv.
 
     höger = sant      vänster = falskt      ner = vet ej
 
@@ -37,9 +37,15 @@ varvet är slut.
 
 | Path | Vad det är |
 | --- | --- |
-| `data/glosor.csv` | Ordlistorna som de skrivs — en rad per glosa, en kolumn per vecka |
+| `data/glosor.csv` | Listorna som följer med bygget — en rad per glosa, första kolumnen är listans namn |
 | `src/app/words/word-lists.json` | Samma listor som appen läser dem. Genererad; rätta i CSV:n |
 | `src/app/words/word-catalog.ts` | Vad en glosa är, hur den identifieras, och hur en lista läses |
+| `src/app/words/word-library.ts` | Alla listor: byggets och de som appen skrivit. Det vyerna frågar |
+| `src/app/words/generated-list.ts` | En lista som appen skriver själv: uppdraget till modellen, och vad som godtas av svaret |
+| `src/app/services/list-writer.ts`, `claude-call.ts` | Önskemål in, lista ut — och det enda anropet till Anthropic |
+| `src/app/services/api-key-store.ts`, `list-store.ts`, `profile-store.ts` | Var nyckeln, de egna listorna och profilen ligger |
+| `src/app/intro/` | Startrundan: korten som lär känna den som övar, och profilen de blir |
+| `src/app/intro-view/` | Startrundan på skärmen — appens vanliga kort, med frågor i stället för glosor |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
 | `src/app/training/scope.ts` | Vilka steg som når skärmen. Den enda filen att röra för att ta tillbaka de tre |
@@ -53,7 +59,7 @@ varvet är slut.
 | `src/app/services/progress-store.ts` | Det lagrade dokumentet, dess version och dess normalisering |
 | `src/app/match-view/`, `src/app/write-view/` | Steg 1 och 4. Avstängda av `scope.ts`, kvar i koden |
 | `src/app/entry-picker/`, `src/app/training/entry.ts` | Ingångsvalet. Avstängt av samma skäl — en dörr är inget val |
-| `src/app/swipe-view/` | Kortet: tre riktningar, och reglerna för när ett drag är ett svar |
+| `src/app/swipe-view/` | Kortet: tre riktningar, inga knappar, och reglerna för när ett drag är ett svar |
 | `src/app/session-view/` | Varvets ram: mätare och avslutning |
 | `src/app/home-view/`, `src/app/map-view/` | Välj vecka och antal nya ord; se vad varje ord kan, åt båda hållen |
 | `src/styles/` | Delad stilmall: `_tokens.scss`, `_base.scss`, `_ui.scss` |
@@ -62,11 +68,14 @@ varvet är slut.
 
 ## Orden
 
-Listorna kommer från [`data/glosor.csv`](data/glosor.csv), som är formatet en
-lärare faktiskt lämnar ifrån sig:
+Listorna som följer med bygget kommer från [`data/glosor.csv`](data/glosor.csv):
 
-    Vecka;Engelska;Svenska;Felsvar_engelska;Felsvar_svenska
-    1 - Familj;mother;mamma;father, sister, grandmother;pappa, syster, mormor
+    Lista;Engelska;Svenska;Felsvar_engelska;Felsvar_svenska
+    Familj;mother;mamma;father, sister, grandmother;pappa, syster, mormor
+
+Första kolumnen är listans namn. Här stod förut en vecka — `1 - Familj` — från
+tiden då appen var byggd kring en glosläxa i taget. En lista är nu ett tema och
+ingenting mer, och de flesta listor kommer inte härifrån utan skrivs av appen.
 
 En sjätte kolumn, `Alternativ_svenska`, är frivillig och blir de former som
 godtas i skrivsteget utöver facit — `hunden` för `hund` är inte ett stavfel
@@ -83,6 +92,78 @@ det att svara rätt på `dog = katt` genom att veta att `katt` hör till `cat`,
 utan att veta vad `dog` betyder. Ett skrivet felsvar får komma från veckans
 tema i stort. Saknas felsvar faller appen tillbaka på blocket, så att en lista
 med bara två kolumner ändå går att öva på.
+
+### Listor som appen skriver
+
+Den som inte har repot behöver ingen CSV. Under «Ny lista» på startsidan ger man
+ett önskemål — `rymden, årskurs 4`, eller veckans läxa inklistrad — och appen
+skriver glosorna och felsvaren med Claude. Listan visas som utkast och sparas
+först när någon sagt ja till den.
+
+Det kräver en egen Anthropic-nyckel, som läggs in på samma ställe. Appen har
+ingen server: nyckeln ligger i webbläsarens `localStorage`, skild från
+framstegen, och skickas bara till Anthropic. Den som delar dator med andra bör
+veta att den ligger där i klartext, och det är klokt att ge nyckeln en egen
+utgiftsgräns i Anthropics konsol.
+
+Regeln om felsvaren ovan gäller de skrivna listorna hårdare än de handskrivna:
+ett felsvar som står som glosa i samma lista tas bort av koden, vad modellen än
+svarade.
+
+### Startrundan
+
+Den som öppnar appen första gången möts inte av en lista utan av några kort om
+sig själv, svepta med samma tre gester som resten: `Jag gillar djur`, `Jag har
+sett samma film fler än tre gånger`. Sedan två kort om ålder, ett om varför man
+övar, och sist en kort trappa av riktiga ord — från `cat` till ord en vuxen får
+tänka efter på — som stannar vid första steget som inte höll.
+
+Svaren blir en profil: intressen, ett åldersspann, om man övar frivilligt, och
+var det är lagom att börja. Med den kan appen välja tema själv («Välj åt mig»
+under «Ny lista»), och det är så samma app kan skriva om stallet åt en tioåring
+och om jobbresor åt en fyrtiofemåring utan att någon ställer in en nivå.
+
+Nivån skickas till modellen som *ord* och inte som en siffra — «klarade
+`kitchen` men inte `although`» — eftersom det betyder samma sak för alla som kan
+engelska. Åldern skickas som ett spann, aldrig som ett tal, och inget namn
+frågas efter. Varje kort går att hoppa över, och hela rundan likaså.
+
+## Svep gör allt
+
+Appen har ett kort och tre håll, och det är hela gränssnittet.
+
+    höger = framåt      vänster = tillbaka eller nästa      ner = något annat
+
+På ett gloskort heter hållen rätt, fel och vet ej. På startsidan — som också är
+ett kort, med listans namn på — heter de kör, nästa lista och ny lista. När
+varvet är slut heter de en gång till, hem och kartan. Under kortet står alltid
+en rad som säger vad hållen heter just nu, så ingen behöver minnas det.
+
+Det som inte går att svepa ligger under kortet och inte på det: fältet där man
+skriver ett önskemål eller klistrar in en nyckel, och inställningarna. Ett
+textfält är ingen gest. Kvar som knappar är också «Avsluta» mitt i ett varv och
+«Hoppa över» i startrundan — vägar ut som måste finnas när alla tre hållen är
+upptagna av svaret.
+
+### Sviten
+
+Överst i varvet står en svit: rätta svar i tempo sedan det senaste felet. Den
+växer av ett rätt i tempo, nollas av ett **fel**, och rörs inte av ett «vet ej»
+eller av ett rätt som var segt.
+
+Det är samma räkning som gav kortet sitt tredje svar, fast nu på skärmen. Priset
+på en gissning låg förut bara i repetitionsplanen, som ingen ser. Med sviten
+behåller den som inte vet sitt tal genom att säga det, och riskerar det genom
+att chansa. Den längsta sviten står stort på slutkortet, och är det enda rekord
+appen håller.
+
+### Utseendet
+
+Formspråket heter Arkad: mörk botten, tjocka kort som klistermärken, och fyra
+färger som var och en betyder en sak — gult är kortet, mint är framåt, korall är
+fel, violett är det som ligger under och bakom. Reglerna står överst i
+`src/styles/_tokens.scss`. Typsnitten, Unbounded och Inter, ligger i bygget och
+hämtas inte från nätet.
 
 ## Tre lager
 

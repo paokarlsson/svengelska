@@ -398,15 +398,60 @@ mäter. Planen gissade det, och gissningen höll.
 
 ### Steg 6 — ordlistor in, utan terminal
 
-`data/glosor.csv` plus `npm run words` löser innehållet för den som har repot.
-Det löser det inte för den som bara har appen. Vad som saknas är en väg in i
-webbläsaren: klistra in en lista, eller läsa en CSV-fil.
+*Byggt, åt ett annat håll än planen tänkte.* Planen såg framför sig en yta att
+klistra in en färdig lista i. Det som byggdes är att **appen skriver listan
+själv**: den som övar ger ett önskemål — ett tema, eller veckans läxa inklistrad
+— och appen frågar Claude efter glosorna *och* felsvaren.
 
-Formen är redan förberedd — `parseBlocks()` tar emot vad som helst och gör det
-den kan av det, precis som `normalize()` i `progress-store.ts` gör med ett
-redigerat dokument. Det som fattas är en yta och ett beslut om var en inklistrad
-lista *bor*: i framstegsdokumentet, eller under en egen nyckel med en egen
-version.
+Tre beslut ligger i det, och de står här för att de är lätta att riva upp av
+misstag:
+
+**En lista bor under en egen nyckel, inte i framstegsdokumentet.**
+`svengelska-lists`, med egen version (`services/list-store.ts`). En lista är
+innehåll och framstegen är mätningar, och «Nollställ framstegen» ska ta det ena
+utan att röra det andra. `words/word-library.ts` lägger byggets listor och de
+egna i en katalog, och det är biblioteket vyerna frågar — aldrig `WORD_BLOCKS`
+direkt.
+
+**Nyckeln är användarens egen, och den bor för sig.** Appen har ingen server, så
+den som vill ha listor skrivna lägger in sin Anthropic-nyckel på startsidan. Den
+ligger under `svengelska-anthropic-key`, aldrig i framstegsdokumentet, och
+lämnar webbläsaren på ett enda ställe: `services/claude-call.ts`. Den filen är
+också den enda som drar in Anthropics SDK, och den laddas först när någon ber om
+en lista — SDK:n är större än resten av appen.
+
+**Regeln om felsvaren hålls av kod, inte av uppdraget.** Uppdraget till modellen
+förklarar varför ett felsvar inte får stå som glosa i samma lista, men
+`withoutLeaks()` i `words/generated-list.ts` tar bort dem ändå. Det är samma
+regel som «Felsvaren står i listan, inte i koden» vilar på, och för en skriven
+lista är den äntligen en invariant med ett test och inte en uppmaning till den
+som skriver CSV:n.
+
+En skriven lista visas som utkast innan den sparas. Orden kommer från en modell
+och ska övas av ett barn; den som bad om dem ska hinna läsa dem först.
+
+**Appen frågar vem man är innan den frågar vad man kan.** Startrundan
+(`intro/intro-run.ts`) är ett dussin kort om en själv, två om ålder, ett om
+varför man övar och en trappa av riktiga ord. Tre saker i den är beslut:
+
+- *Samma kort som resten.* En startrunda med egna knappar hade lärt ut ett
+  gränssnitt som aldrig används igen. Den som svarat på «Jag gillar djur» kan
+  gesten innan första glosan kommer.
+- *Intressena först, provet sist.* Det första en ny användare möter ska inte gå
+  att svara fel på.
+- *Två kort per trappsteg, ett sant och ett falskt.* Ett ensamt sant/falskt-kort
+  är ett myntkast; med två går det inte att svepa sig uppåt genom att svara
+  samma sak på allt. Det är samma räkning som gav kortet sitt tredje svar.
+
+Profilen bor under `svengelska-profile`, för sig, och följer med frågan till
+modellen som några rader text. Den ersätter *inte* mätningen: trappan säger var
+det är lagom att börja, och därefter är det framstegen som vet. Att låta de
+uppmätta orden — inte bara startprovet — styra nästa lista är nästa steg, och
+inte byggt.
+
+Vad som *inte* är byggt: att klistra in en lista och få den använd ordagrant
+utan en modell emellan, och att språkparet är något annat än engelska och
+svenska. `en` och `sv` står fortfarande i typerna.
 
 ### Steg 7 — den andra riktningen
 
@@ -489,6 +534,11 @@ stämpel för svaret draget är på väg att ge, och ett kort som far ut ur bild
 det hållet. Tröskeln skalar med skärmens bredd och en knyck godtas även när den
 är kort. Måtten är mätta lika i båda apparna: samma kortstorlek, samma
 rotationsmatris, samma stämpelopacitet vid samma drag.
+
+*Sedan dess har appen fått ett eget utseende, Arkad, och knapparna under
+kortet är borta — det som står nedan om att de står kvar gäller inte längre.
+Gestens regler och trösklar är fortfarande `ganger`:s; det är formen som bytts.
+Se «Svep gör allt» i README.*
 
 Vad som *inte* följde med är vad kortet säger. `dog = hund` har inget gemensamt
 med `7 × 8 = 54` utom att det svepas, och Återkalla — där facit visas först och

@@ -143,6 +143,9 @@ export function bothDirections(words: readonly WordPair[]): DirectedWord[] {
 /**
  * Ordlistorna appen levereras med, lästa ur `word-lists.json`.
  *
+ * Bara byggets listor. De som kommit till i webbläsaren ligger i
+ * `word-library.ts`, och det är biblioteket vyerna ska fråga.
+ *
  * JSON:en är genererad ur `data/glosor.csv` av `npm run words` — CSV:n är
  * formatet en lärare faktiskt lämnar ifrån sig, och att listorna är *data* och
  * inte kod är vad som gör att de senare kan komma någon annanstans ifrån utan
@@ -150,17 +153,8 @@ export function bothDirections(words: readonly WordPair[]): DirectedWord[] {
  */
 export const WORD_BLOCKS: readonly WordBlock[] = parseBlocks(lists);
 
-/**
- * Alla glosor appen känner till, en gång var.
- *
- * Repetitionsplanen behöver hela katalogen och inte en vecka: ett ord som
- * fastnat i vecka 3 ska kunna komma tillbaka samma dag som vecka 5 är ny.
- * Dubbletter faller bort på nyckeln — `water = vatten` står i både Mat och
- * Vardagsord, och det är samma glosa.
- */
-export const ALL_WORDS: readonly WordPair[] = dedupe(WORD_BLOCKS.flatMap((block) => block.words));
-
-function dedupe(words: readonly WordPair[]): WordPair[] {
+/** Glosorna en gång var, i den ordning de först stod. */
+export function uniqueWords(words: readonly WordPair[]): WordPair[] {
   const seen = new Set<string>();
   const unique: WordPair[] = [];
   for (const pair of words) {
@@ -171,10 +165,6 @@ function dedupe(words: readonly WordPair[]): WordPair[] {
     }
   }
   return unique;
-}
-
-export function blockById(id: string | null): WordBlock | null {
-  return WORD_BLOCKS.find((block) => block.id === id) ?? null;
 }
 
 /**

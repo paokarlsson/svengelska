@@ -2,7 +2,7 @@
     @switch (screen) {
     @case ('session') {
     @if (block; as chosen) {
-    <app-session-view [week]="chosen" (exited)="showHome()" (mapped)="showMap(chosen)" />
+    <app-session-view [list]="chosen" (exited)="showHome()" (mapped)="showMap(chosen)" />
     }
     }
     @case ('map') {
@@ -10,8 +10,15 @@
     <app-map-view [block]="chosen" (back)="showHome()" />
     }
     }
+    @case ('intro') {
+    <app-intro-view (finished)="introDone()" (skipped)="showHome()" />
+    }
     @default {
-    <app-home-view (chosen)="open($event)" (mapped)="showMap($event)" />
+    <app-home-view
+        [offerList]="offerList"
+        (chosen)="open($event)"
+        (mapped)="showMap($event)"
+        (intro)="showIntro()" />
     }
     }
 </main>

@@ -16,6 +16,13 @@ import {
 } from './progress-store';
 
 describe('normalize', () => {
+  it('läser rekordet, och räknar ett dokument utan rekord som noll', () => {
+    expect(normalize({ bestStreak: 9 }).bestStreak).toBe(9);
+    expect(normalize({ words: {} }).bestStreak).toBe(0);
+    expect(normalize({ bestStreak: -3 }).bestStreak).toBe(0);
+    expect(normalize({ bestStreak: 'många' }).bestStreak).toBe(0);
+  });
+
   it('ger ett tomt dokument för skräp', () => {
     for (const junk of [null, 42, 'nej', [], undefined]) {
       expect(normalize(junk)).toEqual(emptyDocument());

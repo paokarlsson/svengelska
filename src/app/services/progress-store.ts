@@ -116,6 +116,15 @@ export interface ProgressDocument {
   /** Listan nya ord hämtas ur, `null` innan något valts. */
   activeBlockId: string | null;
   settings: Settings;
+  /**
+   * Den längsta sviten i tempo, över alla varv.
+   *
+   * Det enda rekord appen håller, och det enda tal den visar som går att slå.
+   * Lagrat och inte härlett: en svit är en egenskap hos ett varv, och varven
+   * sparas inte. Ett dokument från före sviten har noll, och då är första
+   * varvet ett rekord — vilket det är.
+   */
+  bestStreak: number;
 }
 
 /** Läser och skriver. Ingen pedagogik, inga trösklar, inga beslut. */
@@ -140,6 +149,7 @@ export function emptyDocument(): ProgressDocument {
     baselines: emptyBaselines(),
     activeBlockId: null,
     settings: defaultSettings(),
+    bestStreak: 0,
   };
 }
 
@@ -226,6 +236,7 @@ export function normalize(stored: unknown): ProgressDocument {
   const block = stored['activeBlockId'];
   document.activeBlockId = typeof block === 'string' ? block : null;
   document.settings = normalizeSettings(stored['settings']);
+  document.bestStreak = wholeNumber(stored['bestStreak']);
   return document;
 }
 

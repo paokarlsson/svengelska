@@ -1,15 +1,14 @@
 /**
  * Gör om `data/glosor.csv` till `src/app/words/word-lists.json`.
  *
- * CSV:n är källan, eftersom det är formatet en lärare faktiskt lämnar ifrån
- * sig: en rad per glosa, en kolumn med veckans namn, och felsvaren skrivna för
- * hand. JSON:en är vad appen läser, och den är genererad — rätta i CSV:n och
+ * CSV:n är källan för listorna som följer med bygget: en rad per glosa, en
+ * kolumn med listans namn, och felsvaren skrivna för hand. JSON:en är vad appen läser, och den är genererad — rätta i CSV:n och
  * kör `npm run words`, aldrig tvärtom.
  *
  * Skriptet har inga beroenden med flit. Det körs sällan, av en människa, och
  * ett paket till i `package.json` för en halvtimmes arbete är fel pris.
  *
- * Kolumner: Vecka;Engelska;Svenska;Felsvar_engelska;Felsvar_svenska
+ * Kolumner: Lista;Engelska;Svenska;Felsvar_engelska;Felsvar_svenska
  * Felsvaren är kommaseparerade inuti sin egen kolumn, därav semikolon som
  * fältavgränsare.
  *
@@ -26,7 +25,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const source = resolve(here, '..', 'data', 'glosor.csv');
 const target = resolve(here, '..', 'src', 'app', 'words', 'word-lists.json');
 
-const COLUMNS = ['Vecka', 'Engelska', 'Svenska', 'Felsvar_engelska', 'Felsvar_svenska'];
+const COLUMNS = ['Lista', 'Engelska', 'Svenska', 'Felsvar_engelska', 'Felsvar_svenska'];
 const OPTIONAL_COLUMNS = ['Alternativ_svenska'];
 
 const rows = readFileSync(source, 'utf8')
@@ -41,8 +40,8 @@ if (header.join(';') !== expected.join(';')) {
   throw new Error(`Oväntade kolumner: ${header.join(';')}`);
 }
 
-/** `1 - Familj` → `v1-familj`. Nyckeln lagras inte i framstegen, men den står
- *  i URL-liknande lägen och ska tåla att läsas högt. */
+/** `På stallet` → `pa-stallet`. Nyckeln lagras inte i framstegen, men den
+ *  pekar ut listan man övade sist och ska tåla att läsas högt. */
 function slug(text) {
   return text
     .toLowerCase()
@@ -50,12 +49,6 @@ function slug(text) {
     .replace(/ö/g, 'o')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
-}
-
-/** `1 - Familj` → `Vecka 1 – Familj`, med tankstreck som i löpande text. */
-function blockName(vecka) {
-  const match = /^(\d+)\s*-\s*(.+)$/.exec(vecka);
-  return match ? `Vecka ${match[1]} – ${match[2]}` : vecka;
 }
 
 function list(cell) {
@@ -66,12 +59,12 @@ function list(cell) {
 }
 
 const blocks = [];
-const byWeek = new Map();
+const byName = new Map();
 
-for (const [vecka, en, sv, wrongEn, wrongSv, also] of body) {
-  if (!byWeek.has(vecka)) {
-    const block = { id: `v${slug(vecka)}`, name: blockName(vecka), words: [] };
-    byWeek.set(vecka, block);
+for (const [name, en, sv, wrongEn, wrongSv, also] of body) {
+  if (!byName.has(name)) {
+    const block = { id: slug(name), name, words: [] };
+    byName.set(name, block);
     blocks.push(block);
   }
   const word = { en, sv };
@@ -87,7 +80,7 @@ for (const [vecka, en, sv, wrongEn, wrongSv, also] of body) {
   if (distractorsSv.length > 0) {
     word.distractorsSv = distractorsSv;
   }
-  byWeek.get(vecka).words.push(word);
+  byName.get(name).words.push(word);
 }
 
 // Två rader som är samma glosa vore två sanningar om samma framsteg. Bättre

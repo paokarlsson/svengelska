@@ -19,13 +19,13 @@
 }
 
 /* --- Rubriker ------------------------------------------------------------
-   Alla guldrubriker i appen är samma rubrik i tre storlekar. */
+   Samma rubrik i tre storlekar. Vit, inte gul: gult är kortet. */
 .ui-title {
     font-family: var(--font-display);
-    font-size: clamp(1.15rem, 4.5vw, 1.35rem);
-    font-weight: 700;
-    color: var(--accent-highlight);
-    text-shadow: var(--title-shadow);
+    font-size: clamp(1.05rem, 4.2vw, 1.25rem);
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--text-primary);
 }
 
 .ui-title--lg {
@@ -40,9 +40,9 @@
    .ui-btn är formen; varianten ger rollen. */
 .ui-btn {
     font-family: var(--font-display);
-    font-size: clamp(0.95rem, 3.8vw, 1.05rem);
+    font-size: clamp(0.8rem, 3.3vw, 0.9rem);
     font-weight: 600;
-    padding: 0.7em 1.6em;
+    padding: 0.85em 1.5em;
     border: 2px solid transparent;
     border-radius: var(--radius-pill);
     background: transparent;
@@ -77,14 +77,13 @@
    gränsen för stor text. Svagast av de sex kombinationerna — tre lägen i två
    paletter — är 5.5:1. */
 .ui-btn--primary {
-    padding: 0.75em 2.2em;
-    font-size: clamp(1.05rem, 4.5vw, 1.3rem);
-    font-weight: 700;
+    padding: 0.9em 2em;
+    font-size: clamp(0.9rem, 3.8vw, 1.05rem);
+    font-weight: 800;
     border-color: transparent;
     background: var(--accent-green);
     color: var(--on-green);
-    box-shadow: 0 4px 0 var(--green-shadow),
-        0 7px 14px -4px color-mix(in oklab, var(--green-shadow) 40%, transparent);
+    box-shadow: 0 5px 0 var(--green-shadow);
     /* Nedtryckningen ska kännas direkt och tas därför bort igen i :active.
        Kvar här gäller den vägen tillbaka upp, som annars hoppar. */
     transition: background var(--motion-fast), box-shadow var(--motion-fast),
@@ -99,17 +98,15 @@
         /* Kanten växer lika mycket som knappen lyfter, så att undersidan står
            stilla mot kortet. */
         transform: translateY(-1px);
-        box-shadow: 0 5px 0 var(--green-shadow),
-            0 10px 18px -4px color-mix(in oklab, var(--green-shadow) 40%, transparent);
+        box-shadow: 0 6px 0 var(--green-shadow);
     }
 }
 
 .ui-btn--primary:active {
     transition: none;
     background: var(--green-deep);
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 var(--green-shadow),
-        0 2px 4px -2px color-mix(in oklab, var(--green-shadow) 40%, transparent);
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--green-shadow);
 }
 
 /* Tillbaka, värmekarta, byt inställningar. */
@@ -125,10 +122,10 @@
 
 /* Avbryt, hoppa över — finns men ska inte dra blicken. */
 .ui-btn--quiet {
-    padding: 0.6em 1.3em;
-    font-size: clamp(0.85rem, 3.2vw, 0.95rem);
-    background: var(--fill-soft);
-    border-color: var(--line-strong);
+    padding: 0.7em 1.2em;
+    font-size: clamp(0.7rem, 2.9vw, 0.78rem);
+    background: transparent;
+    border-color: var(--line-soft);
     color: var(--text-muted);
 }
 

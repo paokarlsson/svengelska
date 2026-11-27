@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   WORD_BLOCKS,
   acceptedAnswers,
-  blockById,
   normalize,
   parseBlocks,
   wordKey,
@@ -63,13 +62,6 @@ describe('WORD_BLOCKS', () => {
         }
       }
     }
-  });
-
-  it('går att slå upp på id', () => {
-    const first = WORD_BLOCKS[0];
-    expect(blockById(first.id)).toBe(first);
-    expect(blockById('finns-inte')).toBeNull();
-    expect(blockById(null)).toBeNull();
   });
 });
 

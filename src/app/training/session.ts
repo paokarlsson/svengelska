@@ -51,6 +51,8 @@ export interface RoundSummary {
   advanced: readonly DirectedWord[];
   /** Ord som sitter åt båda hållen. */
   mastered: number;
+  /** Varvets längsta svit av svar i tempo. Se `streak`. */
+  longest: number;
 }
 
 /**
@@ -85,6 +87,8 @@ export class TrainingSession {
   private readonly size: number;
 
   private answers = 0;
+  private run = 0;
+  private longestRun = 0;
   private replacements = 0;
   /** Nyckeln på kortet som just besvarades, för spärren mot upprepning. */
   private last: string | null = null;
@@ -92,7 +96,7 @@ export class TrainingSession {
 
   constructor(
     private readonly engine: TrainingEngine,
-    /** Hela katalogen. Repetitionen tar allt som setts, oavsett vecka. */
+    /** Hela katalogen. Repetitionen tar allt som setts, oavsett lista. */
     private readonly catalog: readonly WordPair[],
     /** Listan nya ord hämtas ur. */
     fresh: readonly WordPair[],
@@ -122,6 +126,26 @@ export class TrainingSession {
 
   get answered(): number {
     return this.answers;
+  }
+
+  /**
+   * Sviten: rätta svar i tempo sedan det senaste felet.
+   *
+   * Tre regler, och de är samma räkning som gav kortet sitt tredje svar:
+   *
+   * - Ett rätt i tempo lägger till ett.
+   * - Ett **fel** nollar sviten.
+   * - Ett **«vet ej»** rör den inte. Inte heller ett rätt som var segt.
+   *
+   * Det mellersta och det sista är hela poängen. Priset på en gissning låg
+   * förut i repetitionsplanen, som ingen ser; här ligger det på skärmen. Den
+   * som inte vet behåller sin svit genom att säga det och riskerar den genom
+   * att chansa — och det är första gången ärlighet är det som *syns* löna sig.
+   *
+   * Kalibreringen räknas inte. Den är ett instrument och ingen övning.
+   */
+  get streak(): number {
+    return this.run;
   }
 
   /** Så många kort varvet lovar. Missar som kommer tillbaka ingår inte. */
@@ -187,6 +211,12 @@ export class TrainingSession {
     const outcome = this.engine.record(task.statement, response, seconds);
     this.tally[outcome]++;
     this.answers++;
+    if (outcome === 'hit') {
+      this.run++;
+      this.longestRun = Math.max(this.longestRun, this.run);
+    } else if (outcome === 'miss') {
+      this.run = 0;
+    }
 
     const word: DirectedWord = {
       pair: task.statement.pair,
@@ -214,6 +244,7 @@ export class TrainingSession {
       words: this.words,
       advanced,
       mastered: this.engine.masteredCount(this.catalog),
+      longest: this.longestRun,
     };
   }
 

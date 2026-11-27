@@ -222,4 +222,23 @@ describe('TrainingEngine', () => {
     await engine.flush();
     expect(repository.saved!.activeBlockId).toBe('seed-1');
   });
+
+  describe('rekordet', () => {
+    it('börjar på noll', () => {
+      expect(engine.bestStreak).toBe(0);
+    });
+
+    it('slås bara av en längre svit', () => {
+      expect(engine.noteStreak(7)).toBe(true);
+      expect(engine.noteStreak(7)).toBe(false);
+      expect(engine.noteStreak(4)).toBe(false);
+      expect(engine.bestStreak).toBe(7);
+      expect(engine.noteStreak(8)).toBe(true);
+    });
+
+    // Att inte ha svarat rätt i tempo en enda gång är inget att fira.
+    it('räknar aldrig en svit på noll som ett rekord', () => {
+      expect(engine.noteStreak(0)).toBe(false);
+    });
+  });
 });

@@ -258,6 +258,26 @@ export class TrainingEngine {
     return this.masteredWords(words).length;
   }
 
+  /** Den längsta sviten i tempo hittills, över alla varv. */
+  get bestStreak(): number {
+    return this.document.bestStreak;
+  }
+
+  /**
+   * Ett varvs längsta svit. Sant om den slog rekordet.
+   *
+   * En svit på noll är aldrig ett rekord, inte heller det första varvet: att
+   * inte ha svarat rätt i tempo en enda gång är inget att fira.
+   */
+  noteStreak(longest: number): boolean {
+    if (!Number.isFinite(longest) || longest <= this.document.bestStreak) {
+      return false;
+    }
+    this.document.bestStreak = Math.floor(longest);
+    this.scheduleWrite();
+    return true;
+  }
+
   /** Om det finns något alls att visa — en karta över ett tomt block ljuger. */
   get hasPractice(): boolean {
     return hasContent(this.document);

@@ -1,7 +1,7 @@
 [
   {
-    "id": "v1-familj",
-    "name": "Vecka 1 – Familj",
+    "id": "familj",
+    "name": "Familj",
     "words": [
       {
         "en": "mother",
@@ -146,8 +146,8 @@
     ]
   },
   {
-    "id": "v2-skolan",
-    "name": "Vecka 2 – Skolan",
+    "id": "skolan",
+    "name": "Skolan",
     "words": [
       {
         "en": "teacher",
@@ -292,8 +292,8 @@
     ]
   },
   {
-    "id": "v3-djur",
-    "name": "Vecka 3 – Djur",
+    "id": "djur",
+    "name": "Djur",
     "words": [
       {
         "en": "dog",
@@ -438,8 +438,8 @@
     ]
   },
   {
-    "id": "v4-mat",
-    "name": "Vecka 4 – Mat",
+    "id": "mat",
+    "name": "Mat",
     "words": [
       {
         "en": "apple",
@@ -584,8 +584,8 @@
     ]
   },
   {
-    "id": "v5-kroppen",
-    "name": "Vecka 5 – Kroppen",
+    "id": "kroppen",
+    "name": "Kroppen",
     "words": [
       {
         "en": "head",
@@ -730,8 +730,8 @@
     ]
   },
   {
-    "id": "v6-vader",
-    "name": "Vecka 6 – Väder",
+    "id": "vader",
+    "name": "Väder",
     "words": [
       {
         "en": "sunny",
