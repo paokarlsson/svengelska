@@ -54,6 +54,8 @@ varvet är slut.
 | `src/app/intro/skill.ts`, `personality.ts` | Nivån och personligheten som de spåras: startrundan först, varven sedan |
 | `src/app/intro/breaks.ts`, `services/break-deck.ts` | Avbrotten: något helt annat mitt bland orden, och vad som byggs vidare på dem |
 | `src/app/intro/intro-writing.ts`, `services/intro-writer.ts` | Startrundans påståenden skrivna av Claude, när det finns en nyckel |
+| `src/app/words/practice-summary.ts` | Hur övningen gått — svåra ord, ord som sitter, tidsåtgång — som Claude får läsa det |
+| `src/app/services/ai.ts` | Varje anrop till Claude, och loggen av det |
 | `src/app/intro-view/` | Startrundan på skärmen — appens vanliga kort, med frågor i stället för glosor |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
@@ -122,6 +124,13 @@ väger tyngst när orden väljs.
 Dagsgränsen för nya ord är avstängd tills vidare (`limitNewWords` i
 `training/training-engine.ts`). Med den på tog en lista dagens nya ord, och nästa
 lista spelades då med den förras ord.
+
+När en lista skrivs får Claude också veta hur övningen gått
+(`words/practice-summary.ts`): hur mycket som övats, elevens golv i sekunder, de
+ord som tar emot mest — fel, vet ej eller lång tid, med de senaste utfallen och
+tiden som gånger golvet — och de ord som sitter. Det är det säkraste måttet på
+nivån appen har, säkrare än provet, och uppdraget säger att listan ska läggas i
+höjd med de svåra orden snarare än de lätta.
 
 Det kräver en egen Anthropic-nyckel, som läggs in på samma ställe. Appen har
 ingen server: nyckeln ligger i webbläsarens `localStorage`, skild från
@@ -394,12 +403,19 @@ Medan appen utvecklas sparar den allt som händer, inte bara vad som blev av det
 | `outcome` | Vad motorn gjorde av svaret: utfall, låda före och efter, sviten |
 | `nav`, `round`, `round.end`, `leave`, `intro.end` | Var man var och vart man gick. `round.end` bär också listans nivå och nivån före och efter varvet |
 | `list.ask`, `list.got`, `list.failed`, `list.keep`, `list.drop` | Vad som önskades av Claude och vad som kom tillbaka |
-| `intro.ask`, `intro.got`, `intro.failed`, `followup.ask`, `break.ask` | Det Claude skrev åt startrundan, följdfrågorna och avbrotten |
+| `intro.ask`, `intro.got`, `intro.failed`, `followup.ask`, `break.got` | Det Claude skrev åt startrundan, följdfrågorna och avbrotten, som appen tolkade det |
+| `ai.ask`, `ai.got` | Varje anrop till Claude i sin helhet — se nedan |
 
-Varje fråga till Claude loggas i sin helhet (`request`), och svaret likaså. Det
-är det enda sättet att i efterhand se varför någon fick de kort hen fick. För
-listorna loggas allt utom glosorna eleven redan har, som kan vara hundratals och
-redan står i exporten.
+**Varje anrop till Claude loggas i sin helhet** (`services/ai.ts`). `ai.ask` bär
+uppdraget, ansträngningen, hela instruktionen, schemat och hela frågan; `ai.got`
+bär tiden i millisekunder, råsvaret som det kom (också när det inte gick att
+tolka), token-användningen, hur svaret slutade, och felet om det blev ett. Ett
+nummer (`call`) parar ihop dem. Det är mycket text, och det är avsikten: det är
+det enda sättet att i efterhand se exakt vad modellen fick veta och exakt vad
+den svarade. Nyckeln står aldrig i någon av dem.
+
+Varje besvarat ord loggas med tiden i sekunder (`s`), kanalens golv (`floor`)
+och kvoten mellan dem (`pace`) — det mått motorn dömer efter.
 | `break`, `break.got`, `break.failed` | Ett avbrott och svaret på det, och avbrotten Claude skrev |
 | `visible`, `error`, `setting`, `export`, `track` | Det som förklarar resten |
 

@@ -80,6 +80,8 @@ Nivån beskrivs med ord eleven klarar och ord hen inte klarar. Den kommer från 
 
 Det som sägs om hur eleven vill ha det — motstånd eller medvind, udda ord eller nyttiga — väger in i vilka ord du väljer och hur felsvaren ser ut, men flyttar inte nivån mer än ett litet stycke.
 
+Hur övningen gått är det säkraste du vet om nivån, säkrare än provet. Ord eleven svarar fel på, säger vet ej om eller tar lång tid på ligger över det hen kan; ord som sitter och går fort ligger under. Tiden är gånger elevens golv — tiden för ett ord hen redan kan — och ett rätt svar på dubbla golvet är ett ord hen räknar ut, inte ett hen kan. Lägg den nya listan i höjd med de svåra orden snarare än de lätta, men ta inte med de svåra orden igen: de övas redan. Ser du ett mönster — samma ordklass, samma sorts ord, fel åt bara ena hållet — får du gärna ta hänsyn till det.
+
 Är det en lista använder du just de glosorna, alla, i den ordning de står. Saknas det ena språket översätter du. Rätta uppenbara stavfel men byt inte ut ord.
 
 En glosa är ett ord eller en kort fras med sin vanligaste översättning, skriven med små bokstäver om det inte är ett egennamn.
@@ -100,6 +102,8 @@ export interface ListContext {
   profile?: Profile | null;
   /** Namnen på listorna som redan finns, så att ett tema inte kommer två gånger. */
   lists?: readonly string[];
+  /** Hur övningen gått: svåra ord, ord som sitter, tidsåtgång. Se `practice-summary.ts`. */
+  practice?: string | null;
 }
 
 /**
@@ -124,6 +128,10 @@ export function listRequestText(wish: string, context: ListContext): string {
   const learner = context.profile ? describeLearner(context.profile) : null;
   if (learner !== null) {
     parts.push(`Om eleven:\n${learner}`);
+  }
+
+  if (context.practice) {
+    parts.push(`Hur övningen gått:\n${context.practice}`);
   }
 
   const lists = context.lists ?? [];

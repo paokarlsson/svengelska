@@ -6,6 +6,7 @@ import { ListWriter } from './list-writer';
 import { ProfileStore } from './profile-store';
 import { emptyProfile } from '../intro/profile';
 import { WordLibrary } from '../words/word-library';
+import { TrainingEngine } from '../training/training-engine';
 
 const GOOD = {
   name: 'Rymden',
@@ -110,6 +111,20 @@ describe('ListWriter', () => {
     answerWith(GOOD);
 
     expect((await writer.write('bakning')).level).toBeUndefined();
+  });
+
+  it('skickar med hur övningen gått: svåra ord och tidsåtgång', async () => {
+    keys.save('sk-ant-test');
+    const pair = TestBed.inject(WordLibrary).words[0];
+    const engine = TestBed.inject(TrainingEngine);
+    const statement = { pair, direction: 'en' as const, asked: pair.en, shown: 'fel', truthy: false };
+    engine.record(statement, 'affirm', 3);
+    answerWith(GOOD);
+
+    await writer.write('rymden');
+
+    expect(sent[0][1]).toContain('Hur övningen gått:');
+    expect(sent[0][1]).toContain(`${pair.en} → ${pair.sv}: 0 rätt av 1; senast: fel`);
   });
 
   it('nämner listorna som redan finns', async () => {

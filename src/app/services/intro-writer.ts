@@ -8,18 +8,18 @@ import { Injectable, inject } from '@angular/core';
 import { IntroBatch } from '../intro/intro-run';
 import { batchFromReply, introRequestText } from '../intro/intro-writing';
 import { Profile } from '../intro/profile';
+import { Ai } from './ai';
 import { ApiKeyStore } from './api-key-store';
 import { ListWriteError } from './list-write-error';
 
 @Injectable({ providedIn: 'root' })
 export class IntroWriter {
   private readonly keys = inject(ApiKeyStore);
+  private readonly ai = inject(Ai);
 
   /** Frågan till Claude. Ett fält, så att ett test kan peka om det. */
-  ask: (apiKey: string, request: string) => Promise<unknown> = async (apiKey, request) => {
-    const { INTRO_TASK, askClaude, connect } = await import('./claude-call');
-    return askClaude(connect(apiKey), request, INTRO_TASK);
-  };
+  ask: (apiKey: string, request: string) => Promise<unknown> = (apiKey, request) =>
+    this.ai.ask(apiKey, request, 'intro');
 
   get available(): boolean {
     return this.keys.hasKey;

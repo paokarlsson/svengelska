@@ -201,8 +201,8 @@ export class IntroViewComponent implements OnInit, OnDestroy {
    * påståendena över tills de gör det, och går det inte alls blir rundan som
    * den var utan nyckel. Ingen väntar.
    *
-   * Frågan och svaret loggas i sin helhet: det är det enda sättet att i
-   * efterhand se varför någon fick de kort hen fick.
+   * Frågan och svaret loggas i sin helhet av `Ai`: det är det enda sättet att
+   * i efterhand se varför någon fick de kort hen fick.
    */
   private orderStatements(): void {
     if (this.ordered || !this.run.wantsWriting || !this.introWriter.available) {
@@ -212,7 +212,8 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     const profile = this.run.profile();
     const shown = [...this.run.shownTexts];
     const began = Date.now();
-    this.tracker.log('intro.ask', { request: this.introWriter.request(profile, shown) });
+    // Hela frågan och hela svaret står i `ai.ask` och `ai.got`.
+    this.tracker.log('intro.ask', { shown: shown.length });
     this.introWriter
       .write(profile, shown)
       .then((batch) => {
@@ -377,10 +378,7 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     }
     this.fetching = true;
     const began = Date.now();
-    this.tracker.log('followup.ask', {
-      upcoming: upcoming.length,
-      request: this.writer.request(this.result, upcoming),
-    });
+    this.tracker.log('followup.ask', { upcoming: upcoming.length });
     this.writer
       .write(this.result, upcoming)
       .then((tree) => {

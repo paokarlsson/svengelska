@@ -512,9 +512,7 @@ export class HomeViewComponent implements OnInit, OnDestroy {
     this.tracker.log('list.ask', {
       wish: wish.trim().slice(0, 400),
       auto: wish.trim() === '',
-      // Hela frågan till Claude, utom glosorna eleven redan har — de kan vara
-      // hundratals och står redan i exporten.
-      request: this.writer.request(wish).split('\n\nEleven har redan de här glosorna')[0],
+      // Hela frågan och hela svaret står i `ai.ask` och `ai.got`.
     });
     try {
       const block = await this.writer.write(wish);

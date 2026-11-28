@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it } from 'vitest';
-import { askClaude } from './claude-call';
+import { CallRecord, LIST_TASK, askClaude } from './claude-call';
 import { ListWriteError, WriteFailure } from './list-write-error';
 import { LIST_INSTRUCTIONS, LIST_SCHEMA } from '../words/generated-list';
 
@@ -45,6 +45,38 @@ async function failure(reply: unknown): Promise<ListWriteError> {
 }
 
 describe('askClaude', () => {
+  describe('vad den lämnar till loggen', () => {
+    const observed = async (reply: unknown): Promise<CallRecord> => {
+      const calls: CallRecord[] = [];
+      await askClaude(clientThat(reply), 'rymden', LIST_TASK, (call) => calls.push(call)).catch(() => undefined);
+      expect(calls).toHaveLength(1);
+      return calls[0];
+    };
+
+    it('lämnar frågan, instruktionen, schemat och råsvaret', async () => {
+      const call = await observed({ ...(message('{"name":"Rymden"}') as object), id: 'msg_1', model: 'm', usage: { output_tokens: 7 } });
+      expect(call.request).toBe('rymden');
+      expect(call.system).toBe(LIST_INSTRUCTIONS);
+      expect(call.schema).toBe(LIST_SCHEMA);
+      expect(call.reply).toMatchObject({ id: 'msg_1', stop: 'end_turn', text: '{"name":"Rymden"}', usage: { output_tokens: 7 }, other: ['thinking'] });
+      expect(call.error).toBeNull();
+      expect(call.ms).toBeGreaterThanOrEqual(0);
+    });
+
+    // Det som inte gick att tolka är just det som behöver gå att läsa i efterhand.
+    it('lämnar råsvaret även när det inte gick att tolka', async () => {
+      const call = await observed(message('inte json'));
+      expect(call.reply?.text).toBe('inte json');
+      expect(call.error?.reason).toBe('unreadable');
+    });
+
+    it('lämnar felet när inget svar kom', async () => {
+      const call = await observed(apiError(429, 'för många'));
+      expect(call.reply).toBeNull();
+      expect(call.error).toMatchObject({ reason: 'busy', status: 429 });
+    });
+  });
+
   it('ger tillbaka svaret tolkat, förbi tankeblocken', async () => {
     const reply = await askClaude(clientThat(message('{"name":"Rymden","words":[]}')), 'rymden');
     expect(reply).toEqual({ name: 'Rymden', words: [] });

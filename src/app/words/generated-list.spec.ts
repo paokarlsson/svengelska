@@ -134,6 +134,21 @@ describe('listRequestText', () => {
   });
 });
 
+describe('hur övningen gått', () => {
+  it('följer med frågan när den finns', () => {
+    const text = listRequestText('', { known: [], profile: null, practice: 'Svårast just nu: reluctant' });
+    expect(text).toContain('Hur övningen gått:\nSvårast just nu: reluctant');
+  });
+
+  it('nämns inte när inget övats', () => {
+    expect(listRequestText('rymden', { known: [], practice: null })).not.toContain('Hur övningen gått');
+  });
+
+  it('förklaras i uppdraget, med tiden som gånger golvet', () => {
+    expect(LIST_INSTRUCTIONS).toContain('gånger elevens golv');
+  });
+});
+
 describe('describeLearner', () => {
   it('säger ingenting om den som hoppade över allt', () => {
     expect(describeLearner(emptyProfile())).toBeNull();

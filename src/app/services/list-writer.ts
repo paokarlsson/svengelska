@@ -10,8 +10,12 @@ import { Injectable, inject } from '@angular/core';
 import { saysSomething } from '../intro/profile';
 import { skillOf } from '../intro/skill';
 import { blockFromReply, listRequestText } from '../words/generated-list';
-import { WordBlock } from '../words/word-catalog';
+import { DIRECTIONS, WordBlock } from '../words/word-catalog';
+import { describePractice } from '../words/practice-summary';
+import { TrainingEngine } from '../training/training-engine';
+import { CHANNELS, Channel } from './progress-store';
 import { WordLibrary } from '../words/word-library';
+import { Ai } from './ai';
 import { ApiKeyStore } from './api-key-store';
 import { ListWriteError } from './list-write-error';
 import { ProfileStore } from './profile-store';
@@ -19,8 +23,10 @@ import { ProfileStore } from './profile-store';
 @Injectable({ providedIn: 'root' })
 export class ListWriter {
   private readonly keys = inject(ApiKeyStore);
+  private readonly ai = inject(Ai);
   private readonly library = inject(WordLibrary);
   private readonly profiles = inject(ProfileStore);
+  private readonly engine = inject(TrainingEngine);
 
   /**
    * Frågan till Claude: nyckel och önskemål in, det tolkade svaret ut.
@@ -29,10 +35,8 @@ export class ListWriter {
    * `useRepository()` i motorn. Importen är dynamisk med flit — se
    * `claude-call.ts`.
    */
-  ask: (apiKey: string, request: string) => Promise<unknown> = async (apiKey, request) => {
-    const { askClaude, connect } = await import('./claude-call');
-    return askClaude(connect(apiKey), request);
-  };
+  ask: (apiKey: string, request: string) => Promise<unknown> = (apiKey, request) =>
+    this.ai.ask(apiKey, request, 'list');
 
   /** Frågan som den skickas, för loggen. */
   request(wish: string): string {
@@ -40,7 +44,19 @@ export class ListWriter {
       known: this.library.words,
       profile: this.profiles.profile,
       lists: this.library.ownNames,
+      practice: this.practice(),
     });
+  }
+
+  /** Hur övningen gått, åt båda hållen för varje glosa appen har. */
+  private practice(): string | null {
+    const words = this.library.words.flatMap((pair) =>
+      DIRECTIONS.map((direction) => ({ pair, direction, stat: this.engine.statFor({ pair, direction }) })),
+    );
+    const floors = Object.fromEntries(
+      CHANNELS.map((channel) => [channel, this.engine.baselineFor(channel)]),
+    ) as Record<Channel, number>;
+    return describePractice(words, floors);
   }
 
   /**

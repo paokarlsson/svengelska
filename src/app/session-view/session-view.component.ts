@@ -191,12 +191,19 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     const word = { pair: statement.pair, direction: statement.direction };
     const before = this.engine.statFor(word).box;
     const outcome = this.session.record(this.task, answer.response, answer.seconds);
-    // Det vyn inte vet men loggen vill veta: vad motorn gjorde av svaret.
+    // Det vyn inte vet men loggen vill veta: vad motorn gjorde av svaret, och
+    // hur lång tid det tog — i sekunder och som gånger kanalens golv, det mått
+    // motorn dömer efter.
+    const channel = `${statement.direction}:${statement.truthy}` as const;
+    const floor = this.engine.baselineFor(channel);
     this.tracker.log('outcome', {
       key: wordKey(statement.pair, statement.direction),
       truthy: statement.truthy,
       probe: calibration,
       out: outcome,
+      s: answer.seconds,
+      floor: round2(floor),
+      pace: answer.seconds === null ? null : round2(answer.seconds / floor),
       box: [before, this.engine.statFor(word).box],
       streak: this.session.streak,
     });
@@ -326,4 +333,9 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       void this.engine.flush();
     }
   }
+}
+
+/** Två decimaler räcker för loggen. */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }

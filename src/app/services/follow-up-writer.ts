@@ -7,18 +7,18 @@
 import { Injectable, inject } from '@angular/core';
 import { QuestionNode, followUpRequestText, treeFromReply } from '../intro/follow-up';
 import { Profile } from '../intro/profile';
+import { Ai } from './ai';
 import { ApiKeyStore } from './api-key-store';
 import { ListWriteError } from './list-write-error';
 
 @Injectable({ providedIn: 'root' })
 export class FollowUpWriter {
   private readonly keys = inject(ApiKeyStore);
+  private readonly ai = inject(Ai);
 
   /** Frågan till Claude. Ett fält, så att ett test kan peka om det. */
-  ask: (apiKey: string, request: string) => Promise<unknown> = async (apiKey, request) => {
-    const { FOLLOW_UP_TASK, askClaude, connect } = await import('./claude-call');
-    return askClaude(connect(apiKey), request, FOLLOW_UP_TASK);
-  };
+  ask: (apiKey: string, request: string) => Promise<unknown> = (apiKey, request) =>
+    this.ai.ask(apiKey, request, 'followup');
 
   get available(): boolean {
     return this.keys.hasKey;

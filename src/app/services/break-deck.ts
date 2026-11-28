@@ -15,6 +15,7 @@ import { Break, SEEDS, breakNote, breaksFromReply, followUpOf, nextBreak } from 
 import { BREAKS_KEPT, Note, Profile } from '../intro/profile';
 import { Response } from '../training/word-state';
 import { describeLearner } from '../words/generated-list';
+import { Ai } from './ai';
 import { ApiKeyStore } from './api-key-store';
 import { ProfileStore } from './profile-store';
 import { Tracker } from './tracker';
@@ -53,6 +54,7 @@ export function breakRequestText(profile: Profile): string {
 @Injectable({ providedIn: 'root' })
 export class BreakDeck {
   private readonly keys = inject(ApiKeyStore);
+  private readonly ai = inject(Ai);
   private readonly profiles = inject(ProfileStore);
   private readonly tracker = inject(Tracker);
 
@@ -61,10 +63,8 @@ export class BreakDeck {
   private fetching = false;
 
   /** Frågan till Claude. Ett fält, så att ett test kan peka om det. */
-  ask: (apiKey: string, request: string) => Promise<unknown> = async (apiKey, request) => {
-    const { BREAK_TASK, askClaude, connect } = await import('./claude-call');
-    return askClaude(connect(apiKey), request, BREAK_TASK);
-  };
+  ask: (apiKey: string, request: string) => Promise<unknown> = (apiKey, request) =>
+    this.ai.ask(apiKey, request, 'break');
 
   /** Om det finns någon att visa avbrott för. */
   get available(): boolean {
@@ -119,9 +119,7 @@ export class BreakDeck {
     }
     this.fetching = true;
     const began = Date.now();
-    const request = breakRequestText(profile);
-    this.tracker.log('break.ask', { request });
-    this.ask(key, request)
+    this.ask(key, breakRequestText(profile))
       .then((reply) => {
         const now = this.profiles.profile;
         this.written = breaksFromReply(reply, now?.breaks ?? []);
