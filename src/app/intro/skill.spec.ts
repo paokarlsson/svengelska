@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Profile, RoundNote, TOP_LEVEL, emptyProfile } from './profile';
-import { MIN_ANSWERED, describeSkill, moved, sayLevel, skillOf } from './skill';
+import { MIN_ANSWERED, describeSkill, moved, sayLevel, skillOf, warmupFor } from './skill';
 import { wordsOnStep } from './intro-run';
 
 const round = (aim: number, hits: number, answered = 20): RoundNote => ({ list: 'l', aim, answered, hits });
@@ -69,5 +69,24 @@ describe('describeSkill', () => {
     for (let level = 0; level <= TOP_LEVEL; level++) {
       expect(sayLevel(level).length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('warmupFor', () => {
+  it('tar orden ur den prövade nivån, inte en nivå varven flyttat upp', () => {
+    const up = warmupFor(profile(4, [round(4, 20)]))!.map((pair) => pair.en);
+    expect(up).toContain(wordsOnStep(3)[0]);
+    expect(up).not.toContain(wordsOnStep(4)[0]);
+  });
+
+  it('följer nivån ner när varven flyttat den ner', () => {
+    const down = warmupFor(profile(4, [round(4, 0)]))!.map((pair) => pair.en);
+    expect(down).not.toContain(wordsOnStep(3)[0]);
+    expect(down).toContain(wordsOnStep(2)[0]);
+  });
+
+  it('ger mätstickan för den som inte gjort provet', () => {
+    expect(warmupFor(null)).toBeNull();
+    expect(warmupFor(profile(null))).toBeNull();
   });
 });

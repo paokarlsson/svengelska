@@ -69,6 +69,13 @@ describe('TrainingSession', () => {
     return new TrainingSession(engine, CATALOG, CATALOG, seeded(seed));
   }
 
+  it('värmer upp med elevens egna nivå när inga ord sitter än', () => {
+    const warmup = words(6).map((pair) => ({ ...pair, en: `warm-${pair.en}`, sv: `värm-${pair.sv}` }));
+    const session = new TrainingSession(engine, CATALOG, CATALOG, seeded(1), Date.now(), warmup);
+    const probes = play(session, 'affirm').filter((task) => task.calibration !== null);
+    expect(probes.every((task) => task.statement.pair.en.startsWith('warm-'))).toBe(true);
+  });
+
   describe('nya ord', () => {
     const right = (task: Task): Response => (task.statement.truthy ? 'affirm' : 'deny');
 

@@ -73,10 +73,14 @@ describe('breakNote', () => {
 });
 
 describe('breaksFromReply', () => {
+  it('släpper frågor: ett kort ska vara sant eller falskt', () => {
+    expect(breaksFromReply({ breaks: [{ text: 'Har du sett en val?', opens: 'havet' }] }, [])).toEqual([]);
+  });
+
   it('behåller avbrotten, utan skiljetecken på slutet', () => {
     const reply = {
       breaks: [
-        { text: 'Jag har sett en val?', opens: 'havet' },
+        { text: 'Jag har sett en val!', opens: 'havet' },
         { text: ' Jag kan jonglera. ', opens: 'cirkus' },
       ],
     };

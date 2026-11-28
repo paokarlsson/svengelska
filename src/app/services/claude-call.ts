@@ -14,6 +14,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BREAK_INSTRUCTIONS, BREAK_SCHEMA } from '../intro/breaks';
 import { FOLLOW_UP_INSTRUCTIONS, FOLLOW_UP_SCHEMA } from '../intro/follow-up';
+import { INTRO_INSTRUCTIONS, INTRO_SCHEMA } from '../intro/intro-writing';
 import { LIST_INSTRUCTIONS, LIST_SCHEMA } from '../words/generated-list';
 import { ListWriteError } from './list-write-error';
 
@@ -53,6 +54,12 @@ export const FOLLOW_UP_TASK: Task = {
   schema: FOLLOW_UP_SCHEMA,
   effort: 'low',
 };
+
+/**
+ * Att skriva startrundans påståenden. Någon sveper medan det skrivs, och de
+ * fasta påståendena tar över om det dröjer — därför låg ansträngning.
+ */
+export const INTRO_TASK: Task = { system: INTRO_INSTRUCTIONS, schema: INTRO_SCHEMA, effort: 'low' };
 
 /** Att skriva avbrott. Kort svar, skrivet i bakgrunden medan någon övar. */
 export const BREAK_TASK: Task = { system: BREAK_INSTRUCTIONS, schema: BREAK_SCHEMA, effort: 'low' };

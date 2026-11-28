@@ -90,8 +90,15 @@ export interface CalibrationCard {
 export function calibrationCards(
   known: readonly WordPair[],
   random: Random = Math.random,
+  /** Mätstickan när egna behärskade ord saknas. Startrundans ord på nivån, om de finns. */
+  fallback: readonly WordPair[] = EASY_WORDS,
 ): CalibrationCard[] {
-  const pool = known.length >= CALIBRATION_CARDS ? known : EASY_WORDS;
+  const pool =
+    known.length >= CALIBRATION_CARDS
+      ? known
+      : fallback.length >= CALIBRATION_CARDS
+        ? fallback
+        : EASY_WORDS;
   if (pool.length === 0) {
     return [];
   }

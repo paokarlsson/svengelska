@@ -24,13 +24,18 @@ export class FollowUpWriter {
     return this.keys.hasKey;
   }
 
+  /** Frågan som den skickas, för loggen. */
+  request(profile: Profile, upcoming: readonly string[] = []): string {
+    return followUpRequestText(profile, upcoming);
+  }
+
   /** Nästa träd, efter det profilen säger och det som redan står på tur. */
   async write(profile: Profile, upcoming: readonly string[] = []): Promise<QuestionNode> {
     const key = this.keys.key;
     if (key === null) {
       throw new ListWriteError('no-key');
     }
-    const reply = await this.ask(key, followUpRequestText(profile, upcoming));
+    const reply = await this.ask(key, this.request(profile, upcoming));
     const tree = treeFromReply(reply);
     if (tree === null) {
       throw new ListWriteError('unreadable');

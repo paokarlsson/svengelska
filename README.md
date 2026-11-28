@@ -25,6 +25,12 @@ faktiskt — att förkasta `dog = katt` tar längre tid än att bekräfta `dog =
 även för den som kan ordet, så sant och falskt mäts var för sig, åt vardera
 hållet.
 
+De lätta orden är elevens egna: behärskade ord om sådana finns, annars ord ur
+startrundans trappa från de två stegen under nivån (`warmupWords()`), och bara
+för den som inte gjort trappan mätstickan `dog`, `red`, `yes`. Så var det inte
+först — loggen visade `red = röd` inleda varv för en vuxen som klarade
+`although`.
+
 Under ytan ligger en repetitionsplan som avgör vilka tio ord ett varv består av.
 Den syns aldrig: ingen graf, inga intervall, ingen «nästa repetition om fyra
 dagar». Det enda som ställs in är hur många *nya* ord ett dygn får introducera,
@@ -47,6 +53,7 @@ varvet är slut.
 | `src/app/intro/` | Startrundan: korten som lär känna den som övar, och profilen de blir |
 | `src/app/intro/skill.ts`, `personality.ts` | Nivån och personligheten som de spåras: startrundan först, varven sedan |
 | `src/app/intro/breaks.ts`, `services/break-deck.ts` | Avbrotten: något helt annat mitt bland orden, och vad som byggs vidare på dem |
+| `src/app/intro/intro-writing.ts`, `services/intro-writer.ts` | Startrundans påståenden skrivna av Claude, när det finns en nyckel |
 | `src/app/intro-view/` | Startrundan på skärmen — appens vanliga kort, med frågor i stället för glosor |
 | `src/app/words/word-selector.ts` | Den gamla vägen: viktat urval ord för ord. Gömd, inte raderad |
 | `src/app/words/distractors.ts` | Felsvaren, och varifrån de kommer — åt båda hållen |
@@ -151,6 +158,16 @@ var det inte först: tolv intressen, sedan ålder, sedan trappan från `cat` med
 fem steg. Loggen från en vuxen som läser engelska till vardags visade vad det
 gav — taket nått på åtta kort, en första lista om mjöl och deg, och sedan
 Skolan med nitton rätt av tjugo. «Lite fånigt enkelt.»
+
+**Med en nyckel skrivs påståendena av Claude** (`intro/intro-writing.ts`). Så
+fort åldern är avgjord beställs resten av rundan: åtta påståenden som vart och
+ett öppnar ett ordområde, vardagliga och knasiga om vartannat, och ett eget
+påstående per personlighetsdrag, formulerat för just den eleven och ibland vänt
+så att det inte lönar sig att svara sant på allt. Under tiden — skälet och
+trappans första steg, ungefär vad det tar att skriva dem — ligger de fasta
+påståendena kvar, och de tar över helt om det inte går. Ingen väntar. Kortet som
+ligger framme byts aldrig ut. Trappan skrivs inte om: den är ett instrument, och
+ett instrument som skrivs om för varje mätning mäter inte samma sak två gånger.
 
 Svaren blir en profil: intressen, ett åldersspann, om man övar frivilligt, hur
 man vill ha det, och var det är lagom att börja. Med den kan appen välja tema
@@ -377,6 +394,12 @@ Medan appen utvecklas sparar den allt som händer, inte bara vad som blev av det
 | `outcome` | Vad motorn gjorde av svaret: utfall, låda före och efter, sviten |
 | `nav`, `round`, `round.end`, `leave`, `intro.end` | Var man var och vart man gick. `round.end` bär också listans nivå och nivån före och efter varvet |
 | `list.ask`, `list.got`, `list.failed`, `list.keep`, `list.drop` | Vad som önskades av Claude och vad som kom tillbaka |
+| `intro.ask`, `intro.got`, `intro.failed`, `followup.ask`, `break.ask` | Det Claude skrev åt startrundan, följdfrågorna och avbrotten |
+
+Varje fråga till Claude loggas i sin helhet (`request`), och svaret likaså. Det
+är det enda sättet att i efterhand se varför någon fick de kort hen fick. För
+listorna loggas allt utom glosorna eleven redan har, som kan vara hundratals och
+redan står i exporten.
 | `break`, `break.got`, `break.failed` | Ett avbrott och svaret på det, och avbrotten Claude skrev |
 | `visible`, `error`, `setting`, `export`, `track` | Det som förklarar resten |
 

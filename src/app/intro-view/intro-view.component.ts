@@ -25,6 +25,7 @@ import { sayPersonality } from '../intro/personality';
 import { Profile } from '../intro/profile';
 import { sayLevel } from '../intro/skill';
 import { FollowUpWriter } from '../services/follow-up-writer';
+import { IntroWriter } from '../services/intro-writer';
 import { ListWriteError } from '../services/list-write-error';
 import { ProfileStore } from '../services/profile-store';
 import { Tracker } from '../services/tracker';
@@ -79,6 +80,9 @@ export class IntroViewComponent implements OnInit, OnDestroy {
   private readonly profiles = inject(ProfileStore);
   private readonly tracker = inject(Tracker);
   private readonly writer = inject(FollowUpWriter);
+  private readonly introWriter = inject(IntroWriter);
+  /** Sant från att påståendena beställts. En gång per runda. */
+  private ordered = false;
   private readonly changes = inject(ChangeDetectorRef);
 
   private readonly run = new IntroRun();
@@ -186,6 +190,48 @@ export class IntroViewComponent implements OnInit, OnDestroy {
       return;
     }
     this.run.answer(answer.response);
+    this.orderStatements();
+  }
+
+  /**
+   * Beställer resten av påståendena av Claude, så fort åldern är avgjord.
+   *
+   * Tre kort ligger emellan — skälet och trappans första steg — och det är
+   * ungefär vad det tar att skriva dem. Hinner de inte fram tar de fasta
+   * påståendena över tills de gör det, och går det inte alls blir rundan som
+   * den var utan nyckel. Ingen väntar.
+   *
+   * Frågan och svaret loggas i sin helhet: det är det enda sättet att i
+   * efterhand se varför någon fick de kort hen fick.
+   */
+  private orderStatements(): void {
+    if (this.ordered || !this.run.wantsWriting || !this.introWriter.available) {
+      return;
+    }
+    this.ordered = true;
+    const profile = this.run.profile();
+    const shown = [...this.run.shownTexts];
+    const began = Date.now();
+    this.tracker.log('intro.ask', { request: this.introWriter.request(profile, shown) });
+    this.introWriter
+      .write(profile, shown)
+      .then((batch) => {
+        this.tracker.log('intro.got', {
+          ms: Date.now() - began,
+          statements: batch.statements.map((item) => `${item.text} → ${item.opens}`),
+          traits: batch.traits.map((item) => `${item.trait} (${item.keyed > 0 ? 'sant = högt' : 'sant = lågt'}): ${item.text}`),
+        });
+        if (!this.gone) {
+          this.run.supply(batch);
+        }
+      })
+      .catch((error: unknown) => {
+        this.tracker.log('intro.failed', {
+          ms: Date.now() - began,
+          why: error instanceof ListWriteError ? error.reason : 'failed',
+        });
+      })
+      .finally(() => this.changes.markForCheck());
   }
 
   onCompleted(): void {
@@ -331,7 +377,10 @@ export class IntroViewComponent implements OnInit, OnDestroy {
     }
     this.fetching = true;
     const began = Date.now();
-    this.tracker.log('followup.ask', { upcoming: upcoming.length });
+    this.tracker.log('followup.ask', {
+      upcoming: upcoming.length,
+      request: this.writer.request(this.result, upcoming),
+    });
     this.writer
       .write(this.result, upcoming)
       .then((tree) => {

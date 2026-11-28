@@ -234,7 +234,11 @@ export function breaksFromReply(reply: unknown, asked: readonly Note[]): Break[]
       continue;
     }
     const record = item as Record<string, unknown>;
-    const text = typeof record['text'] === 'string' ? record['text'].trim().replace(/[?.!]+$/, '') : '';
+    const text = typeof record['text'] === 'string' ? record['text'].trim().replace(/[.!]+$/, '') : '';
+    // En fråga är inget påstående. Kortet ska vara sant eller falskt.
+    if (text.includes('?')) {
+      continue;
+    }
     const opens = typeof record['opens'] === 'string' ? record['opens'].trim() : '';
     if (text.length > 0 && text.length <= 120 && opens.length > 0 && !done.has(text.toLowerCase())) {
       done.add(text.toLowerCase());

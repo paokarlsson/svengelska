@@ -111,6 +111,8 @@ export class TrainingSession {
     fresh: readonly WordPair[],
     private readonly random: Random = Math.random,
     now: number = Date.now(),
+    /** Uppvärmningsord på elevens nivå, om de är kända. Se `warmupWords()`. */
+    private readonly warmup: readonly WordPair[] = EASY_WORDS,
   ) {
     const words = pickRoundWords(
       catalog,
@@ -124,7 +126,7 @@ export class TrainingSession {
     this.easy = engine.masteredWords(catalog);
     // Ett tomt varv kalibreras inte. Golvet är ett instrument för att mäta
     // korten som kommer, och kommer inga kort finns ingenting att mäta.
-    this.calibration = this.size === 0 ? [] : calibrationCards(this.easy, random);
+    this.calibration = this.size === 0 ? [] : calibrationCards(this.easy, random, warmup);
 
     for (const card of this.cards) {
       const key = keyOf(card);
@@ -308,7 +310,12 @@ export class TrainingSession {
    * ett prov som bytte kanal vore ett prov som mätte fel golv.
    */
   private freshProbe(discarded: CalibrationCard): CalibrationCard | null {
-    const pool = this.easy.length >= CALIBRATION_CARDS ? this.easy : EASY_WORDS;
+    const pool =
+      this.easy.length >= CALIBRATION_CARDS
+        ? this.easy
+        : this.warmup.length >= CALIBRATION_CARDS
+          ? this.warmup
+          : EASY_WORDS;
     const candidates = pool.filter(
       (pair) => pairKey(pair) !== pairKey(discarded.word.pair),
     );

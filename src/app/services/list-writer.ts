@@ -34,6 +34,15 @@ export class ListWriter {
     return askClaude(connect(apiKey), request);
   };
 
+  /** Frågan som den skickas, för loggen. */
+  request(wish: string): string {
+    return listRequestText(wish, {
+      known: this.library.words,
+      profile: this.profiles.profile,
+      lists: this.library.ownNames,
+    });
+  }
+
   /**
    * Skriver en lista. Sparar ingenting — den som bad om listan ska få se den
    * innan den hamnar bland de andra.
@@ -52,12 +61,7 @@ export class ListWriter {
       throw new ListWriteError('no-wish');
     }
 
-    const request = listRequestText(wish, {
-      known: this.library.words,
-      profile,
-      lists: this.library.ownNames,
-    });
-    const reply = await this.ask(key, request);
+    const reply = await this.ask(key, this.request(wish));
     const block = blockFromReply(reply, this.library.takenIds);
     if (block === null) {
       throw new ListWriteError('unreadable');

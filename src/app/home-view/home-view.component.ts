@@ -509,7 +509,13 @@ export class HomeViewComponent implements OnInit, OnDestroy {
     const began = Date.now();
     // Önskemålet loggas — det är vad någon bad om, och det behövs för att
     // förstå vad som kom tillbaka. Nyckeln står i ett annat fält och loggas aldrig.
-    this.tracker.log('list.ask', { wish: wish.trim().slice(0, 400), auto: wish.trim() === '' });
+    this.tracker.log('list.ask', {
+      wish: wish.trim().slice(0, 400),
+      auto: wish.trim() === '',
+      // Hela frågan till Claude, utom glosorna eleven redan har — de kan vara
+      // hundratals och står redan i exporten.
+      request: this.writer.request(wish).split('\n\nEleven har redan de här glosorna')[0],
+    });
     try {
       const block = await this.writer.write(wish);
       this.tracker.log('list.got', {

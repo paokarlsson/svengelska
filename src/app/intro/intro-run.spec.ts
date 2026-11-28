@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { ABOUT, ASKS_BETWEEN, IntroCard, IntroRun, LADDER, OPENING, wordsOnStep } from './intro-run';
+import {
+  ABOUT,
+  ASKS_BETWEEN,
+  IntroCard,
+  IntroRun,
+  LADDER,
+  OPENING,
+  warmupWords,
+  wordsOnStep,
+} from './intro-run';
 import { TRAITS } from './personality';
 import { SEEDS } from './breaks';
 import { TOP_LEVEL } from './profile';
@@ -96,6 +105,86 @@ describe('IntroRun', () => {
       expect(run.profile().breaks!.map((note) => note.answer)).toEqual(['yes', 'yes', 'yes']);
       // Varje svar bär området ett ja öppnar.
       expect(run.profile().breaks!.every((note) => (note.opens ?? '').length > 0)).toBe(true);
+    });
+  });
+
+  describe('det Claude skriver', () => {
+    const batch = {
+      statements: [
+        { text: 'Jag har klappat en ko', opens: 'bondgården' },
+        { text: 'Jag lagar mat varje dag', opens: 'matlagning' },
+        { text: 'Jag har bytt däck', opens: 'bilverkstaden' },
+      ],
+      traits: [{ trait: 'challenge' as const, text: 'Jag vill att det går lätt', keyed: -1 as const }],
+    };
+
+    it('ber om att få skrivas först när åldern är avgjord', () => {
+      const run = new IntroRun(seeded(1));
+      expect(run.wantsWriting).toBe(false);
+      for (let i = 0; i < OPENING; i++) {
+        run.answer('affirm');
+      }
+      run.answer('deny'); // Jag har fyllt 13 — ett barn
+      expect(run.wantsWriting).toBe(true);
+      run.supply(batch);
+      expect(run.wantsWriting).toBe(false);
+    });
+
+    it('ersätter de fasta intressena och dragen det skrev ett eget påstående för', () => {
+      const run = new IntroRun(seeded(1));
+      const seen: IntroCard[] = [];
+      for (let guard = 0; guard < 200 && run.next() !== null; guard++) {
+        const card = run.next()!;
+        seen.push(card);
+        run.answer(knowing(4)(card));
+        if (run.wantsWriting) {
+          run.supply(batch);
+        }
+      }
+      const texts = seen.map((card) => (card.kind === 'ask' ? card.text : ''));
+      const later = seen.slice(OPENING);
+      expect(later.some((card) => card.kind === 'ask' && card.phase === 'about')).toBe(false);
+      expect(texts).toContain('Jag har klappat en ko');
+      expect(texts).toContain('Jag vill att det går lätt');
+      expect(texts).not.toContain(TRAITS.find((item) => item.id === 'challenge')!.text);
+      // De andra dragen frågas fortfarande, med de fasta påståendena.
+      expect(later.filter((card) => card.kind === 'ask' && card.phase === 'how')).toHaveLength(TRAITS.length);
+    });
+
+    it('läser ett skrivet drag åt det håll det var vänt, och gör ett sant område till ett intresse', () => {
+      const run = new IntroRun(seeded(1));
+      for (let guard = 0; guard < 200 && run.next() !== null; guard++) {
+        run.answer(knowing(4)(run.next()!));
+        if (run.wantsWriting) {
+          run.supply(batch);
+        }
+      }
+      expect(run.profile().traits?.challenge).toBe(-1);
+      expect(run.profile().interests).toEqual(expect.arrayContaining(['bondgården', 'matlagning']));
+      expect(run.profile().breaks?.find((note) => note.text === 'Jag har klappat en ko')?.opens).toBe('bondgården');
+    });
+
+    it('byter aldrig ut kortet som ligger framme', () => {
+      const run = new IntroRun(seeded(1));
+      // Fram till första påståendet efter trappans första steg.
+      while (!(run.next()?.kind === 'ask' && run.answered > OPENING + 3)) {
+        run.answer(knowing(4)(run.next()!));
+      }
+      const before = run.next();
+      run.supply(batch);
+      expect(run.next()).toBe(before);
+    });
+
+    it('lägger fram det skrivna när trappan börjar, om det kom före', () => {
+      const run = new IntroRun(seeded(1));
+      for (let i = 0; i < OPENING; i++) {
+        run.answer('affirm');
+      }
+      run.answer('deny');
+      run.supply(batch);
+      const seen = play(run, knowing(0, 'child'));
+      expect(seen.some((card) => card.kind === 'ask' && card.text === 'Jag har bytt däck')).toBe(true);
+      expect(seen.some((card) => card.kind === 'ask' && card.phase === 'about')).toBe(false);
     });
   });
 
@@ -282,6 +371,31 @@ describe('IntroRun', () => {
 
     it('säger nivån är okänd innan den prövats', () => {
       expect(new IntroRun(seeded(1)).profile().level).toBeNull();
+    });
+  });
+
+  describe('warmupWords', () => {
+    it('ger ingen uppvärmning under steg 2', () => {
+      expect(warmupWords(null)).toBeNull();
+      expect(warmupWords(1)).toBeNull();
+    });
+
+    // Loggen: `red = röd` inledde varv för en vuxen som klarade `although`.
+    it('ger orden på de två stegen under nivån', () => {
+      const words = warmupWords(4)!.map((pair) => pair.en);
+      expect(words).toEqual(expect.arrayContaining([...wordsOnStep(2), ...wordsOnStep(3)]));
+      expect(words).toHaveLength(4);
+    });
+
+    it('ger felsvar åt båda hållen, och aldrig det rätta', () => {
+      for (let level = 2; level <= TOP_LEVEL; level++) {
+        for (const pair of warmupWords(level)!) {
+          expect(pair.distractorsEn!.length).toBeGreaterThan(0);
+          expect(pair.distractorsSv!.length).toBeGreaterThan(0);
+          expect(pair.distractorsEn).not.toContain(pair.en);
+          expect(pair.distractorsSv).not.toContain(pair.sv);
+        }
+      }
     });
   });
 

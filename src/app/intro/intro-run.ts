@@ -27,6 +27,7 @@
  */
 import { Response } from '../training/word-state';
 import { Statement } from '../words/distractors';
+import { WordPair } from '../words/word-catalog';
 import { Random, shuffle } from '../words/shuffle';
 import { breakNote, nextBreak } from './breaks';
 import { TRAITS, saidOf } from './personality';
@@ -49,6 +50,8 @@ export type IntroCard =
       text: string;
       /** För ett avbrott: ordområdet ett ja öppnar. */
       opens?: string;
+      /** För ett drag skrivet av Claude: vad «sant» betyder för draget. */
+      keyed?: 1 | -1;
     }
   | { kind: 'probe'; phase: 'words'; level: number; statement: Statement };
 
@@ -134,6 +137,12 @@ interface Probe {
   en: string;
   shown: string;
   truth: string;
+  /**
+   * Felsvar åt båda hållen, för när ordet används som uppvärmning i varven —
+   * se `warmupWords()`. Det falska `shown` står bland dem, eftersom det är
+   * fällan ordet valdes för.
+   */
+  others: { en: readonly string[]; sv: readonly string[] };
 }
 
 /**
@@ -155,40 +164,40 @@ interface Probe {
  */
 export const LADDER: readonly (readonly [Probe, Probe])[] = [
   [
-    { en: 'cat', shown: 'katt', truth: 'katt' },
-    { en: 'house', shown: 'bil', truth: 'hus' },
+    { en: 'cat', shown: 'katt', truth: 'katt', others: { en: ['dog', 'bird'], sv: ['hund', 'fågel'] } },
+    { en: 'house', shown: 'bil', truth: 'hus', others: { en: ['car', 'tree'], sv: ['bil', 'träd'] } },
   ],
   [
-    { en: 'kitchen', shown: 'kök', truth: 'kök' },
-    { en: 'breakfast', shown: 'middag', truth: 'frukost' },
+    { en: 'kitchen', shown: 'kök', truth: 'kök', others: { en: ['bedroom', 'bathroom'], sv: ['sovrum', 'badrum'] } },
+    { en: 'breakfast', shown: 'middag', truth: 'frukost', others: { en: ['dinner', 'lunch'], sv: ['middag', 'lunch'] } },
   ],
   [
-    { en: 'although', shown: 'fastän', truth: 'fastän' },
-    { en: 'nephew', shown: 'farbror', truth: 'brorson' },
+    { en: 'although', shown: 'fastän', truth: 'fastän', others: { en: ['because', 'therefore'], sv: ['eftersom', 'därför'] } },
+    { en: 'nephew', shown: 'farbror', truth: 'brorson', others: { en: ['uncle', 'cousin'], sv: ['farbror', 'kusin'] } },
   ],
   [
-    { en: 'reluctant', shown: 'motvillig', truth: 'motvillig' },
-    { en: 'eventually', shown: 'eventuellt', truth: 'till slut' },
+    { en: 'reluctant', shown: 'motvillig', truth: 'motvillig', others: { en: ['eager', 'careless'], sv: ['ivrig', 'slarvig'] } },
+    { en: 'eventually', shown: 'eventuellt', truth: 'till slut', others: { en: ['possibly', 'immediately'], sv: ['eventuellt', 'genast'] } },
   ],
   [
-    { en: 'to sue', shown: 'att stämma', truth: 'att stämma' },
-    { en: 'sensible', shown: 'sensibel', truth: 'förnuftig' },
+    { en: 'to sue', shown: 'att stämma', truth: 'att stämma', others: { en: ['to sweat', 'to bribe'], sv: ['att svettas', 'att muta'] } },
+    { en: 'sensible', shown: 'sensibel', truth: 'förnuftig', others: { en: ['sensitive', 'stubborn'], sv: ['känslig', 'envis'] } },
   ],
   [
-    { en: 'meticulous', shown: 'noggrann', truth: 'noggrann' },
-    { en: 'to procrastinate', shown: 'att förutsäga', truth: 'att skjuta upp' },
+    { en: 'meticulous', shown: 'noggrann', truth: 'noggrann', others: { en: ['careless', 'generous'], sv: ['slarvig', 'generös'] } },
+    { en: 'to procrastinate', shown: 'att förutsäga', truth: 'att skjuta upp', others: { en: ['to predict', 'to hurry'], sv: ['att förutsäga', 'att skynda'] } },
   ],
   [
-    { en: 'to scrutinize', shown: 'att granska', truth: 'att granska' },
-    { en: 'conspicuous', shown: 'misstänksam', truth: 'iögonfallande' },
+    { en: 'to scrutinize', shown: 'att granska', truth: 'att granska', others: { en: ['to ignore', 'to praise'], sv: ['att ignorera', 'att berömma'] } },
+    { en: 'conspicuous', shown: 'misstänksam', truth: 'iögonfallande', others: { en: ['suspicious', 'invisible'], sv: ['misstänksam', 'osynlig'] } },
   ],
   [
-    { en: 'ubiquitous', shown: 'allestädes närvarande', truth: 'allestädes närvarande' },
-    { en: 'sanguine', shown: 'blodtörstig', truth: 'hoppfull' },
+    { en: 'ubiquitous', shown: 'allestädes närvarande', truth: 'allestädes närvarande', others: { en: ['rare', 'unique'], sv: ['sällsynt', 'unik'] } },
+    { en: 'sanguine', shown: 'blodtörstig', truth: 'hoppfull', others: { en: ['bloodthirsty', 'gloomy'], sv: ['blodtörstig', 'dyster'] } },
   ],
   [
-    { en: 'obsequious', shown: 'inställsam', truth: 'inställsam' },
-    { en: 'to abscond', shown: 'att avstå', truth: 'att rymma' },
+    { en: 'obsequious', shown: 'inställsam', truth: 'inställsam', others: { en: ['arrogant', 'obvious'], sv: ['högfärdig', 'uppenbar'] } },
+    { en: 'to abscond', shown: 'att avstå', truth: 'att rymma', others: { en: ['to abstain', 'to apologize'], sv: ['att avstå', 'att be om ursäkt'] } },
   ],
 ];
 
@@ -218,6 +227,25 @@ const EXPECTED = OPENING + 3 + TRAITS.length + (ABOUT.length - OPENING - 2) + 6 
 
 /** Vilken kö ett kort kom ur. */
 type Source = 'front' | 'asks' | 'probes' | 'breakCard';
+
+/** Ett påstående Claude skrivit, och ordområdet «sant» öppnar. Se `intro-writing.ts`. */
+export interface WrittenStatement {
+  text: string;
+  opens: string;
+}
+
+/** Ett påstående om ett drag, skrivet av Claude, och vad «sant» betyder för draget. */
+export interface WrittenTrait {
+  trait: TraitId;
+  text: string;
+  keyed: 1 | -1;
+}
+
+/** Det Claude skrev åt startrundan. */
+export interface IntroBatch {
+  statements: WrittenStatement[];
+  traits: WrittenTrait[];
+}
 
 export class IntroRun {
   /** De fasta korten först: öppningen, åldern och skälet. */
@@ -251,6 +279,12 @@ export class IntroRun {
   private answers = 0;
   /** Mätaren backar aldrig, även när trappan blir längre än väntat. */
   private shown = 0;
+  /** Sant när åldern är avgjord, sagd eller inte. Då går det att skriva resten. */
+  private ageDone = false;
+  /** Det Claude skrivit, om det kommit. Används när resten av rundan läggs fram. */
+  private batch: IntroBatch | null = null;
+  /** Påståendena som visats, för den som skriver nästa. */
+  private readonly asked: string[] = [];
 
   constructor(private readonly random: Random = Math.random) {
     this.front = [
@@ -261,6 +295,48 @@ export class IntroRun {
 
   get answered(): number {
     return this.answers;
+  }
+
+  /**
+   * Om det är dags att be Claude om resten av påståendena: åldern är avgjord,
+   * och inget har skrivits än. Före dess vet den som skriver för lite.
+   */
+  get wantsWriting(): boolean {
+    return this.ageDone && this.batch === null;
+  }
+
+  /** Påståendena om en själv som visats hittills. */
+  get shownTexts(): readonly string[] {
+    return this.asked;
+  }
+
+  /** Om påståendena skrivits av Claude. */
+  get written(): boolean {
+    return this.batch !== null;
+  }
+
+  /**
+   * Påståendena Claude skrev. Ersätter de fasta intressena, fröna och de drag
+   * det kom ett eget påstående för.
+   *
+   * Kortet som ligger framme byts aldrig ut: svaret ska gälla det som syntes.
+   * Kommer det skrivna innan trappan börjat läggs det fram när den gör det.
+   */
+  supply(batch: IntroBatch): void {
+    if (this.batch !== null) {
+      return;
+    }
+    this.batch = batch;
+    if (this.start === null) {
+      return;
+    }
+    const current = this.pick();
+    const head = current?.from === 'asks' ? this.asks.shift() : undefined;
+    const keep = this.asks.splice(0);
+    this.asks.push(...this.arrange(keep, head));
+    if (head !== undefined) {
+      this.asks.unshift(head);
+    }
   }
 
   get done(): boolean {
@@ -299,14 +375,22 @@ export class IntroRun {
     this[from].shift();
     this.answers++;
 
+    if (card.kind === 'ask' && card.phase !== 'you') {
+      this.asked.push(card.text);
+    }
     if (card.kind === 'probe') {
       this.answerProbe(card, response);
     } else if (card.phase === 'about') {
       this.answerAbout(card.id, response);
     } else if (card.phase === 'break') {
       this.breakNotes.push(breakNote({ text: card.text, opens: card.opens ?? '' }, response));
+      // Ett område som öppnats är ett intresse. För det Claude skrivit är det
+      // det enda som finns: de fasta intressena frågas då inte.
+      if (response === 'affirm' && card.opens !== undefined && !this.interests.includes(card.opens)) {
+        this.interests.push(card.opens);
+      }
     } else if (card.phase === 'how') {
-      this.traits[card.id as TraitId] = saidOf(card.id as TraitId, response);
+      this.traits[card.id as TraitId] = saidOf(card.id as TraitId, response, card.keyed);
     } else {
       this.answerYou(card.id, response);
     }
@@ -393,11 +477,13 @@ export class IntroRun {
         return;
       }
       this.age = response === 'deny' ? 'child' : null;
+      this.ageDone = true;
       this.front.push(ask('you', WHY, YOU[WHY]));
       return;
     }
     if (id === ADULT) {
       this.age = response === 'affirm' ? 'adult' : response === 'deny' ? 'teen' : null;
+      this.ageDone = true;
       this.front.push(ask('you', WHY, YOU[WHY]));
       return;
     }
@@ -420,14 +506,7 @@ export class IntroRun {
       .filter((about) => age === null || about.ages === undefined || about.ages.includes(age))
       .map((about) => ask('about', about.id, about.text));
     const traits = TRAITS.map((item) => ask('how', item.id, item.text));
-    for (let i = 0; i < Math.max(rest.length, traits.length); i++) {
-      if (i < traits.length) {
-        this.asks.push(traits[i]);
-      }
-      if (i < rest.length) {
-        this.asks.push(rest[i]);
-      }
-    }
+    this.asks.push(...this.arrange([...traits, ...rest]));
     this.start = START[age ?? 'unknown'];
     this.climbing = true;
     this.queueStep(this.start);
@@ -478,10 +557,60 @@ export class IntroRun {
    * Se `breaks.ts`. Ett ja kan ge en följdfråga redan vid nästa avbrott.
    */
   private queueBreak(): void {
+    if (this.batch !== null && this.batch.statements.length > 0) {
+      // Det Claude skrivit ligger redan bland påståendena. Nästa av dem tas
+      // fram hit, så att det fortfarande kommer något annat efter ett steg.
+      const index = this.asks.findIndex((card) => card.kind === 'ask' && card.phase === 'break');
+      if (index >= 0) {
+        this.breakCard.push(...this.asks.splice(index, 1));
+      }
+      return;
+    }
     const item = nextBreak(this.breakNotes, this.age, this.random);
     if (item !== null) {
       this.breakCard.push({ kind: 'ask', phase: 'break', id: 'break', text: item.text, opens: item.opens });
     }
+  }
+
+  /**
+   * Påståendena i den ordning de visas: ett om ett drag, ett om något annat,
+   * om vartannat — så att det inte blir fem kort om hur man lär sig i rad.
+   *
+   * Finns det skrivna tar det de fasta intressenas plats, och de drag det
+   * skrevs ett eget påstående för. Ett drag som redan besvarats, eller som
+   * ligger framme just nu (`head`), frågas inte en gång till.
+   */
+  private arrange(cards: readonly IntroCard[], head?: IntroCard): IntroCard[] {
+    const batch = this.batch;
+    const answered = new Set(Object.keys(this.traits));
+    if (head?.kind === 'ask' && head.phase === 'how') {
+      answered.add(head.id);
+    }
+    let traits = cards.filter((card) => card.kind === 'ask' && card.phase === 'how');
+    let others = cards.filter((card) => !(card.kind === 'ask' && card.phase === 'how'));
+    if (batch !== null) {
+      const written = batch.traits
+        .filter((item) => !answered.has(item.trait))
+        .map((item): IntroCard => ({ kind: 'ask', phase: 'how', id: item.trait, text: item.text, keyed: item.keyed }));
+      const covered = new Set(written.map((card) => (card.kind === 'ask' ? card.id : '')));
+      traits = [...written, ...traits.filter((card) => card.kind === 'ask' && !covered.has(card.id))];
+      if (batch.statements.length > 0) {
+        others = batch.statements.map(
+          (item): IntroCard => ({ kind: 'ask', phase: 'break', id: 'written', text: item.text, opens: item.opens }),
+        );
+      }
+    }
+    traits = traits.filter((card) => card.kind === 'ask' && !answered.has(card.id));
+    const arranged: IntroCard[] = [];
+    for (let i = 0; i < Math.max(traits.length, others.length); i++) {
+      if (i < traits.length) {
+        arranged.push(traits[i]);
+      }
+      if (i < others.length) {
+        arranged.push(others[i]);
+      }
+    }
+    return arranged;
   }
 
   /**
@@ -518,6 +647,30 @@ function statementOf(probe: Probe): Statement {
     shown: probe.shown,
     truthy: probe.shown === probe.truth,
   };
+}
+
+/**
+ * Ord den som klarat trappan till `level` bevisligen kan: de två stegen närmast
+ * under. `null` under steg 2, där de lättaste orden redan är trappans.
+ *
+ * Det är uppvärmningen i varven. Där stod förut alltid `red = röd` och
+ * `dog = hund`, och loggen visade dem inleda varv för en vuxen som klarade
+ * `although`. Ett golv mätt på ord som är för lätta är inte fel åt det
+ * farliga hållet — det gör bedömningen strängare, aldrig mildare — men det
+ * säger att appen inte vet vem den talar med. Orden härifrån är besvarade rätt
+ * i startrundan, eller ligger under steget den började på.
+ */
+export function warmupWords(level: number | null): WordPair[] | null {
+  if (level === null || level < 2) {
+    return null;
+  }
+  const top = Math.min(level, LADDER.length);
+  return [...LADDER[top - 2], ...LADDER[top - 1]].map((probe) => ({
+    en: probe.en,
+    sv: probe.truth,
+    distractorsEn: [...probe.others.en],
+    distractorsSv: [...probe.others.sv],
+  }));
 }
 
 /** Orden på ett trappsteg, för den som ska beskriva nivån med exempel. */

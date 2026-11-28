@@ -119,7 +119,9 @@ export class BreakDeck {
     }
     this.fetching = true;
     const began = Date.now();
-    this.ask(key, breakRequestText(profile))
+    const request = breakRequestText(profile);
+    this.tracker.log('break.ask', { request });
+    this.ask(key, request)
       .then((reply) => {
         const now = this.profiles.profile;
         this.written = breaksFromReply(reply, now?.breaks ?? []);

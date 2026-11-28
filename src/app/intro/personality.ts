@@ -31,6 +31,8 @@ export interface Trait {
    * till oavsett.
    */
   keyed: 1 | -1;
+  /** Vad draget är, för den som ska skriva ett eget påstående om det. */
+  means: string;
   /** Vad modellen får veta när draget är starkt, och när dess motsats är det. */
   high: string;
   low: string;
@@ -43,6 +45,7 @@ export interface Trait {
 export const TRAITS: readonly Trait[] = [
   {
     id: 'challenge',
+    means: 'Om eleven vill ha motstånd, eller hellre vill känna att det går.',
     text: 'Det får gärna vara svårt, bara det inte är tråkigt',
     keyed: 1,
     high: 'Vill ha motstånd. Lägg hellre orden för svårt än för lätt — ett ord eleven redan kan är ett slösat kort.',
@@ -52,6 +55,7 @@ export const TRAITS: readonly Trait[] = [
   },
   {
     id: 'playful',
+    means: 'Om eleven gillar ordlek, udda och roliga ord, eller vill ha raka ord.',
     text: 'Jag gillar ordvitsar och konstiga ord',
     keyed: 1,
     high: 'Gillar ordlek och udda ord. Ta gärna med ett par glosor som är roliga i sig, eller ett idiom.',
@@ -61,6 +65,7 @@ export const TRAITS: readonly Trait[] = [
   },
   {
     id: 'practical',
+    means: 'Om eleven vill ha ord att använda direkt, eller lockas av ovanliga ord.',
     text: 'Jag vill kunna använda orden direkt',
     keyed: 1,
     high: 'Vill ha ord att använda direkt: vardagliga och användbara före ovanliga.',
@@ -70,6 +75,7 @@ export const TRAITS: readonly Trait[] = [
   },
   {
     id: 'persistent',
+    means: 'Om eleven ger sig inte i första taget, eller tröttnar när det tar emot.',
     text: 'Jag tröttnar fort om jag inte kan',
     keyed: -1,
     high: 'Ger sig inte i första taget.',
@@ -79,6 +85,7 @@ export const TRAITS: readonly Trait[] = [
   },
   {
     id: 'careful',
+    means: 'Om eleven hellre säger vet ej än chansar, eller hellre chansar.',
     text: 'Jag chansar hellre än säger att jag inte vet',
     keyed: -1,
     high: 'Säger hellre vet ej än chansar.',
@@ -94,11 +101,15 @@ export function trait(id: TraitId): Trait {
 }
 
 /** Vad ett svep på dragets påstående säger om draget. */
-export function saidOf(id: TraitId, response: 'affirm' | 'deny' | 'unsure'): Said {
+export function saidOf(
+  id: TraitId,
+  response: 'affirm' | 'deny' | 'unsure',
+  /** Åt vilket håll påståendet var vänt, om det inte är dragets eget. Se `intro-writing.ts`. */
+  keyed: 1 | -1 = trait(id).keyed,
+): Said {
   if (response === 'unsure') {
     return 0;
   }
-  const keyed = trait(id).keyed;
   return (response === 'affirm' ? keyed : -keyed) as Said;
 }
 

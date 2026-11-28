@@ -36,7 +36,7 @@ import { Tracker } from '../services/tracker';
 import { ProfileStore } from '../services/profile-store';
 import { BREAK_AT, BreakDeck } from '../services/break-deck';
 import { Break } from '../intro/breaks';
-import { skillOf } from '../intro/skill';
+import { skillOf, warmupFor } from '../intro/skill';
 
 /** Så många flyttade håll som skrivs ut under slutkortet. */
 const ADVANCED_SHOWN = 4;
@@ -108,7 +108,14 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   start(): void {
-    this.session = new TrainingSession(this.engine, this.library.words, this.list.words);
+    this.session = new TrainingSession(
+      this.engine,
+      this.library.words,
+      this.list.words,
+      Math.random,
+      Date.now(),
+      warmupFor(this.profiles.profile) ?? undefined,
+    );
     this.summary = null;
     this.record = false;
     this.ending = null;

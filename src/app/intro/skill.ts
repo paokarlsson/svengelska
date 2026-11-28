@@ -16,7 +16,8 @@
  *
  * Allt här är rent. Anteckningarna görs av `ProfileStore.noteRound()`.
  */
-import { wordsOnStep } from './intro-run';
+import { WordPair } from '../words/word-catalog';
+import { warmupWords, wordsOnStep } from './intro-run';
 import { Profile, RoundNote, TOP_LEVEL } from './profile';
 
 /** Nya kort ett varv behöver för att säga något om nivån. Ett varv med tio nya ord har tjugo. */
@@ -104,6 +105,21 @@ function levelText(level: number): string {
 
 function quoted(words: readonly string[]): string {
   return words.map((word) => `«${word}»`).join(' och ');
+}
+
+/**
+ * Uppvärmningsorden för den här eleven, eller `null` för mätstickan i
+ * `calibration.ts`.
+ *
+ * Bara nivå som är *prövad*: provets, eller den lägre nivå varven flyttat ner
+ * den till. En nivå som varven flyttat upp har inga ord som eleven bevisligen
+ * kan, bara ord hen klarade på första försöket i en lista.
+ */
+export function warmupFor(profile: Profile | null): WordPair[] | null {
+  if (profile === null || profile.level === null) {
+    return null;
+  }
+  return warmupWords(Math.min(profile.level, skillOf(profile) ?? profile.level));
 }
 
 /**
